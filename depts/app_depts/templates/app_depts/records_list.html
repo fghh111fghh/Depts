@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Список моих долгов{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="page-title">Мои финансовые обязательства</h1>
+
+    <div class="summary-banner">
+        <div class="summary-item">
+            <span class="summary-label">Сумма активных долгов:</span>
+            <span class="summary-value">{{ total_unpaid_amount }} руб.</span>
+        </div>
+    </div>
+
+    <div class="sort-controls">
+        <span class="sort-label">Сортировать:</span>
+        <div class="sort-buttons">
+            <a href="?sort=name" class="sort-btn {% if current_sort == 'name' %}active{% endif %}">По кредитору</a>
+            <a href="?sort=amount" class="sort-btn {% if current_sort == 'amount' %}active{% endif %}">По сумме</a>
+            <a href="?sort=end_date" class="sort-btn {% if current_sort == 'end_date' %}active{% endif %}">По дате окончания</a>
+            <a href="?" class="sort-btn {% if not current_sort %}active{% endif %}">Сброс</a>
+        </div>
+    </div>
+
+    <div class="records-grid">
+        {% for record in records %}
+            <div class="record-card {% if record.is_paid %}paid{% else %}unpaid{% endif %}">
+                <div class="card-header">
+                    <h3>{{ record.name }}</h3>
+                </div>
+                <div class="card-body">
+                    <p>Кредитор: <strong>{{ record.creditor.name }}</strong></p>
+                    <p>Сумма: <strong>{{ record.amount }} руб.</strong></p>
+                    <p>Срок до: {{ record.end_date|date:"d.m.Y"|default:"не указан" }}</p>
+                </div>
+                <div class="card-footer">
+                     <a href="{{ record.get_absolute_url }}" class="details-btn">Подробнее</a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
