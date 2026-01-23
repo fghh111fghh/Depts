@@ -1,0 +1,54 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <title>{% block title %}Контроль долгов{% endblock %} | DeptsControl</title>
+
+    <meta name="description" content="{% block description %}Система мониторинга и анализа финансовых обязательств{% endblock %}">
+
+    <link rel="stylesheet" href="{% static 'app_depts/css/styles.css' %}">
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <header>
+        <nav class="nav-container">
+            <a href="/" class="logo">
+                <span class="logo-accent">Depts</span>Control
+            </a>
+            <ul class="nav-menu">
+                <li><a href="/" class="nav-link">Главная</a></li>
+                <li><a href="/admin/" class="nav-link admin-link">Админ-панель</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-info">
+                <p class="copyright">&copy; 2026 <strong>DeptsControl</strong></p>
+                <p class="tagline">Интеллектуальный анализ финансовых потоков</p>
+            </div>
+            <hr class="footer-line">
+            <div class="footer-bottom">
+                <p>Система контроля дебиторской задолженности. Данные защищены локально.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{% static 'app_depts/js/main.js' %}"></script>
+
+    {% block extra_js %}{% endblock %}
+
+</body>
+</html>
