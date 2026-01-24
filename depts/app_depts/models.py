@@ -109,8 +109,8 @@ class Record(BaseEntity):
             raise ValidationError({'end_date': "Дата закрытия не может быть раньше открытия."})
 
         if self.pk:
-            orig = Record.objects.get(pk=self.pk)
-            if orig.creditor != self.creditor and self.transactions.exists():
+            orig = Record.objects.filter(pk=self.pk).first()
+            if orig and orig.creditor != self.creditor and self.transactions.exists():
                 raise ValidationError({'creditor': "Нельзя менять кредитора, если по долгу уже есть транзакции."})
 
             first_tr = self.transactions.order_by('date').first()
@@ -118,12 +118,14 @@ class Record(BaseEntity):
                 raise ValidationError({'start_date': f"Уже есть транзакции от {first_tr.date}."})
 
     def update_status(self):
-        """Безопасный пересчет статуса закрытия долга без бесконечной рекурсии"""
-        accrued = self.total_accrued
-        new_status = accrued > 0 and self.balance <= 0
+        """Метод защищен от None при сравнении"""
+        accrued = float(self.total_accrued or 0)
+        balance = float(self.balance or 0)
+
+        # Сравнение только с числами float, чтобы избежать TypeError
+        new_status = accrued > 0 and balance <= 0
 
         if self.is_paid != new_status:
-            # Обновляем напрямую в БД, чтобы не вызывать перегруженный save()
             Record.objects.filter(pk=self.pk).update(is_paid=new_status)
             self.is_paid = new_status
 
@@ -144,7 +146,8 @@ class Record(BaseEntity):
             base=Sum('amount', filter=Q(type__in=accrual_types)),
             corr=Sum('amount', filter=Q(type=TransactionType.CORRECTION, amount__gt=0))
         )
-        return round((data['base'] or 0) + (data['corr'] or 0), 2)
+        # Применяем float() и or 0 ко всем слагаемым
+        return round(float(data['base'] or 0) + float(data['corr'] or 0), 2)
 
     @property
     def total_paid(self):
@@ -153,17 +156,17 @@ class Record(BaseEntity):
             base=Sum('amount', filter=Q(type__in=pay_types)),
             corr=Sum('amount', filter=Q(type=TransactionType.CORRECTION, amount__lt=0))
         )
-        return round((data['base'] or 0) + abs(data['corr'] or 0), 2)
+        return round(float(data['base'] or 0) + abs(float(data['corr'] or 0)), 2)
 
     @property
     def balance(self):
-        return round(self.total_accrued - self.total_paid, 2)
+        return round(float(self.total_accrued or 0) - float(self.total_paid or 0), 2)
 
     @property
     def progress_percent(self):
-        accrued = self.total_accrued
+        accrued = float(self.total_accrued or 0)
         if accrued <= 0: return 0
-        return round(min((self.total_paid / accrued) * 100, 100), 1)
+        return round(min((float(self.total_paid or 0) / accrued) * 100, 100), 1)
 
 
 class Transaction(models.Model):
@@ -179,7 +182,10 @@ class Transaction(models.Model):
         ordering = ['-date', '-id']
 
     def clean(self):
-        if self.type != TransactionType.CORRECTION and self.amount <= 0:
+        # Ошибка со скриншота исправлена здесь: добавлена проверка на None перед сравнением <= 0
+        current_amount = self.amount or 0
+
+        if self.type != TransactionType.CORRECTION and current_amount <= 0:
             raise ValidationError({'amount': "Сумма должна быть положительной."})
 
         if self.record_id and self.date < self.record.start_date:
@@ -188,7 +194,8 @@ class Transaction(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
-        self.record.update_status()
+        if self.record:
+            self.record.update_status()
 
     def __str__(self):
         return f"{self.date} | {self.get_type_display()} | {self.amount} р."
@@ -198,6 +205,5 @@ class Transaction(models.Model):
 
 @receiver(post_delete, sender=Transaction)
 def auto_update_record_status(sender, instance, **kwargs):
-    """Срабатывает при любом удалении транзакции, включая массовое через QuerySet"""
     if instance.record:
         instance.record.update_status()
