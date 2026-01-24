@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Детали: {{ record.name }}{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 30px;">
+    <a href="{% url 'app_depts:records_list' %}" style="text-decoration: none; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; display: inline-block;">
+        <i class="fa-solid fa-arrow-left"></i> Назад к списку
+    </a>
+
+    <div class="app-module-card" style="display: block; padding: 40px; margin-bottom: 40px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px;">
+            <div>
+                <h1 style="margin: 0; font-size: 2.2rem;">{{ record.name }}</h1>
+                <p style="font-size: 1.2rem; color: var(--text-muted);">Кредитор: <strong>{{ record.creditor.name }}</strong></p>
+                <span class="card-status {% if record.is_paid %}active{% else %}coming-soon{% endif %}">
+                    {% if record.is_paid %}ЗАКРЫТ{% else %}В ПРОЦЕССЕ ВЫПЛАТЫ{% endif %}
+                </span>
+            </div>
+            
+            <div style="text-align: right; min-width: 200px;">
+                <span style="display: block; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Текущий остаток:</span>
+                <span style="font-size: 2.5rem; font-weight: 800; color: var(--dark-bg);">{{ record.balance }} ₽</span>
+            </div>
+        </div>
+
+        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 30px;">
+            <div>
+                <p style="margin: 0; color: var(--text-muted); font-size: 0.8rem;">Дата открытия:</p>
+                <p style="font-weight: bold;">{{ record.start_date|date:"d.m.Y" }}</p>
+            </div>
+            <div>
+                <p style="margin: 0; color: var(--text-muted); font-size: 0.8rem;">Плановое закрытие:</p>
+                <p style="font-weight: bold;">{{ record.end_date|date:"d.m.Y"|default:"не указано" }}</p>
+            </div>
+            <div>
+                <p style="margin: 0; color: var(--text-muted); font-size: 0.8rem;">Прогресс погашения:</p>
+                <p style="font-weight: bold; color: var(--primary-color);">{{ record.progress_percent|floatformat:1 }}%</p>
+            </div>
+        </div>
+    </div>
+
+    <h2 style="margin-bottom: 20px;">История транзакций</h2>
+    <div style="background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="background: #f8f9fa; border-bottom: 2px solid #eee;">
+                    <th style="padding: 15px 20px; font-size: 0.8rem; color: var(--text-muted);">ДАТА</th>
+                    <th style="padding: 15px 20px; font-size: 0.8rem; color: var(--text-muted);">ТИП</th>
+                    <th style="padding: 15px 20px; font-size: 0.8rem; color: var(--text-muted); text-align: right;">СУММА</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in transactions %}
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 15px 20px;">{{ tx.date|date:"d.m.Y" }}</td>
+                    <td style="padding: 15px 20px;">
+                        <span style="font-size: 0.8rem; font-weight: bold;">{{ tx.get_type_display }}</span>
+                    </td>
+                    <td style="padding: 15px 20px; text-align: right; font-weight: bold; 
+                               color: {% if tx.type == 'PAYMENT' or tx.type == 'WRITE_OFF' %}#2ecc71{% else %}#e74c3c{% endif %};">
+                        {% if tx.type == 'PAYMENT' or tx.type == 'WRITE_OFF' %}-{% else %}+{% endif %}{{ tx.amount }} ₽
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" style="padding: 30px; text-align: center; color: var(--text-muted);">Транзакций пока нет</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
