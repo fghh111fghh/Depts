@@ -7,9 +7,12 @@ from .models import SRO, Creditor, Record, Transaction
 
 class TransactionInline(admin.TabularInline):
     model = Transaction
-    extra = 1
+    extra = 1  # Количество пустых строк для новых транзакций
     fields = ('date', 'type', 'amount', 'comment')
-    ordering = ('-date',)
+    # Удобная сортировка: новые транзакции будут сверху списка внутри долга
+    ordering = ('-date', '-id')
+    # Чтобы случайно не удалить важную транзакцию при быстром редактировании
+    show_change_link = True
 
 
 # --- Настройка Кредиторов ---
@@ -37,8 +40,13 @@ class RecordAdmin(admin.ModelAdmin):
     )
     list_filter = ('is_paid', 'loan_type', 'creditor__creditor_type', 'creditor')
     search_fields = ('name', 'creditor__name')
-    readonly_fields = ('display_full_balance', 'display_progress_bar')
+    # Добавляем инлайны сюда!
     inlines = [TransactionInline]
+
+    # Автоматическое создание slug на основе имени и кредитора в админке не всегда удобно,
+    # так как модель сама делает это в save() с использованием time.time().
+    # Поэтому поле slug лучше оставить только для чтения или скрыть.
+    readonly_fields = ('display_full_balance', 'display_progress_bar', 'slug')
 
     fieldsets = (
         ('Основная информация', {
@@ -63,15 +71,15 @@ class RecordAdmin(admin.ModelAdmin):
         )
 
     display_balance.short_description = "Остаток"
-    display_balance.admin_order_field = 'is_paid'  # Сортировка по статусу
 
     # --- Прогресс-бар в списке ---
     def display_progress(self, obj):
         percent = obj.progress_percent
-        color = "#28a745" if percent == 100 else "#007bff"
+        # Зеленый если закрыт, оранжевый если процесс идет
+        color = "#28a745" if percent >= 100 else "#ff9f43"
         return format_html(
             '''
-            <div style="width: 100px; background: #eee; border-radius: 4px; overflow: hidden;">
+            <div style="width: 100px; background: #eee; border-radius: 4px; overflow: hidden; border: 1px solid #ccc;">
                 <div style="width: {}px; background: {}; height: 12px;"></div>
             </div>
             <small>{}%</small>
@@ -84,19 +92,23 @@ class RecordAdmin(admin.ModelAdmin):
     # --- Детальный баланс в карточке ---
     def display_full_balance(self, obj):
         return format_html(
-            "Начислено: <b>{} р.</b> | Выплачено: <b>{} р.</b> | Остаток: <b style='color:red;'>{} р.</b>",
+            "<span style='font-size: 1.1em;'>"
+            "Начислено: <b style='color:#2c3e50;'>{} р.</b> | "
+            "Выплачено: <b style='color:#27ae60;'>{} р.</b> | "
+            "Остаток: <b style='color:#e74c3c;'>{} р.</b>"
+            "</span>",
             obj.total_accrued, obj.total_paid, obj.balance
         )
 
     display_full_balance.short_description = "Сводка по счетам"
 
     def display_progress_bar(self, obj):
-        return format_html("Текущий прогресс погашения: <b>{}%</b>", obj.progress_percent)
+        return format_html("Текущий уровень погашения: <b>{}%</b>", obj.progress_percent)
 
     display_progress_bar.short_description = "Прогресс (текст)"
 
 
-# --- Настройка Транзакций (как отдельный лог) ---
+# --- Настройка Транзакций ---
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
@@ -104,14 +116,21 @@ class TransactionAdmin(admin.ModelAdmin):
     list_filter = ('type', 'date', 'record__creditor')
     search_fields = ('record__name', 'comment')
     date_hierarchy = 'date'
+    # Чтобы удобно было выбирать долг, если транзакций много
+    autocomplete_fields = ['record']
 
     def display_amount(self, obj):
-        color = "red" if obj.type in ['ACCRUAL', 'INTEREST', 'PENALTY'] else "green"
-        prefix = "+" if color == "red" else "-"
+        # Красный для начислений (увеличивают долг), зеленый для оплат (уменьшают)
+        is_accrual = obj.type in ['ACCRUAL', 'INTEREST', 'PENALTY']
+        color = "#e74c3c" if is_accrual else "#27ae60"
+        prefix = "+" if is_accrual else "-"
         return format_html('<b style="color: {};">{}{} р.</b>', color, prefix, obj.amount)
 
     display_amount.short_description = "Сумма"
 
 
-# Простая регистрация СРО
-admin.site.register(SRO)
+# Регистрация СРО
+@admin.register(SRO)
+class SROAdmin(admin.ModelAdmin):
+    list_display = ('name', 'time_create')
+    prepopulated_fields = {"slug": ("name",)}
