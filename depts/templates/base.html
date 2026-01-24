@@ -4,51 +4,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-
-    <title>{% block title %}Контроль долгов{% endblock %} | DeptsControl</title>
-
-    <meta name="description" content="{% block description %}Система мониторинга и анализа финансовых обязательств{% endblock %}">
-
+    <title>{% block title %}Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'app_depts/css/styles.css' %}">
-
-    {% block extra_css %}{% endblock %}
 </head>
 <body>
-
-    <header>
-        <nav class="nav-container">
-            <a href="/" class="logo">
-                <span class="logo-accent">Depts</span>Control
+    <header class="main-header">
+        <nav class="container nav-flex">
+            <a href="/" class="header-logo">
+                <i class="fa-solid fa-gauge-high"></i> <span>DASHBOARD</span>
             </a>
+
             <ul class="nav-menu">
-                <li><a href="/" class="nav-link">Главная</a></li>
-                <li><a href="/admin/" class="nav-link admin-link">Админ-панель</a></li>
-            </ul>
+                <li>
+                    <a href="{% url 'app_depts:records_list' %}" class="nav-link-two-lines active">
+                        Финансовые<br>обязательства
+                    </a>
+                </li>
+                </ul>
+
+            <div class="header-admin">
+                <a href="/admin/" class="admin-button">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span>АДМИН</span>
+                </a>
+            </div>
         </nav>
     </header>
 
-    <main>
-        {% block content %}
-        {% endblock %}
+    <main class="main-content">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
     </main>
 
-    <footer>
-        <div class="footer-content">
-            <div class="footer-info">
-                <p class="copyright">&copy; 2026 <strong>DeptsControl</strong></p>
-                <p class="tagline">Интеллектуальный анализ финансовых потоков</p>
-            </div>
-            <hr class="footer-line">
-            <div class="footer-bottom">
-                <p>Система контроля дебиторской задолженности. Данные защищены локально.</p>
-            </div>
+    <footer class="main-footer">
+        <div class="container">
+            <p>&copy; 2026 Личная система управления</p>
         </div>
     </footer>
-
-    <script src="{% static 'app_depts/js/main.js' %}"></script>
-
-    {% block extra_js %}{% endblock %}
-
 </body>
 </html>

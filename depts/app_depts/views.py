@@ -1,6 +1,6 @@
+from django.db.models import Sum, Q
 from django.views.generic import ListView
-from django.db.models import Sum
-from .models import Record
+from .models import Record, TransactionType
 
 
 class RecordsListView(ListView):
@@ -9,29 +9,37 @@ class RecordsListView(ListView):
     context_object_name = 'records'
 
     def get_queryset(self):
-        # Получаем параметр сортировки из URL, по умолчанию 'is_paid' (сначала долги)
+        # Получаем тип сортировки из URL
         sort_by = self.request.GET.get('sort', 'is_paid')
 
-        # Базовая выборка с оптимизацией
-        queryset = Record.objects.select_related('creditor')
+        # Аннотируем сумму для сортировки по "Сумме"
+        queryset = Record.objects.select_related('creditor').annotate(
+            total_debt_amount=Sum(
+                'transactions__amount',
+                filter=Q(transactions__type__in=[
+                    TransactionType.ACCRUAL,
+                    TransactionType.INTEREST,
+                    TransactionType.PENALTY
+                ])
+            )
+        )
 
-        # Логика сортировки
-        if sort_by == 'end_date':
-            return queryset.order_by('is_paid', 'end_date')  # По дате окончания
-        elif sort_by == 'amount':
-            return queryset.order_by('is_paid', '-amount')  # По сумме (от большей)
+        if sort_by == 'amount':
+            return queryset.order_by('is_paid', '-total_debt_amount')
+        elif sort_by == 'end_date':
+            return queryset.order_by('is_paid', 'end_date')
         elif sort_by == 'name':
-            return queryset.order_by('is_paid', 'creditor__name')  # По алфавиту кредитора
+            return queryset.order_by('is_paid', 'creditor__name')
 
-        # Сортировка по умолчанию
+        # По умолчанию: сначала активные, затем по дате старта
         return queryset.order_by('is_paid', '-start_date')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Сохраняем общую сумму
-        total_unpaid = Record.objects.filter(is_paid=False).aggregate(Sum('amount'))['amount__sum'] or 0
-        context['total_unpaid_amount'] = total_unpaid
+        # Считаем остаток по всем открытым долгам для шапки
+        active_records = Record.objects.filter(is_paid=False)
+        total_balance = sum(r.balance for r in active_records)
 
-        # Передаем текущую сортировку в шаблон, чтобы подсветить активную кнопку
+        context['total_unpaid_amount'] = round(total_balance, 2)
         context['current_sort'] = self.request.GET.get('sort', '')
         return context
