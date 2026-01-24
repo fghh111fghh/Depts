@@ -1,110 +1,117 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from django.db.models import QuerySet
-from typing import Any
-from .models import SRO, Creditor, Record
-
-# --- Настройки заголовков ---
-admin.site.site_header = "Панель управления долгами"
-admin.site.site_title = "Контроль Дебиторки"
-admin.site.index_title = "Добро пожаловать в базу данных"
+from .models import SRO, Creditor, Record, Transaction
 
 
-# --- Инлайны ---
+# --- Инлайны (Транзакции внутри Долга) ---
 
-class RecordInline(admin.TabularInline):
-    """Позволяет редактировать записи долгов прямо на странице Кредитора."""
-    model = Record
+class TransactionInline(admin.TabularInline):
+    model = Transaction
     extra = 1
-    fields = ('name', 'amount', 'start_date', 'end_date', 'is_paid')
-    show_change_link = True
+    fields = ('date', 'type', 'amount', 'comment')
+    ordering = ('-date',)
 
 
-# --- Базовый класс для подключения маски телефона ---
-
-class BaseOrganizationAdmin(admin.ModelAdmin):
-    """
-    Базовый класс для СРО и Кредиторов.
-    Подключает только наш локальный скрипт маски.
-    """
-    prepopulated_fields = {'slug': ('name',)}
-
-    class Media:
-        # Теперь здесь только наш файл, без внешних библиотек
-        js = ('app_depts/js/phone_mask.js',)
-
-
-# --- Основные классы админки ---
-
-@admin.register(SRO)
-class SROAdmin(BaseOrganizationAdmin):
-    list_display = ('name', 'is_active', 'time_create', 'count_creditors')
-    list_editable = ('is_active',)
-    search_fields = ('name',)
-
-    def count_creditors(self, obj: SRO) -> int:
-        return obj.creditors.count()
-
-    count_creditors.short_description = "Кол-во кредиторов"
-
+# --- Настройка Кредиторов ---
 
 @admin.register(Creditor)
-class CreditorAdmin(BaseOrganizationAdmin):
-    list_display = ('name', 'sro', 'is_active', 'website_link', 'total_debt')
-    list_filter = ('sro', 'is_active')
-    search_fields = ('name', 'note')
-    inlines = [RecordInline]
+class CreditorAdmin(admin.ModelAdmin):
+    list_display = ('name', 'creditor_type', 'sro', 'phone', 'get_records_count')
+    list_filter = ('creditor_type', 'sro')
+    search_fields = ('name', 'phone')
+    prepopulated_fields = {"slug": ("name",)}
 
-    def website_link(self, obj: Creditor) -> Any:
-        if obj.website:
-            return format_html('<a href="{0}" target="_blank">{0}</a>', obj.website)
-        return "-"
+    def get_records_count(self, obj):
+        return obj.records.count()
 
-    website_link.short_description = "Сайт"
+    get_records_count.short_description = "Кол-во долгов"
 
-    def total_debt(self, obj: Creditor) -> str:
-        # Считаем только активные (неоплаченные) долги
-        total = sum(r.amount for r in obj.records.filter(is_paid=False))
-        return f"{total} руб."
 
-    total_debt.short_description = "Долг (актив)"
-
+# --- Настройка Записей Долгов (Центральная часть) ---
 
 @admin.register(Record)
 class RecordAdmin(admin.ModelAdmin):
     list_display = (
-        'name',
-        'creditor',
-        'amount',
-        'start_date',
-        'end_date',
-        'is_paid',
-        'colored_status'
+        'name', 'creditor', 'display_balance',
+        'display_progress', 'start_date', 'is_paid'
     )
-    list_editable = ('is_paid',)
-    list_filter = ('is_paid', 'creditor', 'start_date')
-    search_fields = ('name', 'creditor__name', 'note')
-    prepopulated_fields = {'slug': ('name',)}
+    list_filter = ('is_paid', 'loan_type', 'creditor__creditor_type', 'creditor')
+    search_fields = ('name', 'creditor__name')
+    readonly_fields = ('display_full_balance', 'display_progress_bar')
+    inlines = [TransactionInline]
 
     fieldsets = (
         ('Основная информация', {
-            'fields': ('name', 'creditor', 'amount', 'is_paid')
+            'fields': (('name', 'slug'), ('creditor', 'loan_type'), ('start_date', 'end_date'), 'is_paid')
         }),
-        ('Даты и сроки', {
-            'fields': ('start_date', 'end_date', 'slug')
+        ('Финансовое состояние', {
+            'fields': ('display_full_balance', 'display_progress_bar'),
         }),
         ('Дополнительно', {
             'classes': ('collapse',),
-            'fields': ('note', 'is_active'),
+            'fields': ('note',),
         }),
     )
 
-    def colored_status(self, obj: Record) -> Any:
-        if obj.is_paid:
-            return format_html('<b style="color: #28a745;">✅ Оплачен</b>')
-        return format_html('<b style="color: #dc3545;">❌ Активен</b>')
+    # --- Красивое отображение баланса в списке ---
+    def display_balance(self, obj):
+        balance = obj.balance
+        color = "green" if balance <= 0 else "red"
+        return format_html(
+            '<b style="color: {};">{} р.</b>',
+            color, balance
+        )
 
-    colored_status.short_description = "Статус"
+    display_balance.short_description = "Остаток"
+    display_balance.admin_order_field = 'is_paid'  # Сортировка по статусу
 
-    def get_queryset(self, request: Any) -> QuerySet:
-        return super().get_queryset(request).select_related('creditor')
+    # --- Прогресс-бар в списке ---
+    def display_progress(self, obj):
+        percent = obj.progress_percent
+        color = "#28a745" if percent == 100 else "#007bff"
+        return format_html(
+            '''
+            <div style="width: 100px; background: #eee; border-radius: 4px; overflow: hidden;">
+                <div style="width: {}px; background: {}; height: 12px;"></div>
+            </div>
+            <small>{}%</small>
+            ''',
+            percent, color, percent
+        )
+
+    display_progress.short_description = "Прогресс"
+
+    # --- Детальный баланс в карточке ---
+    def display_full_balance(self, obj):
+        return format_html(
+            "Начислено: <b>{} р.</b> | Выплачено: <b>{} р.</b> | Остаток: <b style='color:red;'>{} р.</b>",
+            obj.total_accrued, obj.total_paid, obj.balance
+        )
+
+    display_full_balance.short_description = "Сводка по счетам"
+
+    def display_progress_bar(self, obj):
+        return format_html("Текущий прогресс погашения: <b>{}%</b>", obj.progress_percent)
+
+    display_progress_bar.short_description = "Прогресс (текст)"
+
+
+# --- Настройка Транзакций (как отдельный лог) ---
+
+@admin.register(Transaction)
+class TransactionAdmin(admin.ModelAdmin):
+    list_display = ('date', 'record', 'type', 'display_amount', 'comment')
+    list_filter = ('type', 'date', 'record__creditor')
+    search_fields = ('record__name', 'comment')
+    date_hierarchy = 'date'
+
+    def display_amount(self, obj):
+        color = "red" if obj.type in ['ACCRUAL', 'INTEREST', 'PENALTY'] else "green"
+        prefix = "+" if color == "red" else "-"
+        return format_html('<b style="color: {};">{}{} р.</b>', color, prefix, obj.amount)
+
+    display_amount.short_description = "Сумма"
+
+
+# Простая регистрация СРО
+admin.site.register(SRO)

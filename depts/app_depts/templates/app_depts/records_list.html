@@ -1,41 +1,65 @@
 {% extends 'base.html' %}
 
-{% block title %}Список моих долгов{% endblock %}
+{% block title %}Финансовые обязательства{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1 class="page-title">Мои финансовые обязательства</h1>
+<div class="dashboard-welcome" style="padding: 20px 0;">
+    <div class="welcome-header">
+        <h1 style="font-size: 2.8rem; margin-bottom: 10px;">Мои финансовые обязательства</h1>
+        <p style="font-size: 1.2rem;">Сумма к выплате: <strong style="color: var(--primary-color);">{{ total_unpaid_amount }} руб.</strong></p>
+    </div>
 
-    <div class="summary-banner">
-        <div class="summary-item">
-            <span class="summary-label">Сумма активных долгов:</span>
-            <span class="summary-value">{{ total_unpaid_amount }} руб.</span>
+    <div style="text-align: center; margin-bottom: 40px;">
+        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Сортировать:</span>
+        <div style="display: inline-flex; gap: 15px; margin-left: 20px;">
+            <a href="?sort=name" style="text-decoration: none; font-size: 0.8rem; font-weight: bold; color: {% if current_sort == 'name' %}var(--primary-color){% else %}var(--text-muted){% endif %};">ПО КРЕДИТОРУ</a>
+            <a href="?sort=amount" style="text-decoration: none; font-size: 0.8rem; font-weight: bold; color: {% if current_sort == 'amount' %}var(--primary-color){% else %}var(--text-muted){% endif %};">ПО СУММЕ</a>
+            <a href="?sort=end_date" style="text-decoration: none; font-size: 0.8rem; font-weight: bold; color: {% if current_sort == 'end_date' %}var(--primary-color){% else %}var(--text-muted){% endif %};">ПО СРОКУ</a>
+            <a href="?" style="text-decoration: none; font-size: 0.8rem; color: #e74c3c; margin-left: 10px;">СБРОС</a>
         </div>
     </div>
 
-    <div class="sort-controls">
-        <span class="sort-label">Сортировать:</span>
-        <div class="sort-buttons">
-            <a href="?sort=name" class="sort-btn {% if current_sort == 'name' %}active{% endif %}">По кредитору</a>
-            <a href="?sort=amount" class="sort-btn {% if current_sort == 'amount' %}active{% endif %}">По сумме</a>
-            <a href="?sort=end_date" class="sort-btn {% if current_sort == 'end_date' %}active{% endif %}">По дате окончания</a>
-            <a href="?" class="sort-btn {% if not current_sort %}active{% endif %}">Сброс</a>
-        </div>
-    </div>
-
-    <div class="records-grid">
+    <div class="apps-container">
         {% for record in records %}
-            <div class="record-card {% if record.is_paid %}paid{% else %}unpaid{% endif %}">
-                <div class="card-header">
-                    <h3>{{ record.name }}</h3>
+            <div class="app-module-card {% if record.is_paid %}disabled{% endif %}" style="padding: 30px 25px;">
+                <div class="card-icon" style="font-size: 3.5rem; margin-bottom: 15px;">
+                    <i class="fa-solid {% if record.is_paid %}fa-circle-check{% else %}fa-file-invoice-dollar{% endif %}"></i>
                 </div>
-                <div class="card-body">
-                    <p>Кредитор: <strong>{{ record.creditor.name }}</strong></p>
-                    <p>Сумма: <strong>{{ record.amount }} руб.</strong></p>
-                    <p>Срок до: {{ record.end_date|date:"d.m.Y"|default:"не указан" }}</p>
+                <div class="card-body" style="text-align: center; width: 100%;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 1.4rem; font-weight: 700;">{{ record.name }}</h3>
+                    <p style="font-size: 1rem; color: var(--text-muted); margin-bottom: 25px;">{{ record.creditor.name }}</p>
+
+                    <div style="margin-bottom: 25px;">
+                        <span style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">Остаток долга</span>
+                        <span style="font-size: 2rem; font-weight: 800; color: var(--dark-bg); letter-spacing: -1px;">{{ record.balance }} <small style="font-size: 1rem;">₽</small></span>
+                    </div>
+
+                    <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 15px;">
+                        {% if record.end_date %}
+                            <span>Срок до: <strong>{{ record.end_date|date:"d.m.Y" }}</strong></span>
+                        {% else %}
+                            <span>Срок: <strong>не указан</strong></span>
+                        {% endif %}
+                    </div>
+
+                    <div class="progress-container" style="width: 100%; background: #eee; height: 10px; border-radius: 10px; margin: 10px 0; overflow: hidden; border: 1px solid #e0e0e0;">
+                        <div class="progress-bar"
+                             style="width: {{ record.progress_percent|floatformat:0 }}%;
+                                    background: var(--primary-color);
+                                    height: 100%;
+                                    transition: width 0.8s cubic-bezier(0.1, 0.7, 1.0, 0.1);">
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 800; color: var(--primary-color);">
+                        <span>ВЫПЛАЧЕНО</span>
+                        <span>{{ record.progress_percent|floatformat:0 }}%</span>
+                    </div>
                 </div>
-                <div class="card-footer">
-                     <a href="{{ record.get_absolute_url }}" class="details-btn">Подробнее</a>
+
+                <div style="margin-top: 30px;">
+                    <span class="card-status {% if record.is_paid %}active{% else %}coming-soon{% endif %}" style="padding: 8px 25px; font-size: 0.8rem; letter-spacing: 1px;">
+                        {% if record.is_paid %}ЗАКРЫТ{% else %}В ПРОЦЕССЕ{% endif %}
+                    </span>
                 </div>
             </div>
         {% endfor %}

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная | Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-welcome">
+    <div class="welcome-header">
+        <h1>Личная экосистема</h1>
+        <p>Центральный пульт управления модулями</p>
+    </div>
+
+    <div class="apps-container">
+        <a href="{% url 'app_depts:records_list' %}" class="app-module-card">
+            <div class="card-icon">
+                <i class="fa-solid fa-wallet"></i>
+            </div>
+            <div class="card-body">
+                <h3>Финансовые обязательства</h3>
+                <p>Учет задолженностей, графики выплат и аналитика долгов.</p>
+                <span class="card-status active">Доступно</span>
+            </div>
+        </a>
+
+        <div class="app-module-card disabled">
+            <div class="card-icon">
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
+            <div class="card-body">
+                <h3>Учет ставок</h3>
+                <p>Анализ спортивных событий и статистика по алгоритму.</p>
+                <span class="card-status coming-soon">В разработке</span>
+            </div>
+        </div>
+
+        <div class="app-module-card disabled">
+            <div class="card-icon">
+                <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+            <div class="card-body">
+                <h3>Складской учет</h3>
+                <p>Инвентаризация, остатки товаров и логистика.</p>
+                <span class="card-status coming-soon">В разработке</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
