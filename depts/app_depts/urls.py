@@ -1,15 +1,37 @@
+"""
+Конфигурация URL для приложения app_depts.
+
+Определяет маршруты для:
+- Списка всех долговых обязательств.
+- Детальной информации по конкретному долгу.
+- Функционала быстрой оплаты через модальное окно.
+"""
+
 from django.urls import path
 from . import views
 
-app_name = 'app_depts'
+# Имя приложения для использования в пространстве имен (namespace)
+app_name: str = 'app_depts'
 
 urlpatterns = [
-    # Главная страница со списком
-    path('', views.RecordsListView.as_view(), name='records_list'),
+    # Главная страница: отображает карточки со списком долгов и фильтрацией
+    path(
+        '',
+        views.RecordsListView.as_view(),
+        name='records_list'
+    ),
 
-    # Страница деталей (DetailView)
-    path('record/<slug:slug>/', views.RecordDetailView.as_view(), name='records_detail'),
+    # Страница деталей: история транзакций и подробная статистика по конкретному slug
+    path(
+        'record/<slug:slug>/',
+        views.RecordDetailView.as_view(),
+        name='records_detail'
+    ),
 
-    # Обработчик быстрой оплаты (функция)
-    path('quick-payment/<slug:slug>/', views.quick_payment, name='quick_payment'),
+    # API-обработчик: выполняет сохранение быстрой оплаты из модального окна
+    path(
+        'quick-payment/<slug:slug>/',
+        views.quick_payment,
+        name='quick_payment'
+    ),
 ]
