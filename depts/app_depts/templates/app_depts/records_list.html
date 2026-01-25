@@ -65,14 +65,15 @@
 
                 <div style="display: flex; gap: 15px; font-size: 0.8rem; font-weight: 800; color: var(--text-muted); align-items: center;">
                     <span>СОРТИРОВАТЬ:</span>
-                    <a href="?sort=name{% if search_query %}&q={{ search_query }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
-                       style="text-decoration: none; padding: 6px 14px; border-radius: 20px; background: {% if current_sort == 'name' %}var(--primary-color){% else %}transparent{% endif %}; color: {% if current_sort == 'name' %}white{% else %}inherit{% endif %}; border: 1px solid {% if current_sort == 'name' %}var(--primary-color){% else %}#eee{% endif %};">ИМЯ</a>
+
+                    <a href="?sort=creditor{% if search_query %}&q={{ search_query }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
+                       style="text-decoration: none; padding: 6px 14px; border-radius: 20px; background: {% if current_sort == 'creditor' %}#2f3542{% else %}transparent{% endif %}; color: {% if current_sort == 'creditor' %}white{% else %}inherit{% endif %}; border: 1px solid #eee;">КРЕДИТОР</a>
 
                     <a href="?sort=amount{% if search_query %}&q={{ search_query }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
-                       style="text-decoration: none; padding: 6px 14px; border-radius: 20px; background: {% if current_sort == 'amount' %}var(--primary-color){% else %}transparent{% endif %}; color: {% if current_sort == 'amount' %}white{% else %}inherit{% endif %}; border: 1px solid {% if current_sort == 'amount' %}var(--primary-color){% else %}#eee{% endif %};">СУММА</a>
+                       style="text-decoration: none; padding: 6px 14px; border-radius: 20px; background: {% if current_sort == 'amount' %}#2f3542{% else %}transparent{% endif %}; color: {% if current_sort == 'amount' %}white{% else %}inherit{% endif %}; border: 1px solid #eee;">СУММА</a>
 
                     <a href="?sort=end_date{% if search_query %}&q={{ search_query }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
-                       style="text-decoration: none; padding: 6px 14px; border-radius: 20px; background: {% if current_sort == 'end_date' %}var(--primary-color){% else %}transparent{% endif %}; color: {% if current_sort == 'end_date' %}white{% else %}inherit{% endif %}; border: 1px solid {% if current_sort == 'end_date' %}var(--primary-color){% else %}#eee{% endif %};">СРОК</a>
+                       style="text-decoration: none; padding: 6px 14px; border-radius: 20px; background: {% if current_sort == 'end_date' %}#2f3542{% else %}transparent{% endif %}; color: {% if current_sort == 'end_date' %}white{% else %}inherit{% endif %}; border: 1px solid #eee;">СРОК</a>
                 </div>
             </div>
 
