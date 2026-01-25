@@ -1,45 +1,48 @@
 from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import ListView, DetailView
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, F, FloatField
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.contrib import messages
-from .models import Record, Transaction, TransactionType, CreditorType
+
+# Импорт твоих моделей
+from .models import Record, Transaction, TransactionType
 
 
 class RecordsListView(ListView):
     model = Record
     template_name = 'app_depts/records_list.html'
     context_object_name = 'records'
-    paginate_by = 6
+    paginate_by = 12
 
     def get_queryset(self):
-        # Получаем параметры из GET-запроса
-        sort_by = self.request.GET.get('sort', 'time_create')
+        # 1. Получаем параметры (одиночная сортировка)
+        sort_param = self.request.GET.get('sort', '')
         search_query = self.request.GET.get('q', '')
         creditor_type = self.request.GET.get('creditor_type', '')
-        # Флаг: показывать ли оплаченные (по умолчанию False)
-        show_paid = self.request.GET.get('show_paid') == '1'
+        show_paid_local = self.request.GET.get('show_paid') == '1'
 
+        accrual_types = [TransactionType.ACCRUAL, TransactionType.INTEREST, TransactionType.PENALTY]
+        payment_types = [TransactionType.PAYMENT, TransactionType.WRITE_OFF]
+
+        # 2. Аннотация баланса для точной сортировки
         queryset = Record.objects.select_related('creditor').annotate(
-            total_debt_amount=Sum(
-                'transactions__amount',
-                filter=Q(transactions__type__in=[
-                    TransactionType.ACCRUAL,
-                    TransactionType.INTEREST,
-                    TransactionType.PENALTY
-                ])
-            )
+            annotated_accrued=Coalesce(
+                Sum('transactions__amount', filter=Q(transactions__type__in=accrual_types)),
+                0.0, output_field=FloatField()
+            ),
+            annotated_payments=Coalesce(
+                Sum('transactions__amount', filter=Q(transactions__type__in=payment_types)),
+                0.0, output_field=FloatField()
+            ),
+            current_debt_balance=F('annotated_accrued') - F('annotated_payments')
         )
 
-        # 1. ЛОГИКА СКРЫТИЯ: если не просим показать все, фильтруем только активные
-        if not show_paid:
+        # 3. Фильтрация
+        if not show_paid_local:
             queryset = queryset.filter(is_paid=False)
-
-        # 2. Фильтрация по типу кредитора
         if creditor_type:
             queryset = queryset.filter(creditor__creditor_type=creditor_type)
-
-        # 3. Поиск
         if search_query:
             queryset = queryset.filter(
                 Q(name__icontains=search_query) |
@@ -47,51 +50,49 @@ class RecordsListView(ListView):
                 Q(note__icontains=search_query)
             )
 
-        # 4. Сортировка
-        if sort_by == 'amount':
-            queryset = queryset.order_by('is_paid', '-total_debt_amount')
-        elif sort_by == 'end_date':
-            queryset = queryset.order_by('is_paid', 'end_date')
-        elif sort_by == 'name':
-            queryset = queryset.order_by('is_paid', 'name')
+        # 4. Одиночная сортировка
+        order_list = ['is_paid']
+        if sort_param == 'creditor':
+            order_list.append('creditor__name')
+        elif sort_param == 'amount':
+            order_list.append('-current_debt_balance')
+        elif sort_param == 'end_date':
+            order_list.append('end_date')
         else:
-            queryset = queryset.order_by('is_paid', '-time_create')
+            order_list.append('-time_create')
 
-        return queryset
+        return queryset.order_by(*order_list)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         today = timezone.now().date()
 
-        # Подсказки для поиска (всегда все записи для автокомплита)
-        context['records_all'] = Record.objects.select_related('creditor').all()
-
-        # ДАННЫЕ ДЛЯ ШАПКИ (считаем только по реальным долгам)
         active_records = Record.objects.filter(is_paid=False)
         total_balance = sum(r.balance for r in active_records)
 
-        # ГЛОБАЛЬНЫЙ ПРОГРЕСС (по всей истории)
-        accrual_types = [TransactionType.ACCRUAL, TransactionType.INTEREST, TransactionType.PENALTY]
-        pay_types = [TransactionType.PAYMENT, TransactionType.WRITE_OFF]
-
+        # Расчет глобального прогресса
         all_tr = Transaction.objects.all()
-        total_accrued = all_tr.filter(type__in=accrual_types).aggregate(Sum('amount'))['amount__sum'] or 1
-        total_paid = all_tr.filter(type__in=pay_types).aggregate(Sum('amount'))['amount__sum'] or 0
-        overall_progress = (total_paid / total_accrued) * 100
+        t_acc = all_tr.filter(type__in=[
+            TransactionType.ACCRUAL, TransactionType.INTEREST, TransactionType.PENALTY
+        ]).aggregate(Sum('amount'))['amount__sum'] or 1
+        t_pay = all_tr.filter(type__in=[
+            TransactionType.PAYMENT, TransactionType.WRITE_OFF
+        ]).aggregate(Sum('amount'))['amount__sum'] or 0
 
         context.update({
             'total_unpaid_amount': round(total_balance, 2),
-            'overall_progress': round(overall_progress, 1),
+            'overall_progress': round((t_pay / t_acc) * 100, 1),
             'creditors_count': active_records.values('creditor').distinct().count(),
             'records_count': active_records.count(),
             'overdue_count': active_records.filter(end_date__lt=today).count(),
 
-            # Параметры для сохранения состояния фильтров в шаблоне
+            # Параметры интерфейса
             'current_sort': self.request.GET.get('sort', ''),
             'search_query': self.request.GET.get('q', ''),
             'current_type': self.request.GET.get('creditor_type', ''),
             'show_paid': self.request.GET.get('show_paid') == '1',
             'today': today,
+            'records_all': Record.objects.select_related('creditor').all(),
         })
         return context
 
@@ -103,14 +104,19 @@ class RecordDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # Получаем все транзакции по этому долгу, от новых к старым
         context['transactions'] = self.object.transactions.all().order_by('-date', '-id')
+        # Для отображения даты сегодня в формах, если нужно
+        context['today'] = timezone.now().date()
         return context
 
 
 def quick_payment(request, slug):
+    """Метод для быстрой оплаты прямо из списка или деталей"""
     if request.method == 'POST':
         record = get_object_or_404(Record, slug=slug)
         amount = request.POST.get('amount')
+
         if amount and float(amount) > 0:
             Transaction.objects.create(
                 record=record,
@@ -118,6 +124,9 @@ def quick_payment(request, slug):
                 amount=amount,
                 date=timezone.now().date()
             )
+            # Вызываем метод модели для обновления статуса is_paid
             record.update_status()
-            messages.success(request, f"Успешно: {amount} ₽ зачислено в счет {record.name}")
+            messages.success(request, f"Платеж {amount} ₽ успешно зачислен")
+
+    # Возвращаем пользователя туда, откуда он пришел
     return redirect(request.META.get('HTTP_REFERER', 'app_depts:records_list'))
