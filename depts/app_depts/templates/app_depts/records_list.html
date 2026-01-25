@@ -110,7 +110,27 @@
 
                 <div class="card-body" style="text-align: center; width: 100%; flex-grow: 1; display: flex; flex-direction: column;">
                     <h3 style="margin: 0 0 5px 0; font-size: 1.4rem; font-weight: 700;">{{ record.name }}</h3>
-                    <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 15px;">{{ record.creditor.name }}</p>
+
+                    <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 5px; font-weight: 600;">{{ record.creditor.name }}</p>
+
+                    {% if record.creditor.phone or record.creditor.website %}
+                    <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 15px; font-size: 0.85rem; color: #747d8c;">
+                        {% if record.creditor.phone %}
+                        <a href="tel:{{ record.creditor.phone }}" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 4px;">
+                            <i class="fa-solid fa-phone" style="font-size: 0.7rem; color: var(--primary-color);"></i>
+                            <span>{{ record.creditor.phone }}</span>
+                        </a>
+                        {% endif %}
+                        {% if record.creditor.website %}
+                        <a href="{{ record.creditor.website }}" target="_blank" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 4px;">
+                            <i class="fa-solid fa-globe" style="font-size: 0.7rem; color: #3498db;"></i>
+                            <span>Сайт</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div style="margin-bottom: 15px;"></div>
+                    {% endif %}
 
                     {% if record.note %}
                     <div style="background: #fff9e6; border: 1px dashed #ffeaa7; padding: 12px; border-radius: 10px; margin-bottom: 20px; font-size: 0.85rem; color: #856404; text-align: left;">
