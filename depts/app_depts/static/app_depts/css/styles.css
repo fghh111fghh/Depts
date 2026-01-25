@@ -1,3 +1,34 @@
+/* --- ГЛОБАЛЬНАЯ FLEXBOX СТРУКТУРА --- */
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column; /* Элементы (шапка, контент, футер) идут сверху вниз */
+    min-height: 100vh;
+}
+
+.main-content {
+    flex: 1 0 auto; /* Эта часть будет растягиваться, заполняя всё свободное пространство */
+    display: flex;
+    flex-direction: column;
+}
+
+.main-footer {
+    flex-shrink: 0; /* Футер не сжимается и всегда внизу */
+}
+
+/* Флекс-контейнер для навигации в хэдере */
+.header-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap; /* Чтобы на мобилках меню могло переноситься */
+    gap: 15px;
+}
+
 /* --- 1. БАЗОВЫЕ НАСТРОЙКИ --- */
 :root {
     --primary-color: #3498db;
@@ -190,4 +221,78 @@ body {
     font-size: 0.85rem;
     border-top: 1px solid #ddd;
     margin-top: 50px;
+}
+
+/* Флекс-контейнер для навигации */
+.header-nav {
+    display: flex;
+    justify-content: space-between; /* Лого слева, Админка справа */
+    align-items: center;           /* Выравнивание по вертикали */
+    padding: 10px 0;
+}
+
+/* Убираем лишние стили у списка, если ты захочешь добавить меню */
+.header-nav ul {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 20px;
+}
+
+/* Анимация появления уведомлений */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.alert {
+    animation: slideIn 0.5s ease-out;
+    transition: opacity 0.5s ease; /* Для плавного исчезновения через JS */
+}
+
+/* --- СТИЛИ УВЕДОМЛЕНИЙ (ALERTS) --- */
+.messages-container {
+    position: fixed;
+    top: 90px;    /* Чтобы было чуть ниже шапки */
+    right: 20px;
+    z-index: 9999;
+    max-width: 350px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.alert {
+    padding: 16px 20px;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.95rem;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: none;
+    /* Анимация уже есть в твоем файле, она подцепится */
+}
+
+/* Цвета для разных типов сообщений */
+.alert-success {
+    background: #2ecc71 !important;
+}
+.alert-error, .alert-danger {
+    background: #e74c3c !important;
+}
+.alert-warning {
+    background: #f1c40f !important;
+}
+.alert-info {
+    background: #3498db !important;
 }

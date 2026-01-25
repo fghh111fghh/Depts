@@ -7,60 +7,29 @@
     <title>{% block title %}Dashboard{% endblock %}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'app_depts/css/styles.css' %}">
-
-    <style>
-        /* Стили для всплывающих уведомлений */
-        .messages-container {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            z-index: 10000;
-            max-width: 400px;
-        }
-        .alert {
-            padding: 15px 25px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            color: white;
-            font-weight: bold;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            animation: slideIn 0.5s ease-out;
-        }
-        .alert-success { background-color: #2ecc71; }
-        .alert-error { background-color: #e74c3c; }
-        .alert-info { background-color: #3498db; }
-
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-    </style>
 </head>
 <body>
+
     <header class="main-header">
-        <nav class="container nav-flex">
-            <a href="/" class="header-logo">
-                <i class="fa-solid fa-gauge-high"></i> <span>DASHBOARD</span>
-            </a>
-
-            <ul class="nav-menu">
-                <li>
-                    <a href="{% url 'app_depts:records_list' %}" class="nav-link-two-lines active">
-                        Финансовые<br>обязательства
+        <div class="container">
+            <nav class="header-nav">
+                <div class="header-logo">
+                    <a href="{% url 'app_depts:records_list' %}" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: white;">
+                        <i class="fa-solid fa-wallet" style="font-size: 1.8rem; color: var(--primary-color);"></i>
+                        <span style="font-weight: 800; font-size: 1.1rem; line-height: 1.2; text-transform: uppercase; letter-spacing: 0.5px;">
+                            Финансовые<br>обязательства
+                        </span>
                     </a>
-                </li>
-            </ul>
+                </div>
 
-            <div class="header-admin">
-                <a href="/admin/" class="admin-button" target="_blank">
-                    <i class="fa-solid fa-user-shield"></i>
-                    <span>АДМИН</span>
-                </a>
-            </div>
-        </nav>
+                <div class="header-admin">
+                    <a href="/admin/" class="admin-button" target="_blank" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+                        <i class="fa-solid fa-user-shield"></i>
+                        <span>АДМИН</span>
+                    </a>
+                </div>
+            </nav>
+        </div>
     </header>
 
     {% if messages %}
@@ -68,33 +37,26 @@
         {% for message in messages %}
         <div class="alert alert-{{ message.tags }}">
             <i class="fa-solid {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}"></i>
-            {{ message }}
+            <span>{{ message }}</span>
         </div>
         {% endfor %}
     </div>
     {% endif %}
 
     <main class="main-content">
-        <div class="container">
+        <div class="container" style="width: 100%;">
             {% block content %}{% endblock %}
         </div>
     </main>
 
     <footer class="main-footer">
         <div class="container">
-            <p>&copy; 2026 Личная система управления | Разработано для личного учета</p>
+            <p style="margin: 0; opacity: 0.7; font-size: 0.9rem;">
+                &copy; 2026 Личная система управления | Разработано на Flexbox
+            </p>
         </div>
     </footer>
 
-    <script>
-        setTimeout(function() {
-            const messages = document.querySelectorAll('.alert');
-            messages.forEach(msg => {
-                msg.style.transition = "opacity 0.5s ease";
-                msg.style.opacity = "0";
-                setTimeout(() => msg.remove(), 500);
-            });
-        }, 5000);
-    </script>
+    <script src="{% static 'app_depts/js/scripts.js' %}"></script>
 </body>
 </html>
