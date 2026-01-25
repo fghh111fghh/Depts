@@ -15,7 +15,7 @@
             <span style="display: block; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin-bottom: 5px;">Общий прогресс (все время)</span>
             <span style="font-size: 3rem; font-weight: 900; color: #2ecc71; line-height: 1;">{{ overall_progress }}%</span>
             <div style="width: 100%; background: #eee; height: 12px; border-radius: 10px; margin-top: 15px; overflow: hidden;">
-                <div style="width: {{ overall_progress|floatformat:0 }}%; background: #2ecc71; height: 100%; transition: width 1.2s ease-in-out;"></div>
+                <div style="width: {{ overall_progress|stringformat:'f' }}%; background: #2ecc71; height: 100%; transition: width 1.2s ease-in-out;"></div>
             </div>
         </div>
 
@@ -36,7 +36,6 @@
 
     <div style="background: #fff; padding: 25px; border-radius: 15px; margin-bottom: 40px; border: 1px solid #eee; box-shadow: 0 2px 10px rgba(0,0,0,0.02);">
         <div style="display: flex; flex-direction: column; gap: 20px;">
-
             <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between;">
                 <form action="" method="GET" style="display: flex; gap: 10px; flex: 1; min-width: 320px;">
                     <div style="position: relative; flex: 1;">
@@ -65,7 +64,6 @@
 
                 <div style="display: flex; gap: 15px; font-size: 0.8rem; font-weight: 800; color: var(--text-muted); align-items: center;">
                     <span>СОРТИРОВАТЬ:</span>
-
                     <a href="?sort=creditor{% if search_query %}&q={{ search_query }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
                        style="text-decoration: none; padding: 6px 14px; border-radius: 20px; background: {% if current_sort == 'creditor' %}#2f3542{% else %}transparent{% endif %}; color: {% if current_sort == 'creditor' %}white{% else %}inherit{% endif %}; border: 1px solid #eee;">КРЕДИТОР</a>
 
@@ -80,7 +78,6 @@
             <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; border-top: 1px solid #f8f9fa; padding-top: 15px; justify-content: space-between;">
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Организации:</span>
-
                     <a href="?{% if search_query %}q={{ search_query }}&{% endif %}{% if current_sort %}sort={{ current_sort }}&{% endif %}{% if show_paid %}show_paid=1{% endif %}"
                        style="text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 6px 15px; border-radius: 20px; border: 1px solid #eee; background: {% if not current_type %}#2f3542{% else %}white{% endif %}; color: {% if not current_type %}white{% else %}#a4b0be{% endif %};">ВСЕ</a>
 
@@ -97,11 +94,7 @@
                               background: {% if show_paid %}#2ecc71{% else %}#f8f9fa{% endif %};
                               color: {% if show_paid %}white{% else %}#7f8c8d{% endif %};
                               border: 1px solid {% if show_paid %}#2ecc71{% else %}#ddd{% endif %};">
-                        {% if show_paid %}
-                            <i class="fa-solid fa-eye"></i> ПОКАЗАНЫ ВСЕ
-                        {% else %}
-                            <i class="fa-solid fa-eye-slash"></i> ТОЛЬКО АКТИВНЫЕ
-                        {% endif %}
+                        {% if show_paid %} <i class="fa-solid fa-eye"></i> ПОКАЗАНЫ ВСЕ {% else %} <i class="fa-solid fa-eye-slash"></i> ТОЛЬКО АКТИВНЫЕ {% endif %}
                     </a>
                 </div>
             </div>
@@ -144,33 +137,27 @@
                         {% if record.is_paid %}
                             <span style="font-size: 0.9rem; font-weight: bold; color: #2ecc71;">ПОГАШЕНО</span>
                         {% elif record.end_date %}
-                            <span style="font-size: 0.9rem; font-weight: bold; color: {% if record.end_date < today %}#e74c3c{% else %}#7f8c8d{% endif %};">
-                                До {{ record.end_date|date:"d.m.Y" }}
-                            </span>
+                            <span style="font-size: 0.9rem; font-weight: bold; color: {% if record.end_date < today %}#e74c3c{% else %}#7f8c8d{% endif %};"> До {{ record.end_date|date:"d.m.Y" }} </span>
                         {% else %}
                             <span style="font-size: 0.85rem; color: #bdc3c7; font-style: italic;">Срок не указан</span>
                         {% endif %}
                     </div>
 
-                    <div class="progress-container" style="width: 100%; background: #eee; height: 10px; border-radius: 10px; margin: 10px 0; overflow: hidden; border: 1px solid #e0e0e0;">
-                        <div class="progress-bar" style="width: {{ record.progress_percent|floatformat:0 }}%; background: {% if record.is_paid %}#2ecc71{% else %}var(--primary-color){% endif %}; height: 100%;"></div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 800; color: #636e72; margin-bottom: 8px;">
+                        <span>ВЫПЛАЧЕНО: <span style="color: #2ecc71;">{{ record.progress_percent }}%</span></span>
+                        <span>{{ record.total_paid|floatformat:0 }} ₽</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 800; color: {% if record.is_paid %}#2ecc71{% else %}var(--primary-color){% endif %}; margin-bottom: 25px;">
-                        <span>ВЫПЛАЧЕНО</span>
-                        <span>{{ record.progress_percent|floatformat:0 }}%</span>
+                    <div class="progress-container" style="width: 100%; background: #eee; height: 10px; border-radius: 10px; margin-bottom: 25px; overflow: hidden; border: 1px solid #e0e0e0;">
+                        <div class="progress-bar" style="width: {{ record.progress_percent|stringformat:'f' }}%; background: {% if record.is_paid %}#2ecc71{% else %}var(--primary-color){% endif %}; height: 100%;"></div>
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: auto;">
                         {% if not record.is_paid %}
                         <button onclick="document.getElementById('modal-{{ record.slug }}').style.display='flex'"
-                                style="background: var(--primary-color); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">
-                            + ВНЕСТИ ПЛАТЕЖ
-                        </button>
+                                style="background: var(--primary-color); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;"> + ВНЕСТИ ПЛАТЕЖ </button>
                         {% endif %}
                         <a href="{% url 'app_depts:records_detail' record.slug %}"
-                           style="text-decoration: none; background: #f8f9fa; color: var(--dark-bg); border: 1px solid #ddd; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 0.75rem;">
-                            ДЕТАЛИ И ИСТОРИЯ
-                        </a>
+                           style="text-decoration: none; background: #f8f9fa; color: var(--dark-bg); border: 1px solid #ddd; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 0.75rem;"> ДЕТАЛИ И ИСТОРИЯ </a>
                     </div>
                 </div>
 
@@ -193,7 +180,6 @@
             </div>
         {% empty %}
             <div style="grid-column: 1 / -1; text-align: center; padding: 60px; background: white; border-radius: 20px; border: 2px dashed #eee;">
-                <i class="fa-solid fa-magnifying-glass" style="font-size: 3rem; color: #eee; margin-bottom: 20px; display: block;"></i>
                 <p style="color: #7f8c8d; font-size: 1.2rem; margin-bottom: 25px;">По вашему запросу ничего не найдено.</p>
                 <a href="{% url 'app_depts:records_list' %}" style="display: inline-block; background: var(--primary-color); color: white; padding: 12px 30px; border-radius: 30px; text-decoration: none; font-weight: bold;">СБРОСИТЬ ВСЕ ФИЛЬТРЫ</a>
             </div>
