@@ -9,7 +9,6 @@ from django.db.models.signals import post_delete
 from django.dispatch import receiver
 import time
 
-
 # --- Справочники ---
 
 class CreditorType(models.TextChoices):
@@ -18,7 +17,6 @@ class CreditorType(models.TextChoices):
     PERSON = 'PERSON', 'Частное лицо'
     OTHER = 'OTHER', 'Прочее'
 
-
 class LoanType(models.TextChoices):
     PAYDAY = 'PAYDAY', 'Займ до зарплаты'
     CONSUMER = 'CONSUMER', 'Потребительский кредит'
@@ -26,7 +24,6 @@ class LoanType(models.TextChoices):
     CARD = 'CARD', 'Кредитная карта'
     AUTO = 'AUTO', 'Автокредит'
     LINE = 'LINE', 'Кредитная линия'
-
 
 class TransactionType(models.TextChoices):
     ACCRUAL = 'ACCRUAL', 'Начисление (тело долга)'
@@ -37,13 +34,11 @@ class TransactionType(models.TextChoices):
     COLLECTION = 'COLLECTION', 'Передача коллекторам'
     CORRECTION = 'CORRECTION', 'Корректировка'
 
-
 def validate_not_future(value):
     if value > timezone.now().date():
         raise ValidationError("Дата не может быть в будущем.")
 
-
-# --- Модели ---
+# --- Абстрактные модели ---
 
 class BaseEntity(models.Model):
     name = models.CharField(max_length=100, verbose_name='Наименование')
@@ -58,21 +53,32 @@ class BaseEntity(models.Model):
     def __str__(self):
         return self.name
 
+class Organization(BaseEntity):
+    """Абстрактный класс для общих полей СРО и Кредитора"""
+    phone = models.CharField(
+        max_length=20, blank=True, null=True, verbose_name="Телефон",
+        validators=[RegexValidator(r'^\+?1?\d{9,15}$', "Формат: +79991234567")]
+    )
+    website = models.URLField(blank=True, null=True, verbose_name="Сайт")
 
-class SRO(BaseEntity):
+    class Meta:
+        abstract = True
+
+# --- Модели ---
+
+class SRO(Organization):
     class Meta:
         verbose_name = 'СРО'
         verbose_name_plural = 'СРО'
 
-
-class Creditor(BaseEntity):
-    creditor_type = models.CharField(max_length=10, choices=CreditorType.choices, default=CreditorType.BANK,
-                                     verbose_name="Тип")
-    sro = models.ForeignKey(SRO, on_delete=models.SET_NULL, null=True, blank=True, related_name='creditors',
-                            verbose_name="СРО")
-    phone = models.CharField(
-        max_length=20, blank=True, null=True, verbose_name="Телефон",
-        validators=[RegexValidator(r'^\+?1?\d{9,15}$', "Формат: +79991234567")]
+class Creditor(Organization):
+    creditor_type = models.CharField(
+        max_length=10, choices=CreditorType.choices, default=CreditorType.BANK,
+        verbose_name="Тип"
+    )
+    sro = models.ForeignKey(
+        SRO, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='creditors', verbose_name="СРО"
     )
 
     class Meta:
@@ -90,7 +96,6 @@ class Creditor(BaseEntity):
         if not self.slug:
             self.slug = slugify(unidecode(self.name))
         super().save(*args, **kwargs)
-
 
 class Record(BaseEntity):
     creditor = models.ForeignKey(Creditor, on_delete=models.PROTECT, related_name='records', verbose_name="Кредитор")
@@ -118,11 +123,8 @@ class Record(BaseEntity):
                 raise ValidationError({'start_date': f"Уже есть транзакции от {first_tr.date}."})
 
     def update_status(self):
-        """Метод защищен от None при сравнении"""
         accrued = float(self.total_accrued or 0)
         balance = float(self.balance or 0)
-
-        # Сравнение только с числами float, чтобы избежать TypeError
         new_status = accrued > 0 and balance <= 0
 
         if self.is_paid != new_status:
@@ -146,7 +148,6 @@ class Record(BaseEntity):
             base=Sum('amount', filter=Q(type__in=accrual_types)),
             corr=Sum('amount', filter=Q(type=TransactionType.CORRECTION, amount__gt=0))
         )
-        # Применяем float() и or 0 ко всем слагаемым
         return round(float(data['base'] or 0) + float(data['corr'] or 0), 2)
 
     @property
@@ -168,7 +169,6 @@ class Record(BaseEntity):
         if accrued <= 0: return 0
         return round(min((float(self.total_paid or 0) / accrued) * 100, 100), 1)
 
-
 class Transaction(models.Model):
     record = models.ForeignKey(Record, on_delete=models.CASCADE, related_name='transactions', verbose_name="Долг")
     type = models.CharField(max_length=20, choices=TransactionType.choices, verbose_name="Тип")
@@ -182,12 +182,9 @@ class Transaction(models.Model):
         ordering = ['-date', '-id']
 
     def clean(self):
-        # Ошибка со скриншота исправлена здесь: добавлена проверка на None перед сравнением <= 0
         current_amount = self.amount or 0
-
         if self.type != TransactionType.CORRECTION and current_amount <= 0:
             raise ValidationError({'amount': "Сумма должна быть положительной."})
-
         if self.record_id and self.date < self.record.start_date:
             raise ValidationError({'date': "Транзакция не может быть раньше открытия долга."})
 
@@ -199,7 +196,6 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.date} | {self.get_type_display()} | {self.amount} р."
-
 
 # --- Сигналы ---
 
