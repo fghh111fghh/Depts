@@ -209,18 +209,47 @@
     </div>
 
     {% if is_paginated %}
-    <div style="margin-top: 60px; display: flex; justify-content: center; align-items: center; gap: 15px;">
-        {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
-               style="padding: 12px 20px; background: white; border: 1px solid #ddd; border-radius: 10px; text-decoration: none; color: var(--dark-bg); font-weight: bold;">&larr;</a>
-        {% endif %}
-        <span style="font-weight: bold; font-size: 1.1rem; color: var(--text-muted);">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
-        {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
-               style="padding: 12px 20px; background: white; border: 1px solid #ddd; border-radius: 10px; text-decoration: none; color: var(--dark-bg); font-weight: bold;">&rarr;</a>
-        {% endif %}
-    </div>
+<div style="margin-top: 60px; display: flex; justify-content: center; align-items: center; gap: 8px; font-family: sans-serif;">
+
+    {# Кнопка НАЗАД (стрелка) #}
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
+           style="padding: 10px 15px; background: white; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: var(--primary-color); font-weight: bold; transition: all 0.2s;">
+           <i class="fa-solid fa-chevron-left"></i>
+        </a>
+
+        {# Номер предыдущей страницы #}
+        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
+           style="padding: 10px 18px; background: white; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: var(--dark-bg); font-weight: bold;">
+           {{ page_obj.previous_page_number }}
+        </a>
     {% endif %}
+
+    {# АКТИВНАЯ СТРАНИЦА (без ссылки) #}
+    <span style="padding: 10px 18px; background: var(--primary-color); color: white; border: 1px solid var(--primary-color); border-radius: 8px; font-weight: 800; cursor: default; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+        {{ page_obj.number }}
+    </span>
+
+    {# Кнопка ВПЕРЕД (номер и стрелка) #}
+    {% if page_obj.has_next %}
+        {# Номер следующей страницы #}
+        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
+           style="padding: 10px 18px; background: white; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: var(--dark-bg); font-weight: bold;">
+           {{ page_obj.next_page_number }}
+        </a>
+
+        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
+           style="padding: 10px 15px; background: white; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: var(--primary-color); font-weight: bold; transition: all 0.2s;">
+           <i class="fa-solid fa-chevron-right"></i>
+        </a>
+    {% endif %}
+
+</div>
+
+<div style="text-align: center; margin-top: 15px; color: var(--text-muted); font-size: 0.8rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
+    Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+</div>
+{% endif %}
 
 </div>
 {% endblock %}
