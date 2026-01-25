@@ -1,76 +1,100 @@
 {% extends 'base.html' %}
 
-{% block title %}Детали: {{ record.name }}{% endblock %}
-
 {% block content %}
-<div class="container" style="padding-top: 30px;">
-    <a href="{% url 'app_depts:records_list' %}" style="text-decoration: none; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; display: inline-block;">
-        <i class="fa-solid fa-arrow-left"></i> Назад к списку
-    </a>
+<div class="container" style="padding: 20px 0; max-width: 1200px; margin: 0 auto;">
 
-    <div class="app-module-card" style="display: block; padding: 40px; margin-bottom: 40px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px;">
-            <div>
-                <h1 style="margin: 0; font-size: 2.2rem;">{{ record.name }}</h1>
-                <p style="font-size: 1.2rem; color: var(--text-muted);">Кредитор: <strong>{{ record.creditor.name }}</strong></p>
-                <span class="card-status {% if record.is_paid %}active{% else %}coming-soon{% endif %}">
-                    {% if record.is_paid %}ЗАКРЫТ{% else %}В ПРОЦЕССЕ ВЫПЛАТЫ{% endif %}
-                </span>
-            </div>
-            
-            <div style="text-align: right; min-width: 200px;">
-                <span style="display: block; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Текущий остаток:</span>
-                <span style="font-size: 2.5rem; font-weight: 800; color: var(--dark-bg);">{{ record.balance }} ₽</span>
-            </div>
-        </div>
-
-        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 30px;">
-            <div>
-                <p style="margin: 0; color: var(--text-muted); font-size: 0.8rem;">Дата открытия:</p>
-                <p style="font-weight: bold;">{{ record.start_date|date:"d.m.Y" }}</p>
-            </div>
-            <div>
-                <p style="margin: 0; color: var(--text-muted); font-size: 0.8rem;">Плановое закрытие:</p>
-                <p style="font-weight: bold;">{{ record.end_date|date:"d.m.Y"|default:"не указано" }}</p>
-            </div>
-            <div>
-                <p style="margin: 0; color: var(--text-muted); font-size: 0.8rem;">Прогресс погашения:</p>
-                <p style="font-weight: bold; color: var(--primary-color);">{{ record.progress_percent|floatformat:1 }}%</p>
-            </div>
-        </div>
+    <div style="margin-bottom: 30px;">
+        <a href="{% url 'app_depts:records_list' %}" style="text-decoration: none; color: var(--text-muted); font-weight: bold; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-arrow-left"></i> Назад к списку
+        </a>
+        <h1 style="margin-top: 15px; margin-bottom: 5px;">{{ record.name }}</h1>
+        <span style="color: var(--text-muted);">{{ record.creditor.name }}</span>
     </div>
 
-    <h2 style="margin-bottom: 20px;">История транзакций</h2>
-    <div style="background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee;">
-        <table style="width: 100%; border-collapse: collapse; text-align: left;">
-            <thead>
-                <tr style="background: #f8f9fa; border-bottom: 2px solid #eee;">
-                    <th style="padding: 15px 20px; font-size: 0.8rem; color: var(--text-muted);">ДАТА</th>
-                    <th style="padding: 15px 20px; font-size: 0.8rem; color: var(--text-muted);">ТИП</th>
-                    <th style="padding: 15px 20px; font-size: 0.8rem; color: var(--text-muted); text-align: right;">СУММА</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for tx in transactions %}
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 15px 20px;">{{ tx.date|date:"d.m.Y" }}</td>
-                    <td style="padding: 15px 20px;">
-                        <span style="font-size: 0.8rem; font-weight: bold;">{{ tx.get_type_display }}</span>
-                    </td>
-                    <td style="padding: 15px 20px; text-align: right; font-weight: bold; 
-                               color: {% if tx.type == 'PAYMENT' or tx.type == 'WRITE_OFF' %}#2ecc71{% else %}#e74c3c{% endif %};">
-                        {% if tx.type == 'PAYMENT' or tx.type == 'WRITE_OFF' %}-{% else %}+{% endif %}{{ tx.amount }} ₽
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="3" style="padding: 30px; text-align: center; color: var(--text-muted);">Транзакций пока нет</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div style="display: grid; grid-template-columns: 1fr 380px; gap: 30px;">
+
+        <div>
+            <div style="background: #fff9e6; border: 1px dashed #ffeaa7; padding: 20px; border-radius: 15px; margin-bottom: 30px;">
+                <h3 style="margin-top: 0; font-size: 0.9rem; color: #856404; text-transform: uppercase;">Примечание к долгу</h3>
+                <p style="margin-bottom: 0;">{{ record.note|default:"—" }}</p>
+            </div>
+
+            <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                <h3 style="margin-top: 0; margin-bottom: 20px;">История транзакций</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="text-align: left; border-bottom: 2px solid #f8f9fa; color: var(--text-muted); font-size: 0.8rem;">
+                            <th style="padding: 12px;">ДАТА</th>
+                            <th style="padding: 12px;">ТИП</th>
+                            <th style="padding: 12px;">КОММЕНТАРИЙ</th>
+                            <th style="padding: 12px; text-align: right;">СУММА</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tr in transactions %}
+                        <tr style="border-bottom: 1px solid #f8f9fa;">
+                            <td style="padding: 12px;">{{ tr.date|date:"d.m.Y" }}</td>
+                            <td style="padding: 12px; font-weight: bold; font-size: 0.75rem;">{{ tr.get_type_display|upper }}</td>
+                            <td style="padding: 12px; color: #57606f;">{{ tr.comment|default:"—" }}</td>
+                            <td style="padding: 12px; text-align: right; font-weight: 800;
+                                {% if tr.type == 'PAYMENT' or tr.type == 'WRITE_OFF' %} color: #2ecc71; {% else %} color: #e74c3c; {% endif %}">
+                                {% if tr.type == 'PAYMENT' or tr.type == 'WRITE_OFF' %}-{% else %}+{% endif %}{{ tr.amount|floatformat:2 }} ₽
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div style="background: #2f3542; color: white; padding: 30px; border-radius: 20px;">
+                <span style="font-size: 0.8rem; opacity: 0.7; font-weight: bold;">ТЕКУЩИЙ ДОЛГ</span>
+                <div style="font-size: 2.2rem; font-weight: 900; margin: 10px 0;">{{ record.balance|floatformat:2 }} ₽</div>
+
+                <div style="margin-top: 25px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem;">
+                        <span>Выплачено: {{ record.progress_percent }}%</span>
+                        <span>{{ record.total_paid|floatformat:0 }} ₽</span>
+                    </div>
+                    <div style="width: 100%; background: rgba(255,255,255,0.1); height: 12px; border-radius: 10px; overflow: hidden; position: relative;">
+                        <div style="position: absolute; left: 0; top: 0; height: 100%; background: #2ecc71;
+                                    width: {{ record.progress_percent|stringformat:'f' }}%;
+                                    box-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+                                    transition: width 0.8s ease-in-out;">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.85rem; opacity: 0.6;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Начислено всего:</span>
+                        <span>{{ record.total_accrued|floatformat:2 }} ₽</span>
+                    </div>
+                </div>
+            </div>
+
+            {% if not record.is_paid %}
+            <button onclick="document.getElementById('modal-pay').style.display='flex'"
+                    style="background: #2ecc71; color: white; border: none; padding: 18px; border-radius: 15px; font-weight: 900; cursor: pointer;">
+                ВНЕСТИ ПЛАТЕЖ
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div id="modal-pay" style="display:none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background: white; padding: 40px; border-radius: 25px; width: 90%; max-width: 400px;">
+        <h2 style="margin: 0 0 20px 0;">Оплата</h2>
+        <form action="{% url 'app_depts:quick_payment' record.slug %}" method="POST">
+            {% csrf_token %}
+            <input type="number" name="amount" step="0.01" required autofocus style="width:100%; padding: 15px; border: 2px solid #2ecc71; border-radius: 10px; font-size: 1.5rem; text-align: center; margin-bottom: 20px;">
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" style="flex: 2; background: #2ecc71; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer;">ОК</button>
+                <button type="button" onclick="document.getElementById('modal-pay').style.display='none'" style="flex: 1; background: #eee; border: none; padding: 15px; border-radius: 10px; cursor: pointer;">ОТМЕНА</button>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock %}

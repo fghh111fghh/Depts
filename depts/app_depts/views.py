@@ -104,10 +104,17 @@ class RecordDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Получаем все транзакции по этому долгу, от новых к старым
-        context['transactions'] = self.object.transactions.all().order_by('-date', '-id')
-        # Для отображения даты сегодня в формах, если нужно
+        record = self.object
+
+        # Получаем транзакции (у тебя в модели уже стоит ordering = ['-date', '-id'])
+        context['transactions'] = record.transactions.all()
         context['today'] = timezone.now().date()
+
+        # Используем твои методы из models.py для расчетов
+        context['total_accrued_val'] = record.total_accrued
+        context['total_paid_val'] = record.total_paid
+        context['progress_val'] = record.progress_percent  # Твой метод из модели
+
         return context
 
 
