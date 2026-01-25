@@ -119,17 +119,19 @@ class RecordDetailView(DetailView):
 
 
 def quick_payment(request, slug):
-    """Метод для быстрой оплаты прямо из списка или деталей"""
+    """Метод для быстрой оплаты прямо из списка или деталей с поддержкой комментария"""
     if request.method == 'POST':
         record = get_object_or_404(Record, slug=slug)
         amount = request.POST.get('amount')
+        comment = request.POST.get('comment', '')  # Получаем комментарий
 
         if amount and float(amount) > 0:
             Transaction.objects.create(
                 record=record,
                 type=TransactionType.PAYMENT,
                 amount=amount,
-                date=timezone.now().date()
+                date=timezone.now().date(),
+                comment=comment  # Сохраняем комментарий в базу
             )
             # Вызываем метод модели для обновления статуса is_paid
             record.update_status()
