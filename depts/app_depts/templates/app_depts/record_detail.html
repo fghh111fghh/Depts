@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container" style="padding: 20px 0; max-width: 1200px; margin: 0 auto;">
+<div class="container detail-wrapper">
 
-    <div style="margin-bottom: 30px;">
-        <a href="{% url 'app_depts:records_list' %}" style="text-decoration: none; color: var(--text-muted); font-weight: bold; display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-arrow-left"></i> Назад к списку
-        </a>
-        <h1 style="margin-top: 15px; margin-bottom: 5px;">{{ record.name }}</h1>
-        <span style="color: var(--text-muted);">{{ record.creditor.name }}</span>
+    <div class="record-detail-header">
+        <a href="{% url 'app_depts:records_list' %}" class="btn-back">
+    <i class="fa-solid fa-arrow-left"></i> Назад к списку
+</a>
+        <h1 class="record-title">{{ record.name }}</h1>
+<p class="record-subtitle">{{ record.creditor.name }}</p>
     </div>
 
     <div style="display: grid; grid-template-columns: 1fr 380px; gap: 30px;">
