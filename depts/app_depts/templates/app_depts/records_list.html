@@ -119,42 +119,45 @@
 </div>
 {% endif %}
 
-                <div class="card-body" style="text-align: center; width: 100%; flex-grow: 1; display: flex; flex-direction: column;">
-                    <h3 style="margin: 0 0 5px 0; font-size: 1.4rem; font-weight: 700;">{{ record.name }}</h3>
-
-                    <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 5px; font-weight: 600;">{{ record.creditor.name }}</p>
+                <div class="card-body">
+                    <h3 class="record-card-title">{{ record.name }}</h3>
+<p class="record-card-creditor">{{ record.creditor.name }}</p>
 
                     {% if record.creditor.phone or record.creditor.website %}
-                    <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 15px; font-size: 0.85rem; color: #747d8c;">
+                    <div class="card-contacts-row">
                         {% if record.creditor.phone %}
-                        <a href="tel:{{ record.creditor.phone }}" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 4px;">
-                            <i class="fa-solid fa-phone" style="font-size: 0.7rem; color: var(--primary-color);"></i>
-                            <span>{{ record.creditor.phone }}</span>
-                        </a>
-                        {% endif %}
-                        {% if record.creditor.website %}
-                        <a href="{{ record.creditor.website }}" target="_blank" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 4px;">
-                            <i class="fa-solid fa-globe" style="font-size: 0.7rem; color: #3498db;"></i>
-                            <span>Сайт</span>
-                        </a>
-                        {% endif %}
+<a href="tel:{{ record.creditor.phone }}" class="card-link">
+    <i class="fa-solid fa-phone icon-phone"></i>
+    <span>{{ record.creditor.phone }}</span>
+</a>
+{% endif %}
+
+{% if record.creditor.website %}
+<a href="{{ record.creditor.website }}" target="_blank" class="card-link">
+    <i class="fa-solid fa-globe icon-globe"></i>
+    <span>Сайт</span>
+</a>
+{% endif %}
                     </div>
                     {% else %}
-                    <div style="margin-bottom: 15px;"></div>
-                    {% endif %}
+<div class="card-contacts-spacer"></div>
+{% endif %}
 
                     {% if record.note %}
-                    <div style="background: #fff9e6; border: 1px dashed #ffeaa7; padding: 12px; border-radius: 10px; margin-bottom: 20px; font-size: 0.85rem; color: #856404; text-align: left;">
-                        <i class="fa-solid fa-note-sticky" style="margin-right: 5px;"></i> {{ record.note }}
-                    </div>
-                    {% endif %}
+<div class="card-note">
+    <i class="fa-solid fa-note-sticky note-icon"></i> {{ record.note }}
+</div>
+{% endif %}
 
-                    <div style="margin-top: auto; margin-bottom: 20px;">
-                        <span style="display: block; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">{% if record.is_paid %}Выплачено{% else %}Остаток{% endif %}</span>
-                        <span style="font-size: 2.1rem; font-weight: 800; color: var(--dark-bg);">
-                            {% if record.is_paid %}{{ record.total_paid|floatformat:2 }}{% else %}{{ record.balance|floatformat:2 }}{% endif %} <small>₽</small>
-                        </span>
-                    </div>
+                    <div class="card-main-amount">
+    <span class="amount-label">
+        {% if record.is_paid %}Выплачено{% else %}Остаток{% endif %}
+    </span>
+    <span class="amount-sum">
+        {% if record.is_paid %}{{ record.total_paid|floatformat:2 }}{% else %}{{ record.balance|floatformat:2 }}{% endif %}
+        <small>₽</small>
+    </span>
+</div>
 
                     <div style="height: 25px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center;">
                         {% if record.is_paid %}
