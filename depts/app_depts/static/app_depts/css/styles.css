@@ -391,10 +391,10 @@ body {
 /* Вторая строка внутри панели (Поиск + Опции) */
 .search-options-row {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: wrap; /* Если поиск и сортировка не влезают в ряд - они разделятся */
     gap: 20px;
     align-items: center;
-    justify-content: space-between;
+    width: 100%;
 }
 
 /* Сама форма поиска */
@@ -494,7 +494,8 @@ body {
 /* Контейнер сортировки */
 .sort-container {
     display: flex;
-    gap: 15px;
+    flex-wrap: wrap; /* Разрешаем элементам (Кредитор, Сумма, Срок) падать на новую строку */
+    gap: 10px;      /* Расстояние между кнопками */
     font-size: 0.8rem;
     font-weight: 800;
     color: var(--text-muted);
