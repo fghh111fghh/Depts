@@ -603,6 +603,26 @@ body {
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
+.records-grid {
+    display: grid;
+    /* Настраиваем автоматические колонки:
+       минимальная ширина карточки 320px, если места меньше — растягивается на весь экран */
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+    gap: 25px;
+    margin-top: 20px;
+    width: 100%;
+}
+
+/* На мобилках (до 480px) делаем отступы чуть меньше для экономии места */
+@media (max-width: 480px) {
+    .records-grid {
+        gap: 15px;
+        margin-top: 15px;
+    }
+}
+
+
+
 
 
 
