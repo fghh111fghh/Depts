@@ -111,18 +111,13 @@
 
    <div class="records-grid">
         {% for record in records %}
-            <div class="app-module-card"
-                 style="padding: 30px 25px;
-                        opacity: {% if record.is_paid %}0.75{% else %}1{% endif %};
-                        filter: {% if record.is_paid %}grayscale(0.4){% else %}none{% endif %};
-                        border-top: 5px solid {% if not record.is_paid and record.end_date and record.end_date < today %}#e74c3c{% elif record.is_paid %}#2ecc71{% else %}var(--primary-color){% endif %};
-                        display: flex; flex-direction: column; position: relative;">
+            <div class="app-module-card">
 
                 {% if record.is_paid %}
-                <div style="position: absolute; top: 10px; right: 15px; color: #2ecc71; font-size: 1.2rem;">
-                    <i class="fa-solid fa-circle-check"></i>
-                </div>
-                {% endif %}
+<div class="card-status-icon">
+    <i class="fa-solid fa-circle-check"></i>
+</div>
+{% endif %}
 
                 <div class="card-body" style="text-align: center; width: 100%; flex-grow: 1; display: flex; flex-direction: column;">
                     <h3 style="margin: 0 0 5px 0; font-size: 1.4rem; font-weight: 700;">{{ record.name }}</h3>
