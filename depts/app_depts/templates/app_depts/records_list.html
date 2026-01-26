@@ -82,23 +82,27 @@
                 </div>
             </div>
 
-            <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; border-top: 1px solid #f8f9fa; padding-top: 15px; justify-content: space-between;">
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Организации:</span>
+            <div class="filter-type-row">
+                <div class="filter-type-group">
+                    <span class="filter-label">Организации:</span>
+
                     <a href="?{% if search_query %}q={{ search_query }}&{% endif %}{% if current_sort %}sort={{ current_sort }}&{% endif %}{% if show_paid %}show_paid=1{% endif %}"
-                       style="text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 6px 15px; border-radius: 20px; border: 1px solid #eee; background: {% if not current_type %}#2f3542{% else %}white{% endif %}; color: {% if not current_type %}white{% else %}#a4b0be{% endif %};">ВСЕ</a>
+                       class="type-link {% if not current_type %}active-all{% endif %}">ВСЕ</a>
+
                     <a href="?creditor_type=BANK{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
-                       style="text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 6px 15px; border-radius: 20px; border: 1px solid #eee; background: {% if current_type == 'BANK' %}#3498db{% else %}white{% endif %}; color: {% if current_type == 'BANK' %}white{% else %}#a4b0be{% endif %};">БАНКИ</a>
+                       class="type-link bank {% if current_type == 'BANK' %}active-bank{% endif %}">БАНКИ</a>
+
                     <a href="?creditor_type=MFO{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
-                       style="text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 6px 15px; border-radius: 20px; border: 1px solid #eee; background: {% if current_type == 'MFO' %}#e67e22{% else %}white{% endif %}; color: {% if current_type == 'MFO' %}white{% else %}#a4b0be{% endif %};">МФО</a>
+                       class="type-link mfo {% if current_type == 'MFO' %}active-mfo{% endif %}">МФО</a>
                 </div>
                 <div>
                     <a href="?{% if show_paid %}show_paid=0{% else %}show_paid=1{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}"
-                       style="text-decoration: none; font-size: 0.75rem; font-weight: 800; padding: 8px 18px; border-radius: 20px; display: flex; align-items: center; gap: 8px; transition: all 0.3s ease;
-                              background: {% if show_paid %}#2ecc71{% else %}#f8f9fa{% endif %};
-                              color: {% if show_paid %}white{% else %}#7f8c8d{% endif %};
-                              border: 1px solid {% if show_paid %}#2ecc71{% else %}#ddd{% endif %};">
-                        {% if show_paid %} <i class="fa-solid fa-eye"></i> ПОКАЗАНЫ ВСЕ {% else %} <i class="fa-solid fa-eye-slash"></i> ТОЛЬКО АКТИВНЫЕ {% endif %}
+                       class="paid-toggle {% if show_paid %}active{% endif %}">
+                        {% if show_paid %}
+                            <i class="fa-solid fa-eye"></i> ПОКАЗАНЫ ВСЕ
+                        {% else %}
+                            <i class="fa-solid fa-eye-slash"></i> ТОЛЬКО АКТИВНЫЕ
+                        {% endif %}
                     </a>
                 </div>
             </div>
