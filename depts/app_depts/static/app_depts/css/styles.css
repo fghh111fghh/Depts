@@ -299,44 +299,68 @@ body {
 }
 
 /* --- БЛОК СТАТИСТИКИ (DASHBOARD STATS) --- */
+/* --- СТАТИСТИКА (ЦВЕТНЫЕ КАРТОЧКИ) --- */
 .stats-container {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 20px;
-    margin-bottom: 40px;
+    margin-bottom: 30px;
 }
 
 .stat-card {
-    flex: 1;
-    min-width: 290px;
-    background: white;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    padding: 25px;
+    border-radius: var(--radius);
+    color: white; /* Текст белый на цветном фоне */
+    box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
+    justify-content: center;
 }
 
-/* Цветовые акценты для карточек */
-.card-debt { border-left: 6px solid var(--primary-color); }
-.card-progress { border-left: 6px solid #2ecc71; }
-.card-activity { border-left: 6px solid #3498db; }
-.card-overdue { border-left: 6px solid #e74c3c; } /* Если есть просрочка */
+/* Те самые цвета, которые ты одобрил */
+.card-debt {
+    background: linear-gradient(135deg, #2c3e50, #4b6584);
+}
+
+.card-progress {
+    background: linear-gradient(135deg, #1e3799, #4a69bd);
+}
+
+.card-activity {
+    background: linear-gradient(135deg, #079992, #38ada9);
+}
+
+.card-overdue {
+    background: linear-gradient(135deg, #eb2f06, #e74c3c);
+}
 
 .stat-label {
     display: block;
-    font-size: 0.8rem;
-    color: var(--text-muted);
+    font-size: 0.9rem;
     text-transform: uppercase;
-    font-weight: bold;
-    margin-bottom: 15px;
+    opacity: 0.8;
+    margin-bottom: 8px;
 }
 
 .stat-value {
-    font-size: 2.2rem;
+    font-size: 2rem;
     font-weight: 800;
-    color: var(--dark-bg);
 }
+
+/* Полоска прогресса внутри синей карточки */
+.progress-bar-container {
+    background: rgba(255, 255, 255, 0.2);
+    height: 10px;
+    border-radius: 5px;
+    margin-top: 15px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    background: #2ecc71;
+    height: 100%;
+}
+
 
 .stat-value-success { color: #2ecc71; }
 

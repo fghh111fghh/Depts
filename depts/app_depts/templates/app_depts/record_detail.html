@@ -37,8 +37,7 @@
                         <td class="type-badge">{{ tr.get_type_display|upper }}</td>
                         <td class="comment-cell">{{ tr.comment|default:"—" }}</td>
                         <td class="amount-cell {% if tr.type == 'PAYMENT' or tr.type == 'WRITE_OFF' %}negative{% else %}positive{% endif %}">
-                            {% if tr.type == 'PAYMENT' or tr.type == 'WRITE_OFF' %}-{% else %}+{% endif %}{{
-                            tr.amount|floatformat:2 }} ₽
+                            {% if tr.type == 'PAYMENT' or tr.type == 'WRITE_OFF' %}-{% else %}+{% endif %}{{ tr.amount|floatformat:2 }} ₽
                         </td>
                     </tr>
                     {% endfor %}
