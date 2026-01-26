@@ -155,6 +155,7 @@ body {
 }
 
 .app-module-card {
+    position: relative;
     background: var(--white);
     border-radius: 15px;
     text-decoration: none;
@@ -1465,6 +1466,203 @@ body {
     .detail-sidebar {
         position: static;
     }
+}
+
+@media (max-width: 768px) {
+    /* Скрываем заголовки таблицы (thead) */
+    .transactions-table thead {
+        display: none;
+    }
+
+    /* Каждую строку превращаем во Flex-контейнер */
+    .transactions-table,
+    .transactions-table tbody,
+    .transactions-table tr,
+    .transactions-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .transactions-row {
+        margin-bottom: 15px;
+        border: 1px solid #eee;
+        border-radius: 10px;
+        padding: 10px;
+    }
+
+    .transactions-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #f8f9fa;
+        padding: 8px 5px;
+    }
+
+    /* Добавляем подписи к данным через атрибут data-label (если захочешь) */
+    .transactions-table td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+    }
+
+    .amount-cell {
+        text-align: right;
+        justify-content: flex-end; /* Для суммы прижимаем к правому краю */
+    }
+}
+
+.balance-card {
+    background: #2f3542; /* Твой основной цвет */
+    background: linear-gradient(135deg, #2f3542 0%, #1e222b 100%); /* Градиент для глубины */
+    color: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2); /* Глубокая тень для акцента */
+    position: relative;
+    overflow: hidden; /* Чтобы декоративные элементы не вылезали */
+}
+
+/* На мобильных чуть уменьшим отступы, чтобы карточка не была огромной */
+@media (max-width: 768px) {
+    .balance-card {
+        padding: 20px;
+    }
+}
+
+.balance-label {
+    display: block; /* Чтобы занять отдельную строку */
+    font-size: 0.75rem;
+    opacity: 0.6;
+    font-weight: 700;
+    text-transform: uppercase; /* Делает все буквы заглавными */
+    letter-spacing: 1.2px; /* Увеличиваем межбуквенный интервал для читаемости */
+    margin-bottom: 5px;
+}
+
+.balance-amount {
+    font-size: 2.5rem; /* Немного увеличим для большего акцента */
+    font-weight: 900;
+    margin: 5px 0 20px 0;
+    line-height: 1;
+    letter-spacing: -0.5px; /* Для крупных цифр небольшое сужение выглядит профессиональнее */
+    color: #ffffff;
+}
+
+/* На небольших экранах уменьшаем шрифт, чтобы сумма не вылезала за пределы карточки */
+@media (max-width: 1200px) {
+    .balance-amount {
+        font-size: 2.2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .balance-amount {
+        font-size: 1.8rem;
+    }
+}
+
+.balance-progress-section {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1); /* Тонкая линия-разделитель внутри темной карточки */
+}
+
+/* Стили для текста процентов над баром */
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.progress-percent {
+    color: var(--primary-color);
+}
+
+.progress-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.progress-label {
+    opacity: 0.8;
+    color: #ffffff;
+}
+
+.progress-value {
+    color: var(--primary-color); /* Используем твой основной цвет для суммы выплат */
+}
+
+.progress-track {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    height: 12px;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative; /* ЭТО КРИТИЧЕСКИ ВАЖНО */
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    margin-top: 10px;
+}
+
+.balance-card .progress-bar-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: #2ecc71; /* Твой сочный зеленый */
+    box-shadow: 0 0 15px rgba(46, 204, 113, 0.4);
+    border-radius: 10px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); /* Делаем движение более естественным */
+
+    /* Добавляем легкий градиентный блик для объема */
+    background-image: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.15) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.15) 75%,
+        transparent 75%,
+        transparent
+    );
+    background-size: 40px 40px; /* Размер полосок блика */
+}
+
+.balance-card-footer {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6); /* Вместо opacity для всего блока используем цвет с альфа-каналом */
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.balance-card-footer strong {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 600;
+}
+
+.footer-stats-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.footer-stats-row span:first-child {
+    font-weight: 400;
+}
+
+.stats-value {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9); /* Делаем цифру чуть ярче пояснительного текста */
 }
 
 

@@ -47,29 +47,25 @@
         </div>
 
         <div class="detail-sidebar">
-            <div style="background: #2f3542; color: white; padding: 30px; border-radius: 20px;">
-                <span style="font-size: 0.8rem; opacity: 0.7; font-weight: bold;">ТЕКУЩИЙ ДОЛГ</span>
-                <div style="font-size: 2.2rem; font-weight: 900; margin: 10px 0;">{{ record.balance|floatformat:2 }} ₽</div>
+            <div class="balance-card">
+                <span class="balance-label">Текущий долг</span>
+                <div class="balance-amount">{{ record.balance|floatformat:2 }} ₽</div>
 
-                <div style="margin-top: 25px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem;">
-                        <span>Выплачено: {{ record.progress_percent }}%</span>
-                        <span>{{ record.total_paid|floatformat:0 }} ₽</span>
-                    </div>
-                    <div style="width: 100%; background: rgba(255,255,255,0.1); height: 12px; border-radius: 10px; overflow: hidden; position: relative;">
-                        <div style="position: absolute; left: 0; top: 0; height: 100%; background: #2ecc71;
-                                    width: {{ record.progress_percent|stringformat:'f' }}%;
-                                    box-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
-                                    transition: width 0.8s ease-in-out;">
-                        </div>
+                <div class="balance-progress-section">
+                    <div class="progress-stats">
+    <span class="progress-label">Выплачено: {{ record.progress_percent }}%</span>
+    <span class="progress-value">{{ record.total_paid|floatformat:0 }} ₽</span>
+</div>
+                    <div class="progress-track">
+                        <div class="progress-bar-fill" style="width: {{ record.progress_percent|stringformat:'f' }}%;"></div>
                     </div>
                 </div>
 
-                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.85rem; opacity: 0.6;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Начислено всего:</span>
-                        <span>{{ record.total_accrued|floatformat:2 }} ₽</span>
-                    </div>
+                <div class="balance-card-footer">
+                    <div class="footer-stats-row">
+    <span>Начислено всего:</span>
+    <span class="stats-value">{{ record.total_accrued|floatformat:2 }} ₽</span>
+</div>
                 </div>
             </div>
 
