@@ -405,3 +405,40 @@ body {
     min-width: 320px;
 }
 
+/* Контейнер для инпута и выпадающего списка подсказок */
+.search-input-wrapper {
+    position: relative;
+    flex: 1;
+}
+
+/* Иконка лупы внутри поиска */
+.search-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%; /* Центрируем по вертикали */
+    transform: translateY(-50%); /* Точная доводка центра */
+    color: var(--text-muted);
+    pointer-events: none; /* Чтобы иконка не мешала кликать в поле */
+}
+
+/* Поле ввода поиска */
+.search-input {
+    width: 100%;
+    padding: 12px 15px 12px 45px; /* Отступ слева 45px под иконку */
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+
+/* Эффект при клике в поле */
+.search-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    background-color: #fff;
+}
+
+
+

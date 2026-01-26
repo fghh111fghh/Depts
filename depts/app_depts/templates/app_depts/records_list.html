@@ -47,10 +47,9 @@
     <div class="controls-panel">
             <div class="search-options-row">
                 <form action="" method="GET" class="search-form">
-                    <div style="position: relative; flex: 1;">
-                        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 15px; top: 15px; color: var(--text-muted);"></i>
-                        <input type="text" name="q" value="{{ search_query }}" list="depts-list" placeholder="Название, банк или примечание..."
-                               style="width: 100%; padding: 14px 14px 14px 45px; border-radius: 30px; border: 1px solid #ddd; outline: none; font-size: 1rem;">
+                    <div class="search-input-wrapper">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" id="search-input" name="q" value="{{ search_query|default:'' }}" placeholder="Поиск..." class="search-input">
                         <datalist id="depts-list">
                             {% for r in records_all %}
                                 <option value="{{ r.name }}">
