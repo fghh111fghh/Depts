@@ -1167,6 +1167,86 @@ body {
     letter-spacing: 1px;
 }
 
+/* Дополнительный класс для обертки контента на странице деталей */
+.detail-wrapper {
+    padding: 20px 0;
+}
+
+/* Для мобильных устройств можно чуть уменьшить отступы */
+@media (max-width: 768px) {
+    .detail-wrapper {
+        padding: 10px 0;
+    }
+}
+
+.record-detail-header {
+    margin-bottom: 30px;
+    border-bottom: 1px solid #eee; /* Добавим тонкую разделительную линию */
+    padding-bottom: 20px;
+}
+
+/* Стили для заголовка внутри (h1) */
+.record-detail-header h1 {
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-size: 2.2rem;
+    color: var(--dark-bg);
+}
+
+/* Стили для подзаголовка (кредитор) */
+.record-detail-header .creditor-label {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.btn-back {
+    text-decoration: none;
+    color: var(--text-muted);
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    width: fit-content; /* Чтобы ссылка не растягивалась на всю ширину */
+}
+
+.btn-back i {
+    transition: transform 0.2s ease;
+}
+
+.btn-back:hover {
+    color: var(--primary-color);
+}
+
+.btn-back:hover i {
+    transform: translateX(-4px); /* Стрелочка чуть дергается влево при наведении */
+}
+
+.record-title {
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-size: 2rem;
+    color: var(--dark-bg);
+    line-height: 1.2;
+}
+
+.record-subtitle {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    margin: 0;
+    font-weight: 500;
+}
+
+/* На мобильных устройствах чуть уменьшим заголовок */
+@media (max-width: 768px) {
+    .record-title {
+        font-size: 1.6rem;
+    }
+}
+
+
+
 
 
 
