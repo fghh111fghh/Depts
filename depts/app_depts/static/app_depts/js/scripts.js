@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
 
-    // --- 1. АВТОМАТИЧЕСКОЕ СКРЫТИЕ УВЕДОМЛЕНИЙ (ALERTS) ---
+    // --- 1. АВТОМАТИЧЕСКОЕ СКРЫТИЕ УВЕДОМЛЕНИЙ ---
     const messages = document.querySelectorAll('.alert');
     if (messages.length > 0) {
         setTimeout(function() {
@@ -9,40 +9,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 msg.style.opacity = "0";
                 setTimeout(() => msg.remove(), 500);
             });
-        }, 5000); // Уведомление исчезнет через 5 секунд
+        }, 5000);
     }
 
-    // --- 2. УПРАВЛЕНИЕ МОДАЛЬНЫМИ ОКНАМИ (ОТКРЫТИЕ/ЗАКРЫТИЕ) ---
-    // Функция для закрытия модалки при клике на серый фон
-    const modalOverlays = document.querySelectorAll('.modal-overlay');
-    modalOverlays.forEach(overlay => {
-        overlay.addEventListener('click', function(e) {
-            if (e.target === this) {
-                this.style.display = 'none';
-            }
+    // --- 2. ПОДСВЕТКА КАРТОЧЕК ПРИ КЛИКЕ ---
+    const cards = document.querySelectorAll('.app-module-card');
+    cards.forEach(card => {
+        card.addEventListener('click', () => {
+            cards.forEach(c => c.style.boxShadow = "none");
+            card.style.boxShadow = "0 0 0 3px var(--primary-color)";
         });
     });
 
-    // --- 3. ЛОГИКА КНОПКИ "ОПЛАТИТЬ ВСЁ" ---
-    // Ищем все кнопки с атрибутом data-full-amount
-    const fullAmountButtons = document.querySelectorAll('.btn-pay-all');
-    fullAmountButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const targetId = this.getAttribute('data-target-input');
-            const balance = this.getAttribute('data-balance');
-            const input = document.getElementById(targetId);
-            if (input) {
-                // Заменяем запятую на точку для корректной работы input type="number"
-                input.value = balance.replace(',', '.');
-            }
-        });
-    });
-
-    // --- 4. МАСКА ДЛЯ ТЕЛЕФОНА (ДЛЯ ФОРМ В АДМИНКЕ ИЛИ КРЕДИТОРАХ) ---
+    // --- 3. МАСКА ДЛЯ ТЕЛЕФОНА (+7) ---
     document.addEventListener('input', function (e) {
         if (e.target.name && e.target.name.includes('phone')) {
             let input = e.target;
-            let value = input.value.replace(/\D/g, ''); // Удаляем всё кроме цифр
+            let value = input.value.replace(/\D/g, '');
 
             if (value.length > 0 && (value[0] === '7' || value[0] === '8')) {
                 value = value.substring(1);
@@ -58,9 +41,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Блокировка удаления префикса +7
+    document.addEventListener('keydown', function (e) {
+        if (e.target.name && e.target.name.includes('phone')) {
+            if (e.target.selectionStart <= 3 && (e.keyCode === 8 || e.keyCode === 46)) {
+                e.preventDefault();
+            }
+        }
+    });
 });
 
-// Глобальные функции для кнопок (если они прописаны в onclick в HTML)
+// Глобальные функции для модалок (используются в кнопках карточек)
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) modal.style.display = 'flex';
