@@ -49,13 +49,14 @@
                 <form action="" method="GET" class="search-form">
                     <div class="search-input-wrapper">
                         <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                        <input type="text" id="search-input" name="q" value="{{ search_query|default:'' }}" placeholder="Поиск..." class="search-input">
+                        <input type="text" id="search-input" name="q" value="{{ search_query|default:'' }}" placeholder="Поиск..." class="search-input" list="depts-list">
                         <datalist id="depts-list">
                             {% for r in records_all %}
                                 <option value="{{ r.name }}">
                                 <option value="{{ r.creditor.name }}">
                             {% endfor %}
                         </datalist>
+                        <div id="search-results" class="search-suggestions"></div>
                     </div>
                     {% if current_type %}<input type="hidden" name="creditor_type" value="{{ current_type }}">{% endif %}
                     {% if current_sort %}<input type="hidden" name="sort" value="{{ current_sort }}">{% endif %}
