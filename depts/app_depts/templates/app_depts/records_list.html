@@ -5,32 +5,43 @@
 {% block content %}
 <div class="dashboard-wrapper" style="padding: 20px 0;">
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 40px;">
-        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 6px solid var(--primary-color);">
-            <span style="display: block; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin-bottom: 10px;">Активный долг</span>
-            <span style="font-size: 2.2rem; font-weight: 800; color: var(--dark-bg);">{{ total_unpaid_amount|floatformat:2 }} <small>₽</small></span>
+    <div class="stats-container">
+
+        <div class="stat-card card-debt">
+            <span class="stat-label">Активный долг</span>
+            <span class="stat-value">{{ total_unpaid_amount|floatformat:2 }} <small>₽</small></span>
         </div>
 
-        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 6px solid #2ecc71;">
-            <span style="display: block; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin-bottom: 5px;">Общий прогресс (все время)</span>
-            <span style="font-size: 3rem; font-weight: 900; color: #2ecc71; line-height: 1;">{{ overall_progress }}%</span>
-            <div style="width: 100%; background: #eee; height: 12px; border-radius: 10px; margin-top: 15px; overflow: hidden;">
-                <div style="width: {{ overall_progress|stringformat:'f' }}%; background: #2ecc71; height: 100%; transition: width 1.2s ease-in-out;"></div>
+        <div class="stat-card card-progress">
+            <span class="stat-label">Общий прогресс</span>
+            <span class="stat-value stat-value-success">{{ overall_progress }}%</span>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" style="width: {{ overall_progress|stringformat:'f' }}%;"></div>
             </div>
         </div>
 
-        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 6px solid {% if overdue_count > 0 %}#e74c3c{% else %}#3498db{% endif %};">
-            <span style="display: block; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold; margin-bottom: 10px;">Активность</span>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-                <span style="font-size: 1.3rem; font-weight: bold; color: var(--dark-bg);">{{ creditors_count }} Кредиторов</span>
-                <span style="font-size: 1.3rem; font-weight: bold; color: var(--dark-bg);">{{ records_count }} Долгов</span>
+        <div class="stat-card {% if overdue_count > 0 %}card-overdue{% else %}card-activity{% endif %}">
+            <span class="stat-label">Активность</span>
+
+            <div class="stat-content">
+                <div class="stat-row">
+                    <span class="stat-number">{{ creditors_count }}</span>
+                    <span>Кредиторов</span>
+                </div>
+
+                <div class="stat-row stat-divider">
+                    <span class="stat-number">{{ records_count }}</span>
+                    <span>Долгов</span>
+                </div>
+
                 {% if overdue_count > 0 %}
-                <span style="display: block; color: #e74c3c; font-size: 1rem; font-weight: 800; margin-top: 5px;">
-                    <i class="fa-solid fa-circle-exclamation"></i> ПРОСРОЧЕНО: {{ overdue_count }}
-                </span>
+                <div class="overdue-alert" title="Обязательства с истекшим сроком">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Просрочено: {{ overdue_count }}
+                </div>
                 {% endif %}
             </div>
         </div>
+
     </div>
 
     <div style="background: #fff; padding: 25px; border-radius: 15px; margin-bottom: 40px; border: 1px solid #eee; box-shadow: 0 2px 10px rgba(0,0,0,0.02);">
