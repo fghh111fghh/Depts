@@ -5,42 +5,43 @@
 
     <div class="record-detail-header">
         <a href="{% url 'app_depts:records_list' %}" class="btn-back">
-    <i class="fa-solid fa-arrow-left"></i> Назад к списку
-</a>
+            <i class="fa-solid fa-arrow-left"></i> Назад к списку
+        </a>
         <h1 class="record-title">{{ record.name }}</h1>
-<p class="record-subtitle">{{ record.creditor.name }}</p>
+        <p class="record-subtitle">{{ record.creditor.name }}</p>
     </div>
 
     <div class="detail-grid-layout">
 
         <div class="detail-main-content">
             <div class="note-box">
-    <h3 class="note-box-title">Примечание к долгу</h3>
-    <p class="note-box-text">{{ record.note|default:"—" }}</p>
-</div>
+                <h3 class="note-box-title">Примечание к долгу</h3>
+                <p class="note-box-text">{{ record.note|default:"—" }}</p>
+            </div>
 
             <div class="detail-card transactions-card">
                 <h2 class="card-title">История транзакций</h2>
                 <table class="transactions-table">
                     <thead>
-    <tr class="table-header-row">
-        <th>ДАТА</th>
-        <th>ТИП</th>
-        <th>КОММЕНТАРИЙ</th>
-        <th class="text-right">СУММА</th>
-    </tr>
-</thead>
+                    <tr class="table-header-row">
+                        <th>ДАТА</th>
+                        <th>ТИП</th>
+                        <th>КОММЕНТАРИЙ</th>
+                        <th class="text-right">СУММА</th>
+                    </tr>
+                    </thead>
                     <tbody>
-                        {% for tr in transactions %}
-<tr class="transaction-row">
-    <td>{{ tr.date|date:"d.m.Y" }}</td>
-    <td class="type-badge">{{ tr.get_type_display|upper }}</td>
-    <td class="comment-cell">{{ tr.comment|default:"—" }}</td>
-    <td class="amount-cell {% if tr.type == 'PAYMENT' or tr.type == 'WRITE_OFF' %}negative{% else %}positive{% endif %}">
-        {% if tr.type == 'PAYMENT' or tr.type == 'WRITE_OFF' %}-{% else %}+{% endif %}{{ tr.amount|floatformat:2 }} ₽
-    </td>
-</tr>
-{% endfor %}
+                    {% for tr in transactions %}
+                    <tr class="transaction-row">
+                        <td>{{ tr.date|date:"d.m.Y" }}</td>
+                        <td class="type-badge">{{ tr.get_type_display|upper }}</td>
+                        <td class="comment-cell">{{ tr.comment|default:"—" }}</td>
+                        <td class="amount-cell {% if tr.type == 'PAYMENT' or tr.type == 'WRITE_OFF' %}negative{% else %}positive{% endif %}">
+                            {% if tr.type == 'PAYMENT' or tr.type == 'WRITE_OFF' %}-{% else %}+{% endif %}{{
+                            tr.amount|floatformat:2 }} ₽
+                        </td>
+                    </tr>
+                    {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -53,27 +54,29 @@
 
                 <div class="balance-progress-section">
                     <div class="progress-stats">
-    <span class="progress-label">Выплачено: {{ record.progress_percent }}%</span>
-    <span class="progress-value">{{ record.total_paid|floatformat:0 }} ₽</span>
-</div>
+                        <span class="progress-label">Выплачено: {{ record.progress_percent }}%</span>
+                        <span class="progress-value">{{ record.total_paid|floatformat:0 }} ₽</span>
+                    </div>
                     <div class="progress-track">
-                        <div class="progress-bar-fill" style="width: {{ record.progress_percent|stringformat:'f' }}%;"></div>
+                        <div class="progress-bar-fill"
+                             style="width: {{ record.progress_percent|stringformat:'f' }}%;"></div>
                     </div>
                 </div>
 
                 <div class="balance-card-footer">
                     <div class="footer-stats-row">
-    <span>Начислено всего:</span>
-    <span class="stats-value">{{ record.total_accrued|floatformat:2 }} ₽</span>
-</div>
+                        <span>Начислено всего:</span>
+                        <span class="stats-value">{{ record.total_accrued|floatformat:2 }} ₽</span>
+                    </div>
                 </div>
             </div>
 
             {% if not record.is_paid %}
-<button class="btn-payment-main" onclick="document.getElementById('modal-{{ record.slug }}').style.display='flex'">
-    <i class="fas fa-plus-circle"></i> Внести платеж
-</button>
-{% endif %}
+            <button class="btn-payment-main"
+                    onclick="document.getElementById('modal-{{ record.slug }}').style.display='flex'">
+                <i class="fas fa-plus-circle"></i> Внести платеж
+            </button>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -81,35 +84,40 @@
 <div id="modal-{{ record.slug }}" class="modal-overlay">
     <div class="modal-content">
         <h2 class="modal-title">Внести платеж</h2>
-    <p class="modal-subtitle">
-        {{ record.name }}
-        <span class="remaining-badge">Остаток: <strong>{{ record.balance|floatformat:2 }} ₽</strong></span>
-    </p>
+        <p class="modal-subtitle">
+            {{ record.name }}
+            <span class="remaining-badge">Остаток: <strong>{{ record.balance|floatformat:2 }} ₽</strong></span>
+        </p>
         <form action="{% url 'app_depts:quick_payment' record.slug %}" method="POST">
             {% csrf_token %}
             <div class="form-field-container">
                 <input type="number"
-       name="amount"
-       id="amount-detail"
-       step="0.01"
-       required
-       autofocus
-       placeholder="Сумма ₽"
-       class="main-amount-input">
+                       name="amount"
+                       id="amount-detail"
+                       step="0.01"
+                       required
+                       autofocus
+                       placeholder="Сумма ₽"
+                       class="main-amount-input">
                 <button type="button"
-            class="btn-pay-all"
-            onclick="document.getElementById('amount-detail').value = '{{ record.balance|stringformat:'.2f' }}'.replace(',', '.')">
-        ОПЛАТИТЬ ВСЁ
-    </button>
+                        class="btn-pay-all"
+                        onclick="document.getElementById('amount-detail').value = '{{ record.balance|stringformat:'.2f' }}'.replace(',', '.')">
+                    ОПЛАТИТЬ ВСЁ
+                </button>
             </div>
 
-            <input type="text" name="comment" placeholder="Комментарий (необязательно)"
-                   style="width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; outline: none; box-sizing: border-box; margin-bottom: 25px;">
+            <input type="text"
+                   name="comment"
+                   placeholder="Комментарий (необязательно)"
+                   class="form-comment-input">
 
-            <div style="display: flex; gap: 15px;">
-                <button type="submit" style="flex: 2; background: #2ecc71; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 1.1rem;">ОК</button>
-                <button type="button" onclick="document.getElementById('modal-{{ record.slug }}').style.display='none'"
-                        style="flex: 1; background: #95a5a6; color: white; border: none; padding: 15px; border-radius: 12px; cursor: pointer;">ОТМЕНА</button>
+            <div class="modal-buttons-row">
+                <button type="submit" class="btn-modal-submit">ОК</button>
+                <button type="button"
+                        class="btn-modal-cancel"
+                        onclick="document.getElementById('modal-{{ record.slug }}').style.display='none'">
+                    ОТМЕНА
+                </button>
             </div>
         </form>
     </div>
