@@ -159,20 +159,22 @@
     </span>
 </div>
 
-                    <div style="height: 25px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center;">
-                        {% if record.is_paid %}
-                            <span style="font-size: 0.9rem; font-weight: bold; color: #2ecc71;">ПОГАШЕНО</span>
-                        {% elif record.end_date %}
-                            <span style="font-size: 0.9rem; font-weight: bold; color: {% if record.end_date < today %}#e74c3c{% else %}#7f8c8d{% endif %};"> До {{ record.end_date|date:"d.m.Y" }} </span>
-                        {% else %}
-                            <span style="font-size: 0.85rem; color: #bdc3c7; font-style: italic;">Срок не указан</span>
-                        {% endif %}
-                    </div>
+                    <div class="card-status-bar">
+    {% if record.is_paid %}
+        <span class="status-badge paid">ПОГАШЕНО</span>
+    {% elif record.end_date %}
+        <span class="status-badge {% if record.end_date < today %}overdue{% else %}active{% endif %}">
+            До {{ record.end_date|date:"d.m.Y" }}
+        </span>
+    {% else %}
+        <span class="status-badge empty">Срок не указан</span>
+    {% endif %}
+</div>
 
-                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 800; color: #636e72; margin-bottom: 8px;">
-                        <span>ВЫПЛАЧЕНО: <span style="color: #2ecc71;">{{ record.progress_percent }}%</span></span>
-                        <span>{{ record.total_paid|floatformat:0 }} ₽</span>
-                    </div>
+                    <div class="card-progress-details">
+    <span>ВЫПЛАЧЕНО: <span class="percent-value">{{ record.progress_percent }}%</span></span>
+    <span class="paid-amount">{{ record.total_paid|floatformat:0 }} ₽</span>
+</div>
                     <div class="progress-container" style="width: 100%; background: #eee; height: 10px; border-radius: 10px; margin-bottom: 25px; overflow: hidden; border: 1px solid #e0e0e0;">
                         <div class="progress-bar" style="width: {{ record.progress_percent|stringformat:'f' }}%; background: {% if record.is_paid %}#2ecc71{% else %}var(--primary-color){% endif %}; height: 100%;"></div>
                     </div>

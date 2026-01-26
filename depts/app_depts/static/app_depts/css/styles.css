@@ -748,6 +748,59 @@ body {
     font-weight: 400;
 }
 
+.card-status-bar {
+    height: 25px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status-badge {
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+/* Состояние: Погашено */
+.status-badge.paid {
+    color: #2ecc71;
+}
+
+/* Состояние: Просрочено */
+.status-badge.overdue {
+    color: #e74c3c;
+}
+
+/* Состояние: Активно (не просрочено) */
+.status-badge.active {
+    color: #7f8c8d;
+}
+
+/* Состояние: Срок не указан */
+.status-badge.empty {
+    font-size: 0.85rem;
+    color: #bdc3c7;
+    font-style: italic;
+    font-weight: normal;
+}
+
+.card-progress-details {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #636e72;
+    margin-bottom: 8px;
+}
+
+.percent-value {
+    color: #2ecc71;
+}
+
+.paid-amount {
+    /* Здесь можно добавить стили, если захочешь выделить сумму отдельно */
+}
+
 
 
 
