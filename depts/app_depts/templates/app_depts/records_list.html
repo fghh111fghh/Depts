@@ -175,23 +175,28 @@
     <span>ВЫПЛАЧЕНО: <span class="percent-value">{{ record.progress_percent }}%</span></span>
     <span class="paid-amount">{{ record.total_paid|floatformat:0 }} ₽</span>
 </div>
-                    <div class="progress-container" style="width: 100%; background: #eee; height: 10px; border-radius: 10px; margin-bottom: 25px; overflow: hidden; border: 1px solid #e0e0e0;">
-                        <div class="progress-bar" style="width: {{ record.progress_percent|stringformat:'f' }}%; background: {% if record.is_paid %}#2ecc71{% else %}var(--primary-color){% endif %}; height: 100%;"></div>
-                    </div>
+                    <div class="card-progress-track">
+    <div class="card-progress-bar {% if record.is_paid %}paid{% endif %}"
+         style="width: {{ record.progress_percent|stringformat:'f' }}%;">
+    </div>
+</div>
 
-                    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: auto;">
-                        {% if not record.is_paid %}
-                        <button onclick="document.getElementById('modal-{{ record.slug }}').style.display='flex'"
-                                style="background: var(--primary-color); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;"> + ВНЕСТИ ПЛАТЕЖ </button>
-                        {% endif %}
-                        <a href="{% url 'app_depts:records_detail' record.slug %}"
-                           style="text-decoration: none; background: #f8f9fa; color: var(--dark-bg); border: 1px solid #ddd; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 0.75rem; text-align: center;"> ДЕТАЛИ И ИСТОРИЯ </a>
-                    </div>
+                   <div class="card-actions">
+    {% if not record.is_paid %}
+    <button onclick="document.getElementById('modal-{{ record.slug }}').style.display='flex'"
+            class="btn-payment-add">
+        + ВНЕСТИ ПЛАТЕЖ
+    </button>
+    {% endif %}
+    <a href="{% url 'app_depts:records_detail' record.slug %}" class="btn-details">
+        ДЕТАЛИ И ИСТОРИЯ
+    </a>
+</div>
                 </div>
             </div>
 
-            <div id="modal-{{ record.slug }}" style="display:none; position: fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.8); z-index:99999; justify-content:center; align-items:center; pointer-events: all;">
-                <div style="background: white; padding: 40px; border-radius: 40px; width: 460px; min-width: 460px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); font-family: sans-serif; pointer-events: auto;">
+            <div id="modal-{{ record.slug }}" class="modal-overlay">
+                <div class="modal-content">
                     <h2 style="margin: 0 0 15px 0; font-size: 2rem; font-weight: 700; color: #2d3436;">Внести платеж</h2>
                     <p style="color: #a4b0be; font-size: 1.15rem; margin-bottom: 30px; text-align: left;">
                         {{ record.name }} <br>
