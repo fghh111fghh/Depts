@@ -60,11 +60,11 @@
                     {% if current_type %}<input type="hidden" name="creditor_type" value="{{ current_type }}">{% endif %}
                     {% if current_sort %}<input type="hidden" name="sort" value="{{ current_sort }}">{% endif %}
                     {% if show_paid %}<input type="hidden" name="show_paid" value="1">{% endif %}
-                    <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 0 25px; border-radius: 30px; cursor: pointer; font-weight: bold;">НАЙТИ</button>
+                    <button type="submit" class="search-button">НАЙТИ</button>
                     {% if search_query or current_sort or current_type or show_paid %}
-                    <a href="{% url 'app_depts:records_list' %}" style="background: #f1f2f6; color: #57606f; text-decoration: none; padding: 0 20px; border-radius: 30px; display: flex; align-items: center; font-weight: bold; font-size: 0.85rem; border: 1px solid #dcdde1;">
-                        <i class="fa-solid fa-rotate-left" style="margin-right: 8px;"></i> СБРОСИТЬ
-                    </a>
+                        <a href="{% url 'app_depts:records_list' %}" class="reset-button">
+                            <i class="fa-solid fa-rotate-left"></i> СБРОСИТЬ
+                        </a>
                     {% endif %}
                 </form>
 

@@ -440,5 +440,55 @@ body {
     background-color: #fff;
 }
 
+/* Кнопка "НАЙТИ" */
+.search-button {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0 25px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+/* Эффект при наведении */
+.search-button:hover {
+    background-color: var(--primary-dark, #2980b9); /* Чуть темнее при наведении */
+}
+
+/* Эффект при нажатии */
+.search-button:active {
+    transform: scale(0.98); /* Слегка уменьшается при клике */
+}
+
+/* Кнопка сброса фильтров */
+.reset-button {
+    background: #f1f2f6;
+    color: #57606f;
+    text-decoration: none;
+    padding: 10px 20px; /* Заменили 0 на 10px для высоты */
+    border-radius: 30px;
+    display: inline-flex; /* Изменили с flex на inline-flex */
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.85rem;
+    border: 1px solid #dcdde1;
+    transition: all 0.2s;
+    height: 44px; /* Фиксированная высота как у поиска */
+    box-sizing: border-box;
+    align-self: center; /* Центрирование внутри flex-контейнера */
+}
+
+.reset-button i {
+    margin-right: 8px;
+}
+
+.reset-button:hover {
+    background: #dfe4ea;
+    color: #2f3542;
+}
+
 
 
