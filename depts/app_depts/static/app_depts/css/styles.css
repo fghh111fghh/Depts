@@ -490,5 +490,41 @@ body {
     color: #2f3542;
 }
 
+/* Контейнер сортировки */
+.sort-container {
+    display: flex;
+    gap: 15px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    align-items: center;
+}
+
+/* Базовый стиль ссылок сортировки */
+.sort-link {
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: transparent;
+    color: inherit;
+    border: 1px solid #eee;
+    transition: all 0.2s ease;
+}
+
+/* Активное состояние (когда выбрано) */
+.sort-link.active {
+    background: #2f3542;
+    color: white;
+    border-color: #2f3542;
+}
+
+/* Эффект при наведении на неактивную ссылку */
+.sort-link:hover:not(.active) {
+    background: #f1f2f6;
+    border-color: #dcdde1;
+}
+
+
+
 
 
