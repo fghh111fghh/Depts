@@ -197,27 +197,31 @@
 
             <div id="modal-{{ record.slug }}" class="modal-overlay">
                 <div class="modal-content">
-                    <h2 style="margin: 0 0 15px 0; font-size: 2rem; font-weight: 700; color: #2d3436;">Внести платеж</h2>
-                    <p style="color: #a4b0be; font-size: 1.15rem; margin-bottom: 30px; text-align: left;">
-                        {{ record.name }} <br>
-                        <span style="color: #747d8c;">(Остаток: <strong>{{ record.balance|floatformat:2 }} ₽</strong>)</span>
-                    </p>
-                    <form action="{% url 'app_depts:quick_payment' record.slug %}" method="POST">
+                    <h2 class="modal-title">Внести платеж</h2>
+<p class="modal-subtitle">
+    {{ record.name }} <br>
+    <span class="modal-balance-info">(Остаток: <strong>{{ record.balance|floatformat:2 }} ₽</strong>)</span>
+</p>
+                    <form action="{% url 'app_depts:quick_payment' record.slug %}" method="POST" class="modal-form">
                         {% csrf_token %}
-                        <div style="position: relative; margin-bottom: 20px;">
-                            <input type="number" name="amount" id="amount-list-{{ record.slug }}" step="0.01" required placeholder="Сумма ₽"
-                                   style="width:100%; padding: 22px 145px 22px 25px; border: 2px solid #3498db; border-radius: 15px; font-size: 1.8rem; font-weight: 800; color: #2d3436; outline: none; box-sizing: border-box; background: white;">
+                        <div class="input-group">
+                            <input type="number" name="amount" id="amount-list-{{ record.slug }}"
+       step="0.01" required placeholder="Сумма ₽"
+       class="modal-input-amount">
                             <button type="button"
-                                    onclick="document.getElementById('amount-list-{{ record.slug }}').value = '{{ record.balance|stringformat:'.2f' }}'.replace(',', '.')"
-                                    style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: #f1f2f6; border: 1px solid #dfe6e9; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 0.75rem; color: #2ecc71; text-transform: uppercase;">ОПЛАТИТЬ ВСЁ</button>
+        class="btn-pay-all"
+        onclick="document.getElementById('amount-list-{{ record.slug }}').value = '{{ record.balance|stringformat:'.2f' }}'.replace(',', '.')">
+    ОПЛАТИТЬ ВСЁ
+</button>
                         </div>
-                        <input type="text" name="comment" placeholder="Комментарий (необязательно)"
-                               style="width: 100%; padding: 18px 25px; border: 1px solid #dfe6e9; border-radius: 15px; font-size: 1.1rem; outline: none; box-sizing: border-box; color: #2d3436; margin-bottom: 35px;">
-                        <div style="display: flex; gap: 20px;">
-                            <button type="submit" style="flex: 1; background: #2ecc71; color: white; border: none; padding: 20px; border-radius: 15px; font-weight: 900; cursor: pointer; font-size: 1.2rem;">ОК</button>
-                            <button type="button" onclick="document.getElementById('modal-{{ record.slug }}').style.display='none'"
-                                    style="flex: 1; background: #95a5a6; color: white; border: none; padding: 20px; border-radius: 15px; font-weight: 900; cursor: pointer; font-size: 1.2rem;">ОТМЕНА</button>
-                        </div>
+                        <input type="text" name="comment" placeholder="Комментарий (необязательно)" class="modal-input-comment">
+                        <div class="modal-footer-btns">
+    <button type="submit" class="btn-confirm">ОК</button>
+    <button type="button" class="btn-cancel"
+            onclick="document.getElementById('modal-{{ record.slug }}').style.display='none'">
+        ОТМЕНА
+    </button>
+</div>
                     </form>
                 </div>
             </div>
