@@ -11,17 +11,17 @@
 <p class="record-subtitle">{{ record.creditor.name }}</p>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 380px; gap: 30px;">
+    <div class="detail-grid-layout">
 
-        <div>
-            <div style="background: #fff9e6; border: 1px dashed #ffeaa7; padding: 20px; border-radius: 15px; margin-bottom: 30px;">
-                <h3 style="margin-top: 0; font-size: 0.9rem; color: #856404; text-transform: uppercase;">Примечание к долгу</h3>
-                <p style="margin-bottom: 0;">{{ record.note|default:"—" }}</p>
-            </div>
+        <div class="detail-main-content">
+            <div class="note-box">
+    <h3 class="note-box-title">Примечание к долгу</h3>
+    <p class="note-box-text">{{ record.note|default:"—" }}</p>
+</div>
 
-            <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-                <h3 style="margin-top: 0; margin-bottom: 20px;">История транзакций</h3>
-                <table style="width: 100%; border-collapse: collapse;">
+            <div class="detail-card transactions-card">
+                <h2 class="card-title">История транзакций</h2>
+                <table class="transactions-table">
                     <thead>
                         <tr style="text-align: left; border-bottom: 2px solid #f8f9fa; color: var(--text-muted); font-size: 0.8rem;">
                             <th style="padding: 12px;">ДАТА</th>

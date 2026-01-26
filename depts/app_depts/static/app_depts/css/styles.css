@@ -1245,6 +1245,141 @@ body {
     }
 }
 
+.detail-grid-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 30px;
+    align-items: start; /* Чтобы боковая панель не растягивалась по высоте основного контента */
+}
+
+/* Адаптивность: если экран меньше 992px (планшеты), колонки встают друг под друга */
+@media (max-width: 992px) {
+    .detail-grid-layout {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
+
+.detail-main-content {
+    /* Основной контент занимает всю доступную ширину колонки */
+    min-width: 0;
+}
+
+/* На мобилках можно добавить отступ снизу, если колонки схлопнутся */
+@media (max-width: 992px) {
+    .detail-main-content {
+        margin-bottom: 20px;
+    }
+}
+
+.note-box {
+    background: #fff9e6;
+    border: 1px dashed #ffeaa7;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+}
+
+.note-box-title {
+    margin-top: 0;
+    font-size: 0.85rem;
+    color: #856404;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Добавим маленькую иконку инфо перед заголовком */
+.note-box-title::before {
+    content: "\f06a"; /* Код иконки circle-info в FontAwesome */
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+}
+
+.note-box-text {
+    margin: 0;
+    color: #5d470a;
+    line-height: 1.5;
+    font-style: italic; /* Примечания часто выделяют курсивом */
+}
+
+/* Универсальный класс для белых карточек на странице деталей */
+.detail-card {
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+/* Специфический отступ для карточки транзакций, если нужно */
+.transactions-card {
+    margin-bottom: 30px;
+}
+
+/* На мобильных устройствах уменьшим внутренние отступы */
+@media (max-width: 768px) {
+    .detail-card {
+        padding: 15px;
+    }
+}
+
+.card-title {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.4rem;
+    color: var(--dark-bg);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Опционально: добавим иконку через CSS, если хочешь оживить заголовок */
+.transactions-card .card-title::before {
+    content: "\f0d6"; /* Иконка купюр */
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    color: var(--primary-color);
+    font-size: 1.2rem;
+}
+
+.transactions-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.transactions-table thead tr {
+    background: #f8f9fa;
+    border-bottom: 2px solid #eee;
+}
+
+.transactions-table th {
+    text-align: left;
+    padding: 12px 15px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.transactions-table td {
+    padding: 15px;
+    border-bottom: 1px solid #f1f1f1;
+    vertical-align: middle;
+}
+
+/* Эффект зебры или подсветка при наведении */
+.transactions-table tbody tr:hover {
+    background-color: #fcfcfc;
+}
+
 
 
 
