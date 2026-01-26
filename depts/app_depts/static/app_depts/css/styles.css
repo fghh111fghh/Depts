@@ -1380,6 +1380,93 @@ body {
     background-color: #fcfcfc;
 }
 
+.table-header-row {
+    text-align: left;
+    border-bottom: 2px solid #f8f9fa;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.transactions-table th {
+    padding: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Утилитный класс для выравнивания */
+.text-right {
+    text-align: right !important;
+}
+
+/* На мобилках можно сделать шрифт чуть меньше, чтобы колонки влезли */
+@media (max-width: 480px) {
+    .transactions-table th {
+        padding: 8px;
+        font-size: 0.7rem;
+    }
+}
+
+.transaction-row {
+    border-bottom: 1px solid #f8f9fa;
+    transition: background-color 0.2s;
+}
+
+.transaction-row:hover {
+    background-color: #fafbfc;
+}
+
+.transaction-row td {
+    padding: 12px;
+    vertical-align: middle;
+}
+
+.type-badge {
+    font-weight: bold;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.comment-cell {
+    color: #57606f;
+    font-size: 0.95rem;
+}
+
+/* Стили для сумм */
+.amount-cell {
+    text-align: right;
+    font-weight: 800;
+    white-space: nowrap; /* Чтобы сумма не разрывалась */
+}
+
+.amount-cell.positive {
+    color: #e74c3c; /* Красный для увеличения долга */
+}
+
+.amount-cell.negative {
+    color: #2ecc71; /* Зеленый для уменьшения долга */
+}
+
+/* Добавим легкое выделение цветом для всей строки при наведении */
+.transaction-row:hover .amount-cell.positive {
+    text-shadow: 0 0 1px rgba(231, 76, 60, 0.2);
+}
+
+.detail-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: sticky;
+    top: 20px; /* Отступ от верха экрана при липкой фиксации */
+}
+
+/* На мобилках отключаем липкость, так как сайдбар падает вниз */
+@media (max-width: 992px) {
+    .detail-sidebar {
+        position: static;
+    }
+}
+
 
 
 

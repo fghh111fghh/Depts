@@ -23,31 +23,30 @@
                 <h2 class="card-title">История транзакций</h2>
                 <table class="transactions-table">
                     <thead>
-                        <tr style="text-align: left; border-bottom: 2px solid #f8f9fa; color: var(--text-muted); font-size: 0.8rem;">
-                            <th style="padding: 12px;">ДАТА</th>
-                            <th style="padding: 12px;">ТИП</th>
-                            <th style="padding: 12px;">КОММЕНТАРИЙ</th>
-                            <th style="padding: 12px; text-align: right;">СУММА</th>
-                        </tr>
-                    </thead>
+    <tr class="table-header-row">
+        <th>ДАТА</th>
+        <th>ТИП</th>
+        <th>КОММЕНТАРИЙ</th>
+        <th class="text-right">СУММА</th>
+    </tr>
+</thead>
                     <tbody>
                         {% for tr in transactions %}
-                        <tr style="border-bottom: 1px solid #f8f9fa;">
-                            <td style="padding: 12px;">{{ tr.date|date:"d.m.Y" }}</td>
-                            <td style="padding: 12px; font-weight: bold; font-size: 0.75rem;">{{ tr.get_type_display|upper }}</td>
-                            <td style="padding: 12px; color: #57606f;">{{ tr.comment|default:"—" }}</td>
-                            <td style="padding: 12px; text-align: right; font-weight: 800;
-                                {% if tr.type == 'PAYMENT' or tr.type == 'WRITE_OFF' %} color: #2ecc71; {% else %} color: #e74c3c; {% endif %}">
-                                {% if tr.type == 'PAYMENT' or tr.type == 'WRITE_OFF' %}-{% else %}+{% endif %}{{ tr.amount|floatformat:2 }} ₽
-                            </td>
-                        </tr>
-                        {% endfor %}
+<tr class="transaction-row">
+    <td>{{ tr.date|date:"d.m.Y" }}</td>
+    <td class="type-badge">{{ tr.get_type_display|upper }}</td>
+    <td class="comment-cell">{{ tr.comment|default:"—" }}</td>
+    <td class="amount-cell {% if tr.type == 'PAYMENT' or tr.type == 'WRITE_OFF' %}negative{% else %}positive{% endif %}">
+        {% if tr.type == 'PAYMENT' or tr.type == 'WRITE_OFF' %}-{% else %}+{% endif %}{{ tr.amount|floatformat:2 }} ₽
+    </td>
+</tr>
+{% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div class="detail-sidebar">
             <div style="background: #2f3542; color: white; padding: 30px; border-radius: 20px;">
                 <span style="font-size: 0.8rem; opacity: 0.7; font-weight: bold;">ТЕКУЩИЙ ДОЛГ</span>
                 <div style="font-size: 2.2rem; font-weight: 900; margin: 10px 0;">{{ record.balance|floatformat:2 }} ₽</div>
