@@ -743,6 +743,14 @@ body {
     font-size: 0.85rem;
     color: #856404;
     text-align: left;
+
+    /* ФИКСАЦИЯ ВЫСОТЫ (на 2 строки) */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;          /* Ограничение в 2 строки */
+    -webkit-box-orient: vertical;
+    overflow: hidden;               /* Прячем лишнее */
+    height: 3.2em;                  /* Резервируем место (высота строки ~1.2 + паддинги) */
+    line-height: 1.2em;
 }
 
 .note-icon {
