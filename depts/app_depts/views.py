@@ -13,9 +13,10 @@ from django.views import View
 from django.views.generic import DetailView, ListView
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import landscape, A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import SimpleDocTemplate, TableStyle, Table
+from reportlab.platypus import SimpleDocTemplate, TableStyle, Table, Paragraph
 
 from .models import Record, Transaction, TransactionType
 
@@ -370,61 +371,81 @@ class ExportPdfView(RecordFilterMixin, View):
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename=debts_report.pdf'
 
-        # Настройка шрифта для поддержки кириллицы
-        # Положи файл arial.ttf в папку static/fonts/ твоего проекта
-        font_name = 'Helvetica'
-        try:
-            font_path = os.path.join(settings.BASE_DIR, 'static', 'fonts', 'arial.ttf')
-            pdfmetrics.registerFont(TTFont('Arial', font_path))
-            font_name = 'Arial'
-        except Exception:
-            # Если шрифта нет, будет стандартный (русский текст может не отобразиться)
-            pass
+        # 1. Регистрация шрифта (используем твой файл arialmt.ttf)
+        font_path = os.path.join(settings.BASE_DIR, 'static', 'fonts', 'arialmt.ttf')
+        pdfmetrics.registerFont(TTFont('ArialMT', font_path))
 
-        # Создаем документ (горизонтальный лист)
-        doc = SimpleDocTemplate(response, pagesize=landscape(A4),
-                                leftMargin=20, rightMargin=20, topMargin=20, bottomMargin=20)
+        # 2. Создаем стиль для ВСЕХ текстов в таблице
+        # Это критически важно: здесь принудительно ставим ArialMT
+        table_text_style = ParagraphStyle(
+            'RusStyle',
+            fontName='ArialMT',
+            fontSize=8,
+            leading=10,
+            alignment=0,  # По левому краю
+        )
+
+        # Стиль для заголовков (чуть крупнее)
+        header_style = ParagraphStyle(
+            'HeaderStyle',
+            fontName='ArialMT',
+            fontSize=10,
+            textColor=colors.whitesmoke,
+            alignment=1,  # По центру
+        )
+
+        doc = SimpleDocTemplate(
+            response,
+            pagesize=landscape(A4),
+            leftMargin=15, rightMargin=15, topMargin=20, bottomMargin=20
+        )
         elements = []
 
-        # Заголовки (точно такие же, как в Excel, но без лишних колонок для компактности)
-        data = [[
-            'Название',
-            'Кредитор',
-            'Категория',
-            'Начислено',
-            'Выплачено',
-            'Остаток',
-            'Статус',
-            'Окончание',
-            'Примечание'
-        ]]
+        # Заголовки (тоже оборачиваем в Paragraph, чтобы не было квадратов в шапке)
+        headers = [
+            Paragraph('Название', header_style),
+            Paragraph('Кредитор', header_style),
+            Paragraph('Категория', header_style),
+            Paragraph('Начислено', header_style),
+            Paragraph('Выплачено', header_style),
+            Paragraph('Остаток', header_style),
+            Paragraph('Статус', header_style),
+            Paragraph('Окончание', header_style),
+            Paragraph('Примечание', header_style)
+        ]
+
+        data = [headers]
 
         for obj in queryset:
+            # Оборачиваем КАЖДОЕ поле, где есть русский текст или спецсимволы
             data.append([
-                obj.name[:20],  # Обрезаем длинные имена
-                obj.creditor.name[:15],
-                obj.get_loan_type_display(),
-                f"{obj.total_accrued:,.2f}",  # Свойство total_accrued
-                f"{obj.total_paid:,.2f}",  # Свойство total_paid
-                f"{obj.balance:,.2f}",  # Свойство balance
-                "Закрыт" if obj.is_paid else "Активен",
+                Paragraph(obj.name or "-", table_text_style),
+                Paragraph(obj.creditor.name or "-", table_text_style),
+                Paragraph(obj.get_loan_type_display() or "-", table_text_style),
+                f"{obj.total_accrued:,.2f}",  # Числа обычно отображаются нормально
+                f"{obj.total_paid:,.2f}",
+                f"{obj.balance:,.2f}",
+                Paragraph("Закрыт" if obj.is_paid else "Активен", table_text_style),
                 obj.end_date.strftime('%d.%m.%Y') if obj.end_date else '-',
-                obj.note[:30]  # Обрезаем примечание, чтобы влезло
+                Paragraph(obj.note or "-", table_text_style)
             ])
 
-        # Создаем таблицу и задаем ширину колонок (примерное распределение)
-        table = Table(data, colWidths=[100, 80, 100, 70, 70, 70, 60, 70, 120])
+        # Ширина колонок (всего 780-800)
+        col_widths = [100, 90, 80, 70, 70, 70, 60, 70, 175]
+
+        table = Table(data, colWidths=col_widths)
 
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.dodgerblue),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, -1), font_name),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            # Дополнительно прописываем шрифт для всей таблицы на случай пустых ячеек
+            ('FONTNAME', (0, 0), (-1, -1), 'ArialMT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
         ]))
 
         elements.append(table)
