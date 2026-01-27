@@ -127,7 +127,12 @@ NUMBER_GROUPING = 3
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# Это указывает Django, где искать дополнительные папки со статикой (кроме папок внутри приложений)
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

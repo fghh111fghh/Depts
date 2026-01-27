@@ -1,6 +1,8 @@
+import os
 from typing import Any, Dict, List, Optional
 
 import openpyxl
+from django.conf import settings
 from django.contrib import messages
 from django.db.models import F, FloatField, Q, QuerySet, Sum
 from django.db.models.functions import Coalesce
@@ -9,6 +11,11 @@ from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from django.views import View
 from django.views.generic import DetailView, ListView
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import landscape, A4
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import SimpleDocTemplate, TableStyle, Table
 
 from .models import Record, Transaction, TransactionType
 
@@ -355,6 +362,71 @@ class ExportPdfView(RecordFilterMixin, View):
         doc.build(elements)
         return response
 
+
 class ExportPdfView(RecordFilterMixin, View):
     def get(self, request, *args, **kwargs):
-        return HttpResponse("PDF функционал в разработке", content_type='text/plain')
+        queryset = self.get_filtered_queryset()
+
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename=debts_report.pdf'
+
+        # Настройка шрифта для поддержки кириллицы
+        # Положи файл arial.ttf в папку static/fonts/ твоего проекта
+        font_name = 'Helvetica'
+        try:
+            font_path = os.path.join(settings.BASE_DIR, 'static', 'fonts', 'arial.ttf')
+            pdfmetrics.registerFont(TTFont('Arial', font_path))
+            font_name = 'Arial'
+        except Exception:
+            # Если шрифта нет, будет стандартный (русский текст может не отобразиться)
+            pass
+
+        # Создаем документ (горизонтальный лист)
+        doc = SimpleDocTemplate(response, pagesize=landscape(A4),
+                                leftMargin=20, rightMargin=20, topMargin=20, bottomMargin=20)
+        elements = []
+
+        # Заголовки (точно такие же, как в Excel, но без лишних колонок для компактности)
+        data = [[
+            'Название',
+            'Кредитор',
+            'Категория',
+            'Начислено',
+            'Выплачено',
+            'Остаток',
+            'Статус',
+            'Окончание',
+            'Примечание'
+        ]]
+
+        for obj in queryset:
+            data.append([
+                obj.name[:20],  # Обрезаем длинные имена
+                obj.creditor.name[:15],
+                obj.get_loan_type_display(),
+                f"{obj.total_accrued:,.2f}",  # Свойство total_accrued
+                f"{obj.total_paid:,.2f}",  # Свойство total_paid
+                f"{obj.balance:,.2f}",  # Свойство balance
+                "Закрыт" if obj.is_paid else "Активен",
+                obj.end_date.strftime('%d.%m.%Y') if obj.end_date else '-',
+                obj.note[:30]  # Обрезаем примечание, чтобы влезло
+            ])
+
+        # Создаем таблицу и задаем ширину колонок (примерное распределение)
+        table = Table(data, colWidths=[100, 80, 100, 70, 70, 70, 60, 70, 120])
+
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.dodgerblue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, -1), font_name),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+
+        elements.append(table)
+        doc.build(elements)
+        return response
