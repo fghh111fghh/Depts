@@ -12,15 +12,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 
-    // --- 2. ПОДСВЕТКА КАРТОЧЕК ПРИ КЛИКЕ ---
-    const cards = document.querySelectorAll('.app-module-card');
-    cards.forEach(card => {
-        card.addEventListener('click', () => {
-            cards.forEach(c => c.style.boxShadow = "none");
-            card.style.boxShadow = "0 0 0 3px var(--primary-color)";
-        });
-    });
-
     // --- 3. МАСКА ДЛЯ ТЕЛЕФОНА (+7) ---
     document.addEventListener('input', function (e) {
         if (e.target.name && e.target.name.includes('phone')) {
