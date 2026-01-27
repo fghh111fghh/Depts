@@ -45,6 +45,11 @@
 
     </div>
 
+    <div class="export-actions">
+        <button onclick="exportData('excel')" class="btn-export">Скачать Excel</button>
+        <button onclick="exportData('pdf')" class="btn-export">Скачать PDF</button>
+    </div>
+
     <div class="controls-panel">
         <div class="search-options-row">
             <form action="" method="GET" class="search-form">
@@ -285,4 +290,21 @@
     {% endif %}
 
 </div>
+<script>
+    function exportData(format) {
+            let baseUrl = "";
+
+            if (format === 'excel') {
+                baseUrl = "{% url 'app_depts:export_excel' %}";
+            } else if (format === 'pdf') {
+                baseUrl = "{% url 'app_depts:export_pdf' %}";
+            }
+
+            if (baseUrl) {
+                // Собираем текущие параметры фильтрации (поиск, категории и т.д.)
+                const currentParams = window.location.search;
+                window.location.href = baseUrl + currentParams;
+            }
+        }
+</script>
 {% endblock %}
