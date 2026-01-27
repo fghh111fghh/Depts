@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'app_depts.apps.AppDeptsConfig',
     'app_main.apps.AppMainConfig',
+    'django.contrib.humanize',
 ]
 
 MIDDLEWARE = [
@@ -114,6 +115,13 @@ TIME_ZONE = 'Europe/Moscow'
 USE_I18N = True  # Включает систему перевода
 USE_TZ = True    # Включает поддержку часовых поясов
 
+# Включаем локализацию чисел
+USE_L10N = False  # Важно: ставим False, чтобы Django использовал наши ручные настройки ниже
+
+# Настраиваем разделители
+USE_THOUSAND_SEPARATOR = True
+THOUSAND_SEPARATOR = ' '  # Ставим пробел
+NUMBER_GROUPING = 3
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
