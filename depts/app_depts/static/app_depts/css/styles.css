@@ -517,7 +517,7 @@ body {
     border: 2px solid transparent; /* Прозрачная рамка, чтобы не было скачков */
     border-top: 5px solid var(--primary-color);
     transition: all 0.2s ease; /* Быстрая и плавная реакция */
-    cursor: pointer;
+    cursor: default;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
