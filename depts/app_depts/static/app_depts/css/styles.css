@@ -11,22 +11,29 @@ body {
 }
 
 .main-content {
-    flex: 1 0 auto; /* Эта часть будет растягиваться, заполняя всё свободное пространство */
+    flex: 1 0 auto;
     display: flex;
     flex-direction: column;
+    padding: 40px 0; /* Добавили отступы сюда */
+    min-height: 70vh;
 }
 
 .main-footer {
-    flex-shrink: 0; /* Футер не сжимается и всегда внизу */
+    background: #eee;
+    padding: 30px 0;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    border-top: 1px solid #ddd;
+    margin-top: 50px;
 }
 
-/* Флекс-контейнер для навигации в хэдере */
+/* Флекс-контейнер для навигации */
 .header-nav {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap; /* Чтобы на мобилках меню могло переноситься */
-    gap: 15px;
+    justify-content: space-between; /* Лого слева, Админка справа */
+    align-items: center;           /* Выравнивание по вертикали */
+    padding: 10px 0;
 }
 
 /* --- 1. БАЗОВЫЕ НАСТРОЙКИ --- */
@@ -38,6 +45,8 @@ body {
     --text-muted: #7f8c8d;
     --white: #ffffff;
     --accent: #f39c12; /* Цвет для админки */
+    --radius: 15px;
+    --shadow-sm: 0 4px 12px rgba(0,0,0,0.05);
 }
 
 * {
@@ -97,30 +106,6 @@ body {
 .header-admin .admin-button i {
     font-size: 1.1rem;
     margin-bottom: 2px;
-}
-
-/* --- 4. КОНТЕНТ И ФУТЕР --- */
-.main-content {
-    padding: 40px 0;
-    min-height: 70vh;
-}
-
-.main-footer {
-    background: #eee;
-    padding: 30px 0;
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    border-top: 1px solid #ddd;
-    margin-top: 50px;
-}
-
-/* Флекс-контейнер для навигации */
-.header-nav {
-    display: flex;
-    justify-content: space-between; /* Лого слева, Админка справа */
-    align-items: center;           /* Выравнивание по вертикали */
-    padding: 10px 0;
 }
 
 /* Анимация появления уведомлений */
@@ -252,7 +237,6 @@ body {
     align-items: center;
     font-size: 1.3rem;
     font-weight: bold;
-    color: var(--dark-bg);
 }
 
 .stat-number {
@@ -542,9 +526,10 @@ body {
     position: relative;
 }
 
-/* Эффект наведения (был в инлайне через transition) */
 .app-module-card:hover {
-    transform: translateY(-5px);
+    border-color: var(--primary-color); /* Рамка становится синей */
+    transform: translateY(-5px); /* Карточка чуть приподнимается */
+    box-shadow: 0 12px 20px rgba(52, 152, 219, 0.2); /* Добавляем легкое синее свечение */
 }
 
 .card-status-icon {
