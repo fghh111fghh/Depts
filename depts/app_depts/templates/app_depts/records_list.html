@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
 {% block title %}Дашборд обязательств{% endblock %}
 
@@ -9,7 +10,7 @@
 
         <div class="stat-card card-debt">
             <span class="stat-label">Активный долг</span>
-            <span class="stat-value">{{ total_unpaid_amount|floatformat:2 }} <small>₽</small></span>
+            <span class="stat-value">{{ total_unpaid_amount|floatformat:2 |intcomma }} <small>₽</small></span>
         </div>
 
         <div class="stat-card card-progress">
@@ -155,7 +156,7 @@
         {% if record.is_paid %}Выплачено{% else %}Остаток{% endif %}
     </span>
                     <span class="amount-sum">
-        {% if record.is_paid %}{{ record.total_paid|floatformat:2 }}{% else %}{{ record.balance|floatformat:2 }}{% endif %}
+        {% if record.is_paid %}{{ record.total_paid|floatformat:2 }}{% else %}{{ record.balance|floatformat:2 |intcomma }}{% endif %}
         <small>₽</small>
     </span>
                 </div>
@@ -174,7 +175,7 @@
 
                 <div class="card-progress-details">
                     <span>ВЫПЛАЧЕНО: <span class="percent-value">{{ record.progress_percent }}%</span></span>
-                    <span class="paid-amount">{{ record.total_paid|floatformat:0 }} ₽</span>
+                    <span class="paid-amount">{{ record.total_paid|floatformat:0 |intcomma }} ₽</span>
                 </div>
                 <div class="card-progress-track">
                     <div class="card-progress-bar {% if record.is_paid %}paid{% endif %}"
@@ -201,7 +202,7 @@
                 <h2 class="modal-title">Внести платеж</h2>
                 <p class="modal-subtitle">
                     {{ record.name }} <br>
-                    <span class="modal-balance-info">(Остаток: <strong>{{ record.balance|floatformat:2 }} ₽</strong>)</span>
+                    <span class="modal-balance-info">(Остаток: <strong>{{ record.balance|floatformat:2 |intcomma }} ₽</strong>)</span>
                 </p>
                 <form action="{% url 'app_depts:quick_payment' record.slug %}" method="POST" class="modal-form">
                     {% csrf_token %}
