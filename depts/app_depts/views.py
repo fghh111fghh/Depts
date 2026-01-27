@@ -1,4 +1,5 @@
 import os
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 from typing import Any, Dict, List, Optional
 
 import openpyxl
@@ -167,15 +168,24 @@ def quick_payment(request: HttpRequest, slug: str) -> HttpResponseRedirect:
         HttpResponseRedirect: Перенаправление на предыдущую страницу.
     """
     if request.method == 'POST':
-        record: Record = get_object_or_404(Record, slug=slug)
-        amount_raw: Optional[str] = request.POST.get('amount')
-        comment: str = request.POST.get('comment', '')
+        record = get_object_or_404(Record, slug=slug)
+        amount_raw = request.POST.get('amount')
+        comment = request.POST.get('comment', '')
 
         if amount_raw:
             try:
-                # Обработка возможной запятой в качестве разделителя
-                amount: float = float(amount_raw.replace(',', '.'))
+                # 1. Очистка строки: убираем пробелы и заменяем запятую на точку
+                clean_amount = amount_raw.strip().replace(' ', '').replace(',', '.')
+
+                # 2. Преобразование в Decimal
+                amount = Decimal(clean_amount).quantize(
+                    Decimal('0.00'),
+                    rounding=ROUND_HALF_UP
+                )
+
                 if amount > 0:
+                    # Создаем транзакцию.
+                    # Проверь поле в модели: если там 'note', используй note=comment
                     Transaction.objects.create(
                         record=record,
                         type=TransactionType.PAYMENT,
@@ -183,55 +193,18 @@ def quick_payment(request: HttpRequest, slug: str) -> HttpResponseRedirect:
                         date=timezone.now().date(),
                         comment=comment or "Быстрая оплата"
                     )
-                    # Принудительный пересчет статуса is_paid
+
                     record.update_status()
                     messages.success(request, f"Платеж {amount} ₽ успешно зачислен")
-            except (ValueError, TypeError):
-                messages.error(request, "Ошибка: введена некорректная сумма")
+                else:
+                    messages.error(request, "Сумма должна быть больше нуля")
+
+            except (InvalidOperation, ValueError, TypeError) as e:
+                # Выводим ошибку в консоль для отладки, если что-то пойдет не так
+                print(f"Ошибка парсинга суммы: {e}")
+                messages.error(request, f"Ошибка: сумма '{amount_raw}' введена некорректно")
 
     return redirect(request.META.get('HTTP_REFERER', 'app_depts:records_list'))
-
-
-import openpyxl
-from django.http import HttpResponse
-from django.views import View
-from django.db.models import Q
-from .models import Record
-
-
-class RecordFilterMixin:
-    """Общая логика фильтрации для Excel и PDF"""
-
-    def get_filtered_queryset(self):
-        # Оптимизируем запрос, подтягивая кредитора
-        queryset = Record.objects.select_related('creditor').all()
-
-        q = self.request.GET.get('q', '')
-        c_type = self.request.GET.get('creditor_type', '')
-        show_paid = self.request.GET.get('show_paid') == '1'
-
-        if q:
-            queryset = queryset.filter(
-                Q(name__icontains=q) |
-                Q(creditor__name__icontains=q) |
-                Q(note__icontains=q)
-            )
-
-        if c_type:
-            # Связь Record -> Creditor (поле creditor_type)
-            queryset = queryset.filter(creditor__creditor_type=c_type)
-
-        if not show_paid:
-            queryset = queryset.filter(is_paid=False)
-
-        return queryset
-
-
-import openpyxl
-from django.http import HttpResponse
-from django.views import View
-from django.db.models import Q
-from .models import Record
 
 
 class RecordFilterMixin:
@@ -321,46 +294,6 @@ class ExportExcelView(RecordFilterMixin, View):
         )
         response['Content-Disposition'] = 'attachment; filename=debts_export.xlsx'
         wb.save(response)
-        return response
-
-
-class ExportPdfView(RecordFilterMixin, View):
-    def get(self, request, *args, **kwargs):
-        from reportlab.lib.pagesizes import A4, landscape
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
-        from reportlab.lib import colors
-
-        queryset = self.get_filtered_queryset()
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = 'attachment; filename=debts_report.pdf'
-
-        doc = SimpleDocTemplate(response, pagesize=landscape(A4))
-        elements = []
-
-        # Заголовки для PDF (сокращенный набор, чтобы влезло в лист)
-        data = [['Название', 'Кредитор', 'Начислено', 'Выплачено', 'Остаток', 'Статус', 'Примечание']]
-        for obj in queryset:
-            data.append([
-                obj.name[:20],
-                obj.creditor.name[:15],
-                f"{obj.total_accrued:.2f}",
-                f"{obj.total_paid:.2f}",
-                f"{obj.balance:.2f}",
-                "Закрыт" if obj.is_paid else "Активен",
-                obj.note[:30]  # Обрезаем примечание для PDF
-            ])
-
-        table = Table(data)
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.dodgerblue),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ]))
-
-        elements.append(table)
-        doc.build(elements)
         return response
 
 
