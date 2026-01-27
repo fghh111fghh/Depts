@@ -146,7 +146,7 @@
 
                 {% if record.note %}
                 <div class="card-note">
-                    <i class="fa-solid fa-note-sticky note-icon"></i> {{ record.note }}
+                    <i class="fa-solid fa-note-sticky note-icon"></i> {{ record.note|default:"&nbsp;" }}
                 </div>
                 {% endif %}
 
