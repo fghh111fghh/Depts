@@ -1,11 +1,13 @@
 from typing import Any, Dict, List, Optional
 
+import openpyxl
 from django.contrib import messages
 from django.db.models import F, FloatField, Q, QuerySet, Sum
 from django.db.models.functions import Coalesce
-from django.http import HttpRequest, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
+from django.views import View
 from django.views.generic import DetailView, ListView
 
 from .models import Record, Transaction, TransactionType
@@ -180,3 +182,179 @@ def quick_payment(request: HttpRequest, slug: str) -> HttpResponseRedirect:
                 messages.error(request, "Ошибка: введена некорректная сумма")
 
     return redirect(request.META.get('HTTP_REFERER', 'app_depts:records_list'))
+
+
+import openpyxl
+from django.http import HttpResponse
+from django.views import View
+from django.db.models import Q
+from .models import Record
+
+
+class RecordFilterMixin:
+    """Общая логика фильтрации для Excel и PDF"""
+
+    def get_filtered_queryset(self):
+        # Оптимизируем запрос, подтягивая кредитора
+        queryset = Record.objects.select_related('creditor').all()
+
+        q = self.request.GET.get('q', '')
+        c_type = self.request.GET.get('creditor_type', '')
+        show_paid = self.request.GET.get('show_paid') == '1'
+
+        if q:
+            queryset = queryset.filter(
+                Q(name__icontains=q) |
+                Q(creditor__name__icontains=q) |
+                Q(note__icontains=q)
+            )
+
+        if c_type:
+            # Связь Record -> Creditor (поле creditor_type)
+            queryset = queryset.filter(creditor__creditor_type=c_type)
+
+        if not show_paid:
+            queryset = queryset.filter(is_paid=False)
+
+        return queryset
+
+
+import openpyxl
+from django.http import HttpResponse
+from django.views import View
+from django.db.models import Q
+from .models import Record
+
+
+class RecordFilterMixin:
+    """Логика фильтрации для экспорта данных."""
+
+    def get_filtered_queryset(self):
+        queryset = Record.objects.select_related('creditor').all()
+
+        q = self.request.GET.get('q', '')
+        c_type = self.request.GET.get('creditor_type', '')
+        show_paid = self.request.GET.get('show_paid') == '1'
+
+        if q:
+            queryset = queryset.filter(
+                Q(name__icontains=q) |
+                Q(creditor__name__icontains=q) |
+                Q(note__icontains=q)
+            )
+
+        if c_type:
+            queryset = queryset.filter(creditor__creditor_type=c_type)
+
+        if not show_paid:
+            queryset = queryset.filter(is_paid=False)
+
+        return queryset
+
+
+class ExportExcelView(RecordFilterMixin, View):
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_filtered_queryset()
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Список долгов"
+
+        # Список заголовков (Примечание в конце)
+        headers = [
+            'Название',
+            'Кредитор',
+            'Тип орг.',
+            'Категория',
+            'Начислено',
+            'Выплачено',
+            'Остаток',
+            'Статус',
+            'Открыт',
+            'Окончание',
+            'Примечание'
+        ]
+        ws.append(headers)
+
+        # Жирный шрифт для шапки
+        for cell in ws[1]:
+            cell.font = openpyxl.styles.Font(bold=True)
+
+        for obj in queryset:
+            row = [
+                obj.name,
+                obj.creditor.name,
+                obj.creditor.get_creditor_type_display(),
+                obj.get_loan_type_display(),
+                float(obj.total_accrued),  # Сумма начислений (property)
+                float(obj.total_paid),  # Выплачено (property)
+                float(obj.balance),  # Остаток (property)
+                "Закрыт" if obj.is_paid else "Активен",
+                obj.start_date.strftime('%d.%m.%Y') if obj.start_date else '-',
+                obj.end_date.strftime('%d.%m.%Y') if obj.end_date else '-',
+                obj.note  # Примечание из BaseEntity
+            ]
+            ws.append(row)
+
+        # Настройка ширины колонок
+        for col in ws.columns:
+            max_length = 0
+            column_letter = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            ws.column_dimensions[column_letter].width = max_length + 2
+
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename=debts_export.xlsx'
+        wb.save(response)
+        return response
+
+
+class ExportPdfView(RecordFilterMixin, View):
+    def get(self, request, *args, **kwargs):
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+        from reportlab.lib import colors
+
+        queryset = self.get_filtered_queryset()
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename=debts_report.pdf'
+
+        doc = SimpleDocTemplate(response, pagesize=landscape(A4))
+        elements = []
+
+        # Заголовки для PDF (сокращенный набор, чтобы влезло в лист)
+        data = [['Название', 'Кредитор', 'Начислено', 'Выплачено', 'Остаток', 'Статус', 'Примечание']]
+        for obj in queryset:
+            data.append([
+                obj.name[:20],
+                obj.creditor.name[:15],
+                f"{obj.total_accrued:.2f}",
+                f"{obj.total_paid:.2f}",
+                f"{obj.balance:.2f}",
+                "Закрыт" if obj.is_paid else "Активен",
+                obj.note[:30]  # Обрезаем примечание для PDF
+            ])
+
+        table = Table(data)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.dodgerblue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ]))
+
+        elements.append(table)
+        doc.build(elements)
+        return response
+
+class ExportPdfView(RecordFilterMixin, View):
+    def get(self, request, *args, **kwargs):
+        return HttpResponse("PDF функционал в разработке", content_type='text/plain')

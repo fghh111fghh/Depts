@@ -34,4 +34,6 @@ urlpatterns = [
         views.quick_payment,
         name='quick_payment'
     ),
+path('export/excel/', views.ExportExcelView.as_view(), name='export_excel'),
+path('export/pdf/', views.ExportPdfView.as_view(), name='export_pdf'),
 ]
