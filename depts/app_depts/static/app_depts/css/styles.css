@@ -120,11 +120,6 @@ body {
     }
 }
 
-.alert {
-    animation: slideIn 0.5s ease-out;
-    transition: opacity 0.5s ease; /* Для плавного исчезновения через JS */
-}
-
 /* --- СТИЛИ УВЕДОМЛЕНИЙ (ALERTS) --- */
 .messages-container {
     position: fixed;
@@ -148,7 +143,8 @@ body {
     align-items: center;
     gap: 12px;
     border: none;
-    /* Анимация уже есть в твоем файле, она подцепится */
+    animation: slideIn 0.5s ease-out;
+    transition: opacity 0.5s ease; /* Для плавного исчезновения через JS */
 }
 
 /* Цвета для разных типов сообщений */
@@ -512,24 +508,34 @@ body {
     }
 }
 
-/* Базовый стиль карточки */
+/* Базовое состояние карточки */
 .app-module-card {
+    position: relative;
     background: white;
-    border-radius: 16px;
+    border-radius: 12px;
     padding: 20px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    border: 1px solid #eee;
+    border: 2px solid transparent; /* Прозрачная рамка, чтобы не было скачков */
+    border-top: 5px solid var(--primary-color);
+    transition: all 0.2s ease; /* Быстрая и плавная реакция */
+    cursor: pointer;
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    transition: transform 0.3s ease;
-    position: relative;
+    justify-content: space-between;
+    height: 100%;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
+/* Рамка появляется ТОЛЬКО при наведении мыши */
 .app-module-card:hover {
-    border-color: var(--primary-color); /* Рамка становится синей */
-    transform: translateY(-5px); /* Карточка чуть приподнимается */
-    box-shadow: 0 12px 20px rgba(52, 152, 219, 0.2); /* Добавляем легкое синее свечение */
+    transform: translateY(-4px);
+    border-color: var(--primary-color); /* Синяя рамка */
+    box-shadow: 0 8px 16px rgba(52, 152, 219, 0.15);
+}
+
+/* Состояние при клике (визуальный отклик), но не залипает */
+.app-module-card:active {
+    transform: translateY(-2px);
+    background-color: #f0f7ff;
 }
 
 .card-status-icon {
@@ -765,36 +771,6 @@ body {
 .btn-details:hover {
     background: #e9ecef;
     border-color: #ccc;
-}
-
-.modal-overlay {
-    display: none; /* Скрыто по умолчанию */
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: 99999;
-    justify-content: center;
-    align-items: center;
-    pointer-events: all;
-    /* Опционально: добавим небольшое размытие фона */
-    backdrop-filter: blur(4px);
-}
-
-.modal-content {
-    background: white;
-    padding: 40px;
-    border-radius: 40px;
-    width: 460px;
-    min-width: 460px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-    font-family: sans-serif;
-    pointer-events: auto;
-
-    /* Дополнительная защита для мобилок */
-    max-width: 95%;
 }
 
 /* На случай очень узких экранов */
