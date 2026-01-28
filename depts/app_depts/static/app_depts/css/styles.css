@@ -2045,6 +2045,30 @@ body {
     100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 }
 
+/* Стиль для ссылки "Срочные" */
+.urgent-link {
+    border-color: #fca5a5 !important;
+    color: #b91c1c !important;
+    transition: all 0.3s ease;
+}
+
+.urgent-link:hover {
+    background-color: #fee2e2;
+}
+
+/* Активное состояние кнопки "Срочные" */
+.active-urgent {
+    background-color: #ef4444 !important;
+    color: white !important;
+    border-color: #dc2626 !important;
+    font-weight: bold;
+}
+
+/* Иконка огонька в кнопке */
+.urgent-link i {
+    margin-right: 4px;
+}
+
 
 
 
