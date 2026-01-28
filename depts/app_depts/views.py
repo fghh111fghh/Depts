@@ -101,41 +101,53 @@ class RecordsListView(ListView):
                 is_paid=False
             ).exclude(end_date__isnull=True)  # Исключаем те, где срок не указан
 
-        return queryset.order_by(*order_list)
+        return queryset.select_related('creditor').prefetch_related('transactions').order_by(*order_list)
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        """
-        Добавляет статистические данные и параметры фильтрации в контекст.
-        """
-        context: Dict[str, Any] = super().get_context_data(**kwargs)
-        today: timezone.now = timezone.now().date()
+        context = super().get_context_data(**kwargs)
+        today = timezone.now().date()
 
-        active_records: QuerySet = Record.objects.filter(is_paid=False)
+        # 1. Глобальный прогресс (всего 1 запрос к транзакциям вместо двух отдельных)
+        global_stats = Transaction.objects.aggregate(
+            t_acc=Sum('amount', filter=Q(
+                type__in=[TransactionType.ACCRUAL, TransactionType.INTEREST, TransactionType.PENALTY]
+            )),
+            t_pay=Sum('amount', filter=Q(
+                type__in=[TransactionType.PAYMENT, TransactionType.WRITE_OFF]
+            ))
+        )
+        t_acc = global_stats['t_acc'] or Decimal('1.0')
+        t_pay = global_stats['t_pay'] or Decimal('0.0')
 
-        # Глобальный прогресс по всем транзакциям
-        all_tr: QuerySet = Transaction.objects.all()
-        t_acc: float = all_tr.filter(
-            type__in=[TransactionType.ACCRUAL, TransactionType.INTEREST, TransactionType.PENALTY]
-        ).aggregate(total=Sum('amount'))['total'] or 1.0
+        # 2. Статистика по активным записям.
+        # Добавляем prefetch_related, чтобы r.balance НЕ делал запросы в цикле.
+        active_records = Record.objects.filter(is_paid=False).prefetch_related('transactions')
 
-        t_pay: float = all_tr.filter(
-            type__in=[TransactionType.PAYMENT, TransactionType.WRITE_OFF]
-        ).aggregate(total=Sum('amount'))['total'] or 0.0
+        # Считаем баланс, просрочку и уникальных кредиторов в одном проходе по памяти (Python)
+        total_balance = Decimal('0.00')
+        overdue_count = 0
+        unique_creditors = set()
 
-        # Вычисление общего баланса (итерируемся по активным записям)
-        total_balance: float = sum(r.balance for r in active_records)
-        context['records_all'] = Record.objects.all().select_related('creditor')
-        context['creditor_types'] = CreditorType.choices
-        # Передаем флаг во фронтенд, чтобы кнопка была "активной"
-        context['is_urgent'] = self.request.GET.get('urgent') == '1'
+        # Этот цикл теперь работает мгновенно, так как данные уже подтянуты через prefetch
+        for r in active_records:
+            total_balance += r.balance
+            unique_creditors.add(r.creditor_id)
+            if r.end_date and r.end_date < today:
+                overdue_count += 1
+
+        # 3. Подсказки для поиска (уже оптимизировано)
+        context['records_all'] = Record.objects.select_related('creditor').only('name', 'creditor__name')
+
         context.update({
             'total_unpaid_amount': round(total_balance, 2),
             'overall_progress': round((float(t_pay) / float(t_acc)) * 100, 1),
-            'creditors_count': active_records.values('creditor').distinct().count(),
-            'records_count': active_records.count(),
-            'overdue_count': active_records.filter(end_date__lt=today).count(),
+            'creditors_count': len(unique_creditors),
+            'records_count': len(active_records),
+            'overdue_count': overdue_count,
 
-            # Параметры для UI
+            # Параметры UI
+            'creditor_types': CreditorType.choices,
+            'is_urgent': self.request.GET.get('urgent') == '1',
             'current_sort': self.request.GET.get('sort', ''),
             'search_query': self.request.GET.get('q', ''),
             'current_type': self.request.GET.get('creditor_type', ''),
