@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 import openpyxl
 from django.conf import settings
 from django.contrib import messages
-from django.db.models import F, FloatField, Q, QuerySet, Sum
+from django.db.models import F, FloatField, Q, QuerySet, Sum, Count
 from django.db.models.functions import Coalesce
 from django.http import HttpRequest, HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -107,43 +107,45 @@ class RecordsListView(ListView):
         context = super().get_context_data(**kwargs)
         today = timezone.now().date()
 
-        # 1. Глобальный прогресс (всего 1 запрос к транзакциям вместо двух отдельных)
+        # Типы транзакций для расчетов (как в моделях)
+        accrual_types = [TransactionType.ACCRUAL, TransactionType.INTEREST, TransactionType.PENALTY]
+        payment_types = [TransactionType.PAYMENT, TransactionType.WRITE_OFF]
+
+        # 1. Глобальный прогресс (все транзакции в базе)
         global_stats = Transaction.objects.aggregate(
-            t_acc=Sum('amount', filter=Q(
-                type__in=[TransactionType.ACCRUAL, TransactionType.INTEREST, TransactionType.PENALTY]
-            )),
-            t_pay=Sum('amount', filter=Q(
-                type__in=[TransactionType.PAYMENT, TransactionType.WRITE_OFF]
-            ))
+            t_acc=Sum('amount', filter=Q(type__in=accrual_types)),
+            t_pay=Sum('amount', filter=Q(type__in=payment_types))
         )
         t_acc = global_stats['t_acc'] or Decimal('1.0')
         t_pay = global_stats['t_pay'] or Decimal('0.0')
 
-        # 2. Статистика по активным записям.
-        # Добавляем prefetch_related, чтобы r.balance НЕ делал запросы в цикле.
-        active_records = Record.objects.filter(is_paid=False).prefetch_related('transactions')
+        # Считаем процент (защита от деления на ноль уже есть через Decimal('1.0'))
+        overall_progress = round((float(t_pay) / float(t_acc)) * 100, 1)
 
-        # Считаем баланс, просрочку и уникальных кредиторов в одном проходе по памяти (Python)
-        total_balance = Decimal('0.00')
-        overdue_count = 0
-        unique_creditors = set()
+        # 2. Статистика по активным записям (ОДИН запрос к БД)
+        # Используем distinct=True, чтобы Count не множил записи из-за JOIN
+        active_stats = Record.objects.filter(is_paid=False).aggregate(
+            sum_acc=Sum('transactions__amount', filter=Q(transactions__type__in=accrual_types)),
+            sum_pay=Sum('transactions__amount', filter=Q(transactions__type__in=payment_types)),
+            total_records=Count('id', distinct=True),
+            unique_creditors=Count('creditor', distinct=True),
+            overdue_count=Count('id', filter=Q(end_date__lt=today), distinct=True)
+        )
 
-        # Этот цикл теперь работает мгновенно, так как данные уже подтянуты через prefetch
-        for r in active_records:
-            total_balance += r.balance
-            unique_creditors.add(r.creditor_id)
-            if r.end_date and r.end_date < today:
-                overdue_count += 1
+        # Считаем чистый баланс: Начисления - Платежи
+        sum_acc = active_stats['sum_acc'] or Decimal('0.00')
+        sum_pay = active_stats['sum_pay'] or Decimal('0.00')
+        total_balance = sum_acc - sum_pay
 
-        # 3. Подсказки для поиска (уже оптимизировано)
+        # 3. Подсказки для поиска (уже было ок)
         context['records_all'] = Record.objects.select_related('creditor').only('name', 'creditor__name')
 
         context.update({
             'total_unpaid_amount': round(total_balance, 2),
-            'overall_progress': round((float(t_pay) / float(t_acc)) * 100, 1),
-            'creditors_count': len(unique_creditors),
-            'records_count': len(active_records),
-            'overdue_count': overdue_count,
+            'overall_progress': min(overall_progress, 100.0),  # Чтобы не было больше 100%
+            'creditors_count': active_stats['unique_creditors'],
+            'records_count': active_stats['total_records'],
+            'overdue_count': active_stats['overdue_count'],
 
             # Параметры UI
             'creditor_types': CreditorType.choices,

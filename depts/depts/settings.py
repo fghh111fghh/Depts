@@ -26,9 +26,11 @@ SECRET_KEY = 'django-insecure-_os3zv@$jgm+v)&p-%0joo&3fvqew*+_v85-ckl5_=yx&n_=@u
 DEBUG = True
 
 ALLOWED_HOSTS = ['127.0.0.1']
-INTERNAL_IPS = [
-    '127.0.0.1',
-]
+
+# # Для дебаг тулбар
+# INTERNAL_IPS = [
+#     '127.0.0.1',
+# ]
 
 
 # Application definition
