@@ -7,6 +7,7 @@ from django.db.models import Q, Sum
 from django.db.models.functions import Coalesce
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
+from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.text import slugify
 from unidecode import unidecode
@@ -135,6 +136,9 @@ class Record(BaseEntity):
         verbose_name = 'Запись долга'
         verbose_name_plural = 'Записи долгов'
         unique_together = ('name', 'creditor')
+
+    def get_absolute_url(self):
+        return reverse_lazy('app_depts:records_detail', kwargs={'slug': self.slug})
 
     def clean(self) -> None:
         """Комплексная проверка дат и ограничений на смену кредитора."""

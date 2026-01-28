@@ -195,7 +195,7 @@
                         + ВНЕСТИ ПЛАТЕЖ
                     </button>
                     {% endif %}
-                    <a href="{% url 'app_depts:records_detail' record.slug %}" class="btn-details">
+                    <a href="{{ record.get_absolute_url }}" class="btn-details">
                         ДЕТАЛИ И ИСТОРИЯ
                     </a>
                 </div>
