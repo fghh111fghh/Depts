@@ -121,8 +121,12 @@
 
     <div class="records-grid">
         {% for record in records %}
-        <div class="app-module-card">
-
+        <div class="app-module-card {% if record.is_near_deadline %}deadline-warning{% endif %}">
+            {% if record.is_near_deadline and not record.is_paid %}
+            <div class="deadline-urgent-badge">
+                <i class="fa-solid fa-clock-rotate-left"></i> СРОК ИСТЕКАЕТ!
+            </div>
+            {% endif %}
             {% if record.is_paid %}
             <div class="card-status-icon">
                 <i class="fa-solid fa-circle-check"></i>
