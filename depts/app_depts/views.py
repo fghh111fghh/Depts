@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 from typing import Any, Dict, List, Optional
 
@@ -90,6 +91,16 @@ class RecordsListView(ListView):
         else:
             order_list.append('-time_create')
 
+        # Добавляем фильтрацию по срочным
+        if self.request.GET.get('urgent') == '1':
+            today = timezone.now().date()
+            three_days_later = today + timedelta(days=3)
+            # Фильтруем: дата конца <= сегодня + 3 дня И долг не закрыт
+            queryset = queryset.filter(
+                end_date__lte=three_days_later,
+                is_paid=False
+            ).exclude(end_date__isnull=True)  # Исключаем те, где срок не указан
+
         return queryset.order_by(*order_list)
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
@@ -115,6 +126,8 @@ class RecordsListView(ListView):
         total_balance: float = sum(r.balance for r in active_records)
         context['records_all'] = Record.objects.all().select_related('creditor')
         context['creditor_types'] = CreditorType.choices
+        # Передаем флаг во фронтенд, чтобы кнопка была "активной"
+        context['is_urgent'] = self.request.GET.get('urgent') == '1'
         context.update({
             'total_unpaid_amount': round(total_balance, 2),
             'overall_progress': round((float(t_pay) / float(t_acc)) * 100, 1),

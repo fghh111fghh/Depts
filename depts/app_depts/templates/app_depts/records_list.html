@@ -69,7 +69,7 @@
                 {% if current_sort %}<input type="hidden" name="sort" value="{{ current_sort }}">{% endif %}
                 {% if show_paid %}<input type="hidden" name="show_paid" value="1">{% endif %}
                 <button type="submit" class="search-button">НАЙТИ</button>
-                {% if search_query or current_sort or current_type or show_paid %}
+                {% if search_query or current_sort or current_type or show_paid or is_urgent %}
                 <a href="{% url 'app_depts:records_list' %}" class="reset-button">
                     <i class="fa-solid fa-rotate-left"></i> СБРОСИТЬ
                 </a>
@@ -95,7 +95,7 @@
                 <span class="filter-label">Организации:</span>
 
                 <a href="?{% if search_query %}q={{ search_query }}&{% endif %}{% if current_sort %}sort={{ current_sort }}&{% endif %}{% if show_paid %}show_paid=1{% endif %}"
-                   class="type-link {% if not current_type %}active-all{% endif %}">
+                   class="type-link {% if not current_type and not is_urgent %}active-all{% endif %}">
                     ВСЕ
                 </a>
 
@@ -105,6 +105,10 @@
                     {{ type_label|upper }}
                 </a>
                 {% endfor %}
+                <a href="?urgent={% if is_urgent %}0{% else %}1{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}"
+                   class="type-link urgent-link {% if is_urgent %}active-urgent{% endif %}">
+                    <i class="fa-solid fa-fire-flame-curved"></i> СРОЧНЫЕ
+                </a>
             </div>
             <div>
                 <a href="?{% if show_paid %}show_paid=0{% else %}show_paid=1{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}"
@@ -126,6 +130,7 @@
             <div class="deadline-urgent-badge">
                 <i class="fa-solid fa-clock-rotate-left"></i> СРОК ИСТЕКАЕТ!
             </div>
+            filter-type-row
             {% endif %}
             {% if record.is_paid %}
             <div class="card-status-icon">
