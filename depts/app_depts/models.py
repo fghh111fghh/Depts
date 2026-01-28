@@ -25,6 +25,7 @@ class CreditorType(models.TextChoices):
 
 class LoanType(models.TextChoices):
     """Категории долговых обязательств."""
+    PAY = 'PAY', 'Взаймы'
     PAYDAY = 'PAYDAY', 'Займ до зарплаты'
     CONSUMER = 'CONSUMER', 'Потребительский кредит'
     MORTGAGE = 'MORTGAGE', 'Ипотека'
