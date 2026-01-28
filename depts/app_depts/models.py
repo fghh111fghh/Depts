@@ -209,6 +209,15 @@ class Record(BaseEntity):
         percent = (float(self.total_paid) / float(accrued)) * 100
         return round(min(percent, 100.0), 1)
 
+    @property
+    def is_near_deadline(self) -> bool:
+        """Возвращает True, если до даты закрытия осталось 3 дня и меньше."""
+        if self.end_date and not self.is_paid:
+            days_left = (self.end_date - timezone.now().date()).days
+            # Если дата уже прошла (отрицательное число) или осталось от 0 до 3 дней
+            return days_left <= 3
+        return False
+
 
 class Transaction(models.Model):
     """Финансовая операция по конкретному долгу."""

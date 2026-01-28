@@ -2016,6 +2016,37 @@ body {
     color: #94a3b8;
 }
 
+/* Внешний вид карточки с предупреждением */
+.app-module-card.deadline-warning {
+    border: 2px solid #ef4444 !important; /* Яркая красная рамка */
+    background-color: #fffafa !important; /* Легкий красноватый фон */
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.15); /* Мягкое красное свечение */
+}
+
+/* Стиль плашки "СРОК ИСТЕКАЕТ" */
+.deadline-urgent-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #ef4444;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 4px;
+    z-index: 10;
+    animation: pulse-red 2s infinite; /* Эффект пульсации */
+}
+
+/* Анимация пульсации для привлечения внимания */
+@keyframes pulse-red {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+
+
 
 
 
