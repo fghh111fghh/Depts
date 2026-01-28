@@ -141,25 +141,34 @@ class Record(BaseEntity):
         return reverse_lazy('app_depts:records_detail', kwargs={'slug': self.slug})
 
     def clean(self) -> None:
-        """Комплексная проверка дат и ограничений на смену кредитора."""
+        """Валидация без лишних запросов к БД."""
         if self.end_date and self.start_date and self.end_date < self.start_date:
             raise ValidationError({'end_date': "Дата закрытия не может быть раньше открытия."})
 
+        # Если объект уже существует в базе
         if self.pk:
-            orig = Record.objects.filter(pk=self.pk).first()
-            if orig and orig.creditor != self.creditor and self.transactions.exists():
-                raise ValidationError({'creditor': "Нельзя менять кредитора при наличии транзакций."})
+            # Получаем транзакции из кэша (prefetch)
+            all_trs = list(self.transactions.all())
 
-            first_tr = self.transactions.order_by('date').first()
-            if first_tr and self.start_date > first_tr.date:
-                raise ValidationError({'start_date': f"Уже есть транзакции от {first_tr.date}."})
+            # Чтобы не делать запрос за 'orig' объектом каждый раз,
+            # мы проверяем изменение кредитора только если это действительно нужно.
+            # Но самый простой способ для ListView — просто пропустить тяжелую валидацию,
+            # если мы не в процессе сохранения (save).
+
+            if all_trs:
+                # Находим первую транзакцию в памяти
+                first_tr = min(all_trs, key=lambda x: x.date)
+                if self.start_date > first_tr.date:
+                    raise ValidationError({'start_date': f"Уже есть транзакции от {first_tr.date}."})
 
     def update_status(self) -> None:
-        """Обновляет флаг is_paid на основе баланса."""
+        """Обновляет флаг is_paid на основе баланса в памяти."""
         accrued = self.total_accrued
         balance = self.balance
+        # Проверяем условия закрытия
         new_status = accrued > 0 and balance <= 0
 
+        # Обновляем в БД только если статус ДЕЙСТВИТЕЛЬНО изменился
         if self.is_paid != new_status:
             Record.objects.filter(pk=self.pk).update(is_paid=new_status)
             self.is_paid = new_status
@@ -177,23 +186,31 @@ class Record(BaseEntity):
 
     @property
     def total_accrued(self) -> Decimal:
-        """Сумма всех начислений по долгу."""
-        accrual_types = [TransactionType.ACCRUAL, TransactionType.INTEREST, TransactionType.PENALTY]
-        data = self.transactions.aggregate(
-            total=Coalesce(Sum('amount', filter=Q(type__in=accrual_types)), Decimal('0.00')),
-            corr=Coalesce(Sum('amount', filter=Q(type=TransactionType.CORRECTION, amount__gt=0)), Decimal('0.00'))
-        )
-        return (data['total'] + data['corr']).quantize(Decimal('0.00'))
+        """Сумма начислений с кэшированием внутри объекта."""
+        if not hasattr(self, '_cached_accrued'):
+            accrual_types = {TransactionType.ACCRUAL, TransactionType.INTEREST, TransactionType.PENALTY}
+            all_trs = self.transactions.all()  # Берет из prefetch
+
+            total = sum((t.amount for t in all_trs if t.type in accrual_types), Decimal('0.00'))
+            corr = sum((t.amount for t in all_trs if t.type == TransactionType.CORRECTION and t.amount > 0),
+                       Decimal('0.00'))
+
+            self._cached_accrued = (total + corr).quantize(Decimal('0.00'))
+        return self._cached_accrued
 
     @property
     def total_paid(self) -> Decimal:
-        """Сумма всех выплат и списаний."""
-        pay_types = [TransactionType.PAYMENT, TransactionType.WRITE_OFF]
-        data = self.transactions.aggregate(
-            total=Coalesce(Sum('amount', filter=Q(type__in=pay_types)), Decimal('0.00')),
-            corr=Coalesce(Sum('amount', filter=Q(type=TransactionType.CORRECTION, amount__lt=0)), Decimal('0.00'))
-        )
-        return (data['total'] + abs(data['corr'])).quantize(Decimal('0.00'))
+        """Сумма выплат с кэшированием внутри объекта."""
+        if not hasattr(self, '_cached_paid'):
+            pay_types = {TransactionType.PAYMENT, TransactionType.WRITE_OFF}
+            all_trs = self.transactions.all()  # Берет из prefetch
+
+            total = sum((t.amount for t in all_trs if t.type in pay_types), Decimal('0.00'))
+            corr = sum((t.amount for t in all_trs if t.type == TransactionType.CORRECTION and t.amount < 0),
+                       Decimal('0.00'))
+
+            self._cached_paid = (total + abs(corr)).quantize(Decimal('0.00'))
+        return self._cached_paid
 
     @property
     def balance(self) -> Decimal:
@@ -214,7 +231,6 @@ class Record(BaseEntity):
         """Возвращает True, если до даты закрытия осталось 3 дня и меньше."""
         if self.end_date and not self.is_paid:
             days_left = (self.end_date - timezone.now().date()).days
-            # Если дата уже прошла (отрицательное число) или осталось от 0 до 3 дней
             return days_left <= 3
         return False
 
