@@ -1,0 +1,2068 @@
+[
+{
+    "model": "app_depts.sro",
+    "pk": 1,
+    "fields": {
+        "name": "Микрофинансовый альянс",
+        "slug": "mikrofinansovyj-alyans",
+        "note": "",
+        "time_create": "2026-01-28T08:18:13.811Z",
+        "time_update": "2026-01-28T08:18:13.811Z",
+        "phone": "+78005552499",
+        "website": "https://www.alliance-mfo.ru"
+    }
+},
+{
+    "model": "app_depts.sro",
+    "pk": 2,
+    "fields": {
+        "name": "Мир",
+        "slug": "mir",
+        "note": "",
+        "time_create": "2026-01-28T08:20:38.802Z",
+        "time_update": "2026-01-28T08:20:38.802Z",
+        "phone": "+79255949646",
+        "website": "https://www.npmir.ru"
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 1,
+    "fields": {
+        "name": "Сбер",
+        "slug": "sber",
+        "note": "",
+        "time_create": "2026-01-28T08:23:24.770Z",
+        "time_update": "2026-01-28T08:23:24.770Z",
+        "phone": "+78005555550",
+        "website": "https://www.sberbank.ru",
+        "creditor_type": "BANK",
+        "sro": null
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 2,
+    "fields": {
+        "name": "ВТБ",
+        "slug": "vtb",
+        "note": "",
+        "time_create": "2026-01-28T08:25:04.825Z",
+        "time_update": "2026-01-28T08:25:04.825Z",
+        "phone": "+74957772424",
+        "website": "https://www.vbr.ru",
+        "creditor_type": "BANK",
+        "sro": null
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 3,
+    "fields": {
+        "name": "Т-Банк",
+        "slug": "t-bank",
+        "note": "",
+        "time_create": "2026-01-28T08:28:38.848Z",
+        "time_update": "2026-01-28T08:28:38.848Z",
+        "phone": "+78005551010",
+        "website": "https://www.tbank.ru/",
+        "creditor_type": "BANK",
+        "sro": null
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 4,
+    "fields": {
+        "name": "Частное лицо",
+        "slug": "chastnoe-lico",
+        "note": "",
+        "time_create": "2026-01-28T08:32:29.356Z",
+        "time_update": "2026-01-28T08:32:29.356Z",
+        "phone": null,
+        "website": null,
+        "creditor_type": "PERSON",
+        "sro": null
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 5,
+    "fields": {
+        "name": "ЛайкЗайм",
+        "slug": "lajkzajm",
+        "note": "ООО МКК «Дивэлопмэнт»",
+        "time_create": "2026-01-28T11:14:28.294Z",
+        "time_update": "2026-01-28T11:14:28.294Z",
+        "phone": "+78001000703",
+        "website": "https://www.likezaim67.ru/",
+        "creditor_type": "MFO",
+        "sro": 1
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 6,
+    "fields": {
+        "name": "Деньга",
+        "slug": "denga",
+        "note": "",
+        "time_create": "2026-01-28T11:44:23.110Z",
+        "time_update": "2026-01-28T11:44:23.110Z",
+        "phone": "+78007000808",
+        "website": "https://www.denga.ru",
+        "creditor_type": "MFO",
+        "sro": 1
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 7,
+    "fields": {
+        "name": "Отличные наличные",
+        "slug": "otlichnye-nalichnye",
+        "note": "",
+        "time_create": "2026-01-28T11:57:47.119Z",
+        "time_update": "2026-01-28T11:57:47.119Z",
+        "phone": "+78006007000",
+        "website": "https://www.otlnal.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 8,
+    "fields": {
+        "name": "Банкомато",
+        "slug": "bankomato",
+        "note": "",
+        "time_create": "2026-01-28T12:15:04.037Z",
+        "time_update": "2026-01-28T12:15:04.037Z",
+        "phone": "+78006008864",
+        "website": "https://www.bankomato.ru",
+        "creditor_type": "MFO",
+        "sro": 1
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 9,
+    "fields": {
+        "name": "Макс.Кредит",
+        "slug": "makskredit",
+        "note": "",
+        "time_create": "2026-01-28T12:21:54.948Z",
+        "time_update": "2026-01-28T12:21:54.948Z",
+        "phone": "+78005559532",
+        "website": "https://www.max.credit/",
+        "creditor_type": "MFO",
+        "sro": 1
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 10,
+    "fields": {
+        "name": "Кредиттер",
+        "slug": "kreditter",
+        "note": "",
+        "time_create": "2026-01-28T12:41:31.711Z",
+        "time_update": "2026-01-28T12:41:31.711Z",
+        "phone": "+74959959560",
+        "website": "http://www.creditter.ru",
+        "creditor_type": "MFO",
+        "sro": 1
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 11,
+    "fields": {
+        "name": "Финтерс",
+        "slug": "finters",
+        "note": "",
+        "time_create": "2026-01-28T12:59:08.152Z",
+        "time_update": "2026-01-28T12:59:08.152Z",
+        "phone": "+78007004211",
+        "website": "https://www.finters-zaem.ru/",
+        "creditor_type": "MFO",
+        "sro": 1
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 12,
+    "fields": {
+        "name": "КредитПлюс",
+        "slug": "kreditplyus",
+        "note": "",
+        "time_create": "2026-01-28T13:44:10.539Z",
+        "time_update": "2026-01-28T13:44:10.539Z",
+        "phone": "+78002222323",
+        "website": "https://www.creditplus.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 13,
+    "fields": {
+        "name": "OneClickMoney",
+        "slug": "oneclickmoney",
+        "note": "",
+        "time_create": "2026-01-28T13:50:35.453Z",
+        "time_update": "2026-01-28T13:50:35.453Z",
+        "phone": "+78007000607",
+        "website": "https://www.oneclickmoney.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 14,
+    "fields": {
+        "name": "Корона",
+        "slug": "korona",
+        "note": "",
+        "time_create": "2026-01-28T13:59:01.650Z",
+        "time_update": "2026-01-28T13:59:01.650Z",
+        "phone": "+74952342834",
+        "website": "https://www.korona.ru",
+        "creditor_type": "MFO",
+        "sro": 1
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 15,
+    "fields": {
+        "name": "Кредито24",
+        "slug": "kredito24",
+        "note": "",
+        "time_create": "2026-01-28T14:07:48.567Z",
+        "time_update": "2026-01-28T14:07:48.567Z",
+        "phone": "+74952259063",
+        "website": "https://www.kredito24.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 16,
+    "fields": {
+        "name": "Деньги на дом",
+        "slug": "dengi-na-dom",
+        "note": "",
+        "time_create": "2026-01-28T14:19:00.132Z",
+        "time_update": "2026-01-28T14:19:00.132Z",
+        "phone": "+79235712331",
+        "website": "https://www.denginadom.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 17,
+    "fields": {
+        "name": "Простой вопрос",
+        "slug": "prostoj-vopros",
+        "note": "",
+        "time_create": "2026-01-28T14:33:35.543Z",
+        "time_update": "2026-01-28T14:33:35.543Z",
+        "phone": "+78007005965",
+        "website": "https://www.prostoyvopros.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 18,
+    "fields": {
+        "name": "МигКредит",
+        "slug": "migkredit",
+        "note": "",
+        "time_create": "2026-01-28T14:41:22.930Z",
+        "time_update": "2026-01-28T14:41:22.930Z",
+        "phone": "+78007000908",
+        "website": "https://www.migcredit.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 19,
+    "fields": {
+        "name": "Платиза",
+        "slug": "platiza",
+        "note": "",
+        "time_create": "2026-01-28T14:48:45.417Z",
+        "time_update": "2026-01-28T14:48:45.417Z",
+        "phone": "+78002003839",
+        "website": "https://www.platiza.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 20,
+    "fields": {
+        "name": "Быстроденьги",
+        "slug": "bystrodengi",
+        "note": "",
+        "time_create": "2026-01-28T15:16:07.208Z",
+        "time_update": "2026-01-28T15:16:07.208Z",
+        "phone": "+74957252525",
+        "website": "https://www.bistrodengi.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 21,
+    "fields": {
+        "name": "ГринМани",
+        "slug": "grinmani",
+        "note": "",
+        "time_create": "2026-01-28T15:22:28.182Z",
+        "time_update": "2026-01-28T15:22:28.182Z",
+        "phone": "+78005054400",
+        "website": "https://www.greenmoney.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 22,
+    "fields": {
+        "name": "Займер",
+        "slug": "zajmer",
+        "note": "",
+        "time_create": "2026-01-28T15:27:19.967Z",
+        "time_update": "2026-01-28T15:27:19.967Z",
+        "phone": "+78007070247",
+        "website": "https://www.zaymer.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 23,
+    "fields": {
+        "name": "Турбозайм",
+        "slug": "turbozajm",
+        "note": "",
+        "time_create": "2026-01-28T15:33:15.577Z",
+        "time_update": "2026-01-28T15:33:15.577Z",
+        "phone": "+74999519180",
+        "website": "https://www.turbozaim.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 24,
+    "fields": {
+        "name": "Надо Денег",
+        "slug": "nado-deneg",
+        "note": "",
+        "time_create": "2026-01-28T15:50:16.579Z",
+        "time_update": "2026-01-28T15:50:16.579Z",
+        "phone": "+78002220224",
+        "website": "https://www.nadodeneg.ru",
+        "creditor_type": "MFO",
+        "sro": 1
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 25,
+    "fields": {
+        "name": "Займ-Экспресс",
+        "slug": "zajm-ekspress",
+        "note": "",
+        "time_create": "2026-01-28T16:14:35.865Z",
+        "time_update": "2026-01-28T16:14:35.865Z",
+        "phone": "+78003330202",
+        "website": "https://www.zaim-express.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 26,
+    "fields": {
+        "name": "Привет, сосед!",
+        "slug": "privet-sosed",
+        "note": "",
+        "time_create": "2026-01-28T16:20:24.660Z",
+        "time_update": "2026-01-28T16:20:24.660Z",
+        "phone": "+78007001206",
+        "website": "https://www.privsosed.ru",
+        "creditor_type": "MFO",
+        "sro": 1
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 27,
+    "fields": {
+        "name": "А ДЕНЬГИ",
+        "slug": "a-dengi",
+        "note": "",
+        "time_create": "2026-01-28T16:24:28.534Z",
+        "time_update": "2026-01-28T16:24:28.534Z",
+        "phone": "+78007007700",
+        "website": "https://www.adengi.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 28,
+    "fields": {
+        "name": "Свои Люди",
+        "slug": "svoi-lyudi",
+        "note": "",
+        "time_create": "2026-01-28T16:31:38.973Z",
+        "time_update": "2026-01-28T16:31:38.973Z",
+        "phone": "+78005551123",
+        "website": "https://www.svoi-ludi.ru",
+        "creditor_type": "MFO",
+        "sro": 1
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 29,
+    "fields": {
+        "name": "Moneyman",
+        "slug": "moneyman",
+        "note": "",
+        "time_create": "2026-01-28T16:39:29.554Z",
+        "time_update": "2026-01-28T16:39:29.554Z",
+        "phone": "+78007755576",
+        "website": "https://www.moneyman.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 30,
+    "fields": {
+        "name": "Банни Мани",
+        "slug": "banni-mani",
+        "note": "",
+        "time_create": "2026-01-28T16:56:39.156Z",
+        "time_update": "2026-01-28T16:56:39.158Z",
+        "phone": "+78006007840",
+        "website": "https://www.bunnymoney.ru",
+        "creditor_type": "MFO",
+        "sro": 1
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 31,
+    "fields": {
+        "name": "Деньги сразу",
+        "slug": "dengi-srazu",
+        "note": "",
+        "time_create": "2026-01-28T17:00:44.171Z",
+        "time_update": "2026-01-28T17:00:44.171Z",
+        "phone": "+78001007745",
+        "website": "https://www.dengisrazy.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 32,
+    "fields": {
+        "name": "Лайм‑Займ",
+        "slug": "lajmzajm",
+        "note": "",
+        "time_create": "2026-01-28T17:07:10.240Z",
+        "time_update": "2026-01-28T17:07:10.240Z",
+        "phone": "+78007000197",
+        "website": "https://www.lime-zaim.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 33,
+    "fields": {
+        "name": "Срочноденьги",
+        "slug": "srochnodengi",
+        "note": "",
+        "time_create": "2026-01-28T17:15:33.083Z",
+        "time_update": "2026-01-28T17:15:33.083Z",
+        "phone": "+78001001363",
+        "website": "https://www.srochnodengi.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 34,
+    "fields": {
+        "name": "Белка Кредит",
+        "slug": "belka-kredit",
+        "note": "",
+        "time_create": "2026-01-28T17:19:40.649Z",
+        "time_update": "2026-01-28T17:19:40.649Z",
+        "phone": "+78002224220",
+        "website": "https://www.belkacredit.ru",
+        "creditor_type": "MFO",
+        "sro": 1
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 35,
+    "fields": {
+        "name": "Центрофинанс",
+        "slug": "centrofinans",
+        "note": "",
+        "time_create": "2026-01-28T17:23:48.692Z",
+        "time_update": "2026-01-28T17:23:48.692Z",
+        "phone": "+78007003767",
+        "website": "https://www.centrofinans.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 36,
+    "fields": {
+        "name": "495 Кредит",
+        "slug": "495-kredit",
+        "note": "",
+        "time_create": "2026-01-28T17:27:47.084Z",
+        "time_update": "2026-01-28T17:27:47.084Z",
+        "phone": "+74951222289",
+        "website": "https://www.495credit.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 37,
+    "fields": {
+        "name": "Credit7",
+        "slug": "credit7",
+        "note": "",
+        "time_create": "2026-01-28T17:30:49.304Z",
+        "time_update": "2026-01-28T17:30:49.304Z",
+        "phone": "+78002228022",
+        "website": "https://www.credit7.ru",
+        "creditor_type": "MFO",
+        "sro": 1
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 38,
+    "fields": {
+        "name": "Конга",
+        "slug": "konga",
+        "note": "",
+        "time_create": "2026-01-28T17:37:24.941Z",
+        "time_update": "2026-01-28T17:37:24.941Z",
+        "phone": "+73952799970",
+        "website": "https://www.konga.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 39,
+    "fields": {
+        "name": "Веббанкир",
+        "slug": "vebbankir",
+        "note": "",
+        "time_create": "2026-01-28T17:44:19.689Z",
+        "time_update": "2026-01-28T17:44:19.689Z",
+        "phone": "+78007755454",
+        "website": "https://www.webbankir.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 40,
+    "fields": {
+        "name": "Вива Деньги",
+        "slug": "viva-dengi",
+        "note": "",
+        "time_create": "2026-01-28T17:47:26.232Z",
+        "time_update": "2026-01-28T17:47:26.232Z",
+        "phone": "+78005507766",
+        "website": "https://www.vivadengi.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 41,
+    "fields": {
+        "name": "Джой Мани",
+        "slug": "dzhoj-mani",
+        "note": "",
+        "time_create": "2026-01-28T17:51:13.735Z",
+        "time_update": "2026-01-28T17:51:13.735Z",
+        "phone": "+78007072243",
+        "website": "https://www.joy.money",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.creditor",
+    "pk": 42,
+    "fields": {
+        "name": "Честное слово",
+        "slug": "chestnoe-slovo",
+        "note": "",
+        "time_create": "2026-01-28T17:55:16.183Z",
+        "time_update": "2026-01-28T17:55:16.183Z",
+        "phone": "+78005112819",
+        "website": "http://www.4slovo.ru",
+        "creditor_type": "MFO",
+        "sro": 2
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 1,
+    "fields": {
+        "name": "Вадим Калачев",
+        "slug": "vadim-kalachev-chastnoe-litso-1769589479",
+        "note": "Долг перевести предпочтительнее всего на Т-Банк. В тело долга входит 3000 рублей проценты за комиссию",
+        "time_create": "2026-01-28T08:37:59.010Z",
+        "time_update": "2026-01-28T08:37:59.010Z",
+        "creditor": 4,
+        "loan_type": "PAY",
+        "start_date": "2026-01-15",
+        "end_date": "2026-02-10",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 2,
+    "fields": {
+        "name": "Пушкин",
+        "slug": "pushkin-chastnoe-litso-1769589715",
+        "note": "Долг лучше перевести на Т-Банк",
+        "time_create": "2026-01-28T08:41:55.640Z",
+        "time_update": "2026-01-28T08:41:55.640Z",
+        "creditor": 4,
+        "loan_type": "PAY",
+        "start_date": "2026-01-15",
+        "end_date": "2026-02-10",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 3,
+    "fields": {
+        "name": "Алексей Кургузов",
+        "slug": "aleksei-kurguzov-chastnoe-litso-1769589830",
+        "note": "Долг перевести на Сбер",
+        "time_create": "2026-01-28T08:43:50.212Z",
+        "time_update": "2026-01-28T08:43:50.212Z",
+        "creditor": 4,
+        "loan_type": "PAY",
+        "start_date": "2026-01-15",
+        "end_date": "2026-02-10",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 4,
+    "fields": {
+        "name": "Александр Жедулов",
+        "slug": "aleksandr-zhedulov-chastnoe-litso-1769589938",
+        "note": "Долг перевести на Сбер",
+        "time_create": "2026-01-28T08:45:38.677Z",
+        "time_update": "2026-01-28T08:45:38.677Z",
+        "creditor": 4,
+        "loan_type": "PAY",
+        "start_date": "2026-01-15",
+        "end_date": "2026-02-10",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 5,
+    "fields": {
+        "name": "Андрей Дабижа",
+        "slug": "andrei-dabizha-chastnoe-litso-1769590051",
+        "note": "Долг перевести на Альфа",
+        "time_create": "2026-01-28T08:47:31.532Z",
+        "time_update": "2026-01-28T08:47:31.532Z",
+        "creditor": 4,
+        "loan_type": "CONSUMER",
+        "start_date": "2026-01-15",
+        "end_date": "2026-02-10",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 6,
+    "fields": {
+        "name": "Тарас Норенко",
+        "slug": "taras-norenko-chastnoe-litso-1769590097",
+        "note": "Долг перевести на Т-Банк",
+        "time_create": "2026-01-28T08:48:17.866Z",
+        "time_update": "2026-01-28T08:48:17.866Z",
+        "creditor": 4,
+        "loan_type": "PAY",
+        "start_date": "2026-01-15",
+        "end_date": "2026-02-10",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 7,
+    "fields": {
+        "name": "Владимир Панов",
+        "slug": "vladimir-panov-chastnoe-litso-1769590188",
+        "note": "Долг перевести на ВТБ",
+        "time_create": "2026-01-28T08:49:48.486Z",
+        "time_update": "2026-01-28T08:49:48.486Z",
+        "creditor": 4,
+        "loan_type": "PAY",
+        "start_date": "2026-01-15",
+        "end_date": "2026-02-10",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 8,
+    "fields": {
+        "name": "Алексей КУзнецов",
+        "slug": "aleksei-kuznetsov-chastnoe-litso-1769590259",
+        "note": "Долг перевести на Сбер",
+        "time_create": "2026-01-28T08:50:59.930Z",
+        "time_update": "2026-01-28T08:50:59.930Z",
+        "creditor": 4,
+        "loan_type": "PAY",
+        "start_date": "2026-01-15",
+        "end_date": "2026-02-10",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 9,
+    "fields": {
+        "name": "Владимир Потапенко",
+        "slug": "vladimir-potapenko-chastnoe-litso-1769590311",
+        "note": "Долг перевести на ВТБ",
+        "time_create": "2026-01-28T08:51:51.209Z",
+        "time_update": "2026-01-28T08:51:51.209Z",
+        "creditor": 4,
+        "loan_type": "PAY",
+        "start_date": "2026-01-15",
+        "end_date": "2026-02-10",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 10,
+    "fields": {
+        "name": "Крелитная карта ВТБ лимит 60000",
+        "slug": "krelitnaia-karta-vtb-limit-60000-vtb-1769591428",
+        "note": "Лимит по карте 60000. До блокировки там было 2000 и действовал льготный период, то есть проценты не должны начисляться. Чистый долг 58000.",
+        "time_create": "2026-01-28T09:10:28.644Z",
+        "time_update": "2026-01-28T09:10:28.644Z",
+        "creditor": 2,
+        "loan_type": "CARD",
+        "start_date": "2023-08-16",
+        "end_date": "2026-12-11",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 11,
+    "fields": {
+        "name": "Потребительский кредит Сбер",
+        "slug": "potrebitelskii-kredit-sber-sber-1769591997",
+        "note": "",
+        "time_create": "2026-01-28T09:19:57.984Z",
+        "time_update": "2026-01-28T09:24:42.956Z",
+        "creditor": 1,
+        "loan_type": "CONSUMER",
+        "start_date": "2023-08-31",
+        "end_date": "2026-12-11",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 12,
+    "fields": {
+        "name": "Кредитная карта Сбер лимит 250000",
+        "slug": "kreditnaia-karta-sber-limit-250000-sber-1769592232",
+        "note": "",
+        "time_create": "2026-01-28T09:23:52.787Z",
+        "time_update": "2026-01-28T09:23:52.787Z",
+        "creditor": 1,
+        "loan_type": "CARD",
+        "start_date": "2021-11-19",
+        "end_date": "2034-11-01",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 13,
+    "fields": {
+        "name": "Номер договора 104504-1123112003",
+        "slug": "nomer-dogovora-104504-1123112003-laikzaim-1769599335",
+        "note": "По электронной почте от них была информация об оплате суммы 9900 по долгу. Что я и оплатил. Возможно долг передан коллекторам. Необходимо уточнение.",
+        "time_create": "2026-01-28T11:22:15.069Z",
+        "time_update": "2026-01-28T11:26:00.062Z",
+        "creditor": 5,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-23",
+        "end_date": "2026-12-11",
+        "is_paid": true
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 14,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-denga-1769600888",
+        "note": "Долг передан коллекторскому агенству Юнона. Вот их контакты 8 (989) 689-08-69 https://iunona.su./",
+        "time_create": "2026-01-28T11:48:08.511Z",
+        "time_update": "2026-01-28T11:48:08.511Z",
+        "creditor": 6,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-17",
+        "end_date": "2026-12-11",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 15,
+    "fields": {
+        "name": "Договор №006324342",
+        "slug": "dogovor-no-006324342-otlichnye-nalichnye-1769601981",
+        "note": "Их другое название Микрокредитная компания \"Финансовый супермаркет\". 12.08.2024 было такое сообщение (не нашел его в переписке, нужно уточнять):\r\nДМИТРИЙ ЮРЬЕВИЧ Ваша просроченная задолженность перед ООО МКК \"ФСМ\" 16100.00 руб передана в работу коллекторской компании ООО ПКО Эксперт Центр 89243882404.\r\nЭксперт ответил, что взаимодействие со мной не ведется/прекращено. Все вопросы к ОтНал. В ЛК ничего не должен. Нужно конкретное уточнение.",
+        "time_create": "2026-01-28T12:06:21.219Z",
+        "time_update": "2026-01-28T12:06:21.219Z",
+        "creditor": 7,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-18",
+        "end_date": "2026-12-11",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 16,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-bankomato-1769602683",
+        "note": "По информации из интернета С 25 февраля 2025 года ООО МКК «Технология займа» (Банкомато) не имеет права выдавать займы населению, так как организация исключена из государственного реестра микрофинансовых организаций ЦБ РФ.\r\nВозможно долг был передан коллекторам Профессиональная коллекторская организация «Первое коллекторское бюро» (НАО ПКО «ПКБ»): 8 (800) 234-40-04.\r\nНужно дополнительное уточнение.",
+        "time_create": "2026-01-28T12:18:03.206Z",
+        "time_update": "2026-01-28T12:18:03.206Z",
+        "creditor": 8,
+        "loan_type": "PAYDAY",
+        "start_date": "2024-10-18",
+        "end_date": "2026-12-11",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 17,
+    "fields": {
+        "name": "Договор №231108764829",
+        "slug": "dogovor-no-231108764829-makskredit-1769603634",
+        "note": "Другое название М-Кредит.\r\nВозможно передано коллекторам ООО ПКО \"ДОЛГАМ.НЕТ\" 25.12.2024. Нужно уточнение.",
+        "time_create": "2026-01-28T12:33:54.325Z",
+        "time_update": "2026-01-28T12:33:54.325Z",
+        "creditor": 9,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-12",
+        "end_date": "2026-12-11",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 18,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-kreditter-1769604250",
+        "note": "По их данным долг 10735. По информации из интернета на 21 января 2026 года, ООО МКК «Кредиттер» не действует. Необходимо уточнение.",
+        "time_create": "2026-01-28T12:44:10.773Z",
+        "time_update": "2026-01-28T12:44:10.773Z",
+        "creditor": 10,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-17",
+        "end_date": "2026-06-16",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 19,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-finters-1769605466",
+        "note": "Кредитные каникулы автоматически продлеваются.\r\nДругое название ООО МКК «Денежная крепость».",
+        "time_create": "2026-01-28T13:04:26.524Z",
+        "time_update": "2026-01-28T13:04:26.524Z",
+        "creditor": 11,
+        "loan_type": "PAYDAY",
+        "start_date": "2024-10-16",
+        "end_date": "2026-05-31",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 20,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-kreditplius-1769607979",
+        "note": "Другое название Экофинанс.\r\nПо их данным долг 12574.",
+        "time_create": "2026-01-28T13:46:19.434Z",
+        "time_update": "2026-01-28T13:46:19.434Z",
+        "creditor": 12,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-28",
+        "end_date": "2026-06-16",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 21,
+    "fields": {
+        "name": "Договор микрозайма № УФ-912/2263815",
+        "slug": "dogovor-mikrozaima-no-uf-9122263815-oneclickmoney-1769608434",
+        "note": "Другое название АО «МКК УФ»",
+        "time_create": "2026-01-28T13:53:54.075Z",
+        "time_update": "2026-01-28T13:53:54.075Z",
+        "creditor": 13,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-17",
+        "end_date": "2026-06-26",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 22,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-korona-1769608943",
+        "note": "Предварительно я согласен с этой суммой.",
+        "time_create": "2026-01-28T14:02:23.804Z",
+        "time_update": "2026-01-28T14:02:23.804Z",
+        "creditor": 14,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-28",
+        "end_date": "2026-06-29",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 23,
+    "fields": {
+        "name": "Договор займа № KBN2793577N12",
+        "slug": "dogovoru-zaima-no-kbn2793577n12-kredito24-1769609446",
+        "note": "Информация из письма электронной почты.\r\nПрава требования по Вашему Договору займа № KBN2793577N12 от 17.11.2023 г. уступлены на основании договора уступки от 23.12.2025 г, заключенного между ООО МКК «Кредито24» и ООО «ПКО ЮСВ», в полном объеме, включая задолженность по основному долгу, начисленным процентам, процентам в период просрочки, штрафам.\r\nНовым кредитором по Вашему Договору займа является Общество с ограниченной ответственностью «Профессиональная коллекторская организация ЮРИДИЧЕСКАЯ СЛУЖБА ВЗЫСКАНИЯ».\r\nС момента получения настоящего уведомления для определения срока и порядка погашения задолженности Вам необходимо обратиться к новому кредитору.\r\nООО \"ПКО ЮСВ\"\r\nЮридический адрес: 344101, Ростовская обл, г. Ростов-на-Дону, ул. Ленинградская зд. 7, помещ. 25  \r\nАдрес электронной почты: inf@usv-ka.ru\r\nТелефон: 8-800-700-56-93  \r\nОГРН 1216100018750, ИНН 6168114626 ; номер свидетельства ФССП 4/21/61000-КЛ от 26.10.2021 года.",
+        "time_create": "2026-01-28T14:10:46.413Z",
+        "time_update": "2026-01-28T14:14:58.217Z",
+        "creditor": 15,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-17",
+        "end_date": "2026-07-01",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 24,
+    "fields": {
+        "name": "Договор потребительского микрозайма № 0013974368",
+        "slug": "dogovor-potrebitelskogo-mikrozaima-no-0013974368-dengi-na-dom-1769610245",
+        "note": "Другое название Рубикон.",
+        "time_create": "2026-01-28T14:24:05.681Z",
+        "time_update": "2026-01-28T14:24:05.681Z",
+        "creditor": 16,
+        "loan_type": "CONSUMER",
+        "start_date": "2024-10-17",
+        "end_date": "2026-07-15",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 25,
+    "fields": {
+        "name": "Договор потребительского микрозайма № 0210238266",
+        "slug": "logovor-potrebitelskogo-mikrozaima-no-0210238266-prostoi-vopros-1769610965",
+        "note": "Другое название Аделаида.",
+        "time_create": "2026-01-28T14:36:05.834Z",
+        "time_update": "2026-01-28T14:36:31.582Z",
+        "creditor": 17,
+        "loan_type": "PAYDAY",
+        "start_date": "2024-10-17",
+        "end_date": "2026-07-15",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 26,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-migkredit-1769611370",
+        "note": "",
+        "time_create": "2026-01-28T14:42:50.563Z",
+        "time_update": "2026-01-28T14:42:50.563Z",
+        "creditor": 18,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-28",
+        "end_date": "2026-12-08",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 27,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-platiza-1769611907",
+        "note": "По их данным долг 19337, так как каникулы начинаются с 29.12.2023",
+        "time_create": "2026-01-28T14:51:47.455Z",
+        "time_update": "2026-01-28T14:51:47.455Z",
+        "creditor": 19,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-24",
+        "end_date": "2026-12-12",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 28,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-bystrodengi-1769613454",
+        "note": "",
+        "time_create": "2026-01-28T15:17:34.311Z",
+        "time_update": "2026-01-28T15:17:34.312Z",
+        "creditor": 20,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-02",
+        "end_date": "2026-12-12",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 29,
+    "fields": {
+        "name": "Договор №7645207",
+        "slug": "dogovor-no-7645207-grinmani-1769613898",
+        "note": "По их данным в личном кабинете сумма долга 29 952, так как льготный период оформлен с конца декабря 2023 года.",
+        "time_create": "2026-01-28T15:24:58.670Z",
+        "time_update": "2026-01-28T15:24:58.670Z",
+        "creditor": 21,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-27",
+        "end_date": "2026-12-12",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 30,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-zaimer-1769614119",
+        "note": "",
+        "time_create": "2026-01-28T15:28:39.818Z",
+        "time_update": "2026-01-28T15:28:39.818Z",
+        "creditor": 22,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-10",
+        "end_date": "2026-12-12",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 31,
+    "fields": {
+        "name": "Договор АА 11522809",
+        "slug": "dogovor-aa-11522809-turbozaim-1769614459",
+        "note": "",
+        "time_create": "2026-01-28T15:34:19.889Z",
+        "time_update": "2026-01-28T15:34:19.889Z",
+        "creditor": 23,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-05",
+        "end_date": "2026-12-12",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 32,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-nado-deneg-1769616017",
+        "note": "Другие названия Северная победа и Финафор",
+        "time_create": "2026-01-28T16:00:17.150Z",
+        "time_update": "2026-01-28T16:00:17.150Z",
+        "creditor": 24,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-26",
+        "end_date": "2026-12-13",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 33,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-zaim-ekspress-1769616960",
+        "note": "",
+        "time_create": "2026-01-28T16:16:00.187Z",
+        "time_update": "2026-01-28T16:16:00.187Z",
+        "creditor": 25,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-16",
+        "end_date": "2026-12-13",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 34,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-privet-sosed-1769617279",
+        "note": "",
+        "time_create": "2026-01-28T16:21:19.714Z",
+        "time_update": "2026-01-28T16:21:19.714Z",
+        "creditor": 26,
+        "loan_type": "PAYDAY",
+        "start_date": "2025-06-01",
+        "end_date": "2026-12-15",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 35,
+    "fields": {
+        "name": "Договор №2881438",
+        "slug": "dogovor-no-2881438-a-dengi-1769617716",
+        "note": "Текущий долг с учетом двух платежей внесенных 11.11.2023 и 25.11.2023",
+        "time_create": "2026-01-28T16:28:36.582Z",
+        "time_update": "2026-01-28T16:28:36.582Z",
+        "creditor": 27,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-10-30",
+        "end_date": "2026-12-15",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 36,
+    "fields": {
+        "name": "Договор потребительского займа №231129398715",
+        "slug": "dogovor-potrebitelskogo-zaima-no-231129398715-svoi-liudi-1769618042",
+        "note": "По информации из электронного письма долг продан коллекторам.\r\nНастоящим уведомляем вас об уступке прав/требований по договору потребительского займа №231129398715 от 29.11.2023 в ООО ПКО «НКБ», адрес: 191040, САНКТ-ПЕТЕРБУРГ, ПУШКИНСКАЯ УЛИЦА, ДОМ 14, ЛИТЕРА А, ПОМЕЩЕНИЕ 6Н, КОМ. 4, ОГРН: 1257800096377, дата присвоения ОГРН: 27.10.2025, ИНН: 7840121765, КПП: 784001001, с 25.12.2025 года\r\nВот пришло письмо от нового кредитора.\r\nЗдравствуйте!\r\nУступка прав требования по договору потребительского займа была осуществлена в соответствии со ст. 12 Федерального закона от 21.12.2013 N 353-ФЗ (ред. от 23.07.2025) \"О потребительском кредите (займе)\". Данная операция является правомерной и соответствует нормам закона. Все существенные условия договора потребительского займа, включая предоставленные ранее меры поддержки (кредитные каникулы), остаются неизменными для нового кредитора в полном объеме. Смена кредитора не влечет изменения порядка определения суммы задолженности, процентной ставки, графика платежей или иных условий договора. Операция носит технический характер в рамках плановой оптимизации деятельности Общества.\r\nДля дальнейшего обслуживания договора потребительского займа и осуществления платежей просим использовать реквизиты и контакты нового кредитора.\r\nС уважением,\r\nПрофессиональное Коллекторское Агентство\r\n\"Новое Коллекторское Бюро\"\r\nmail@pkonkb.ru\r\nhttps://pkonkb.ru",
+        "time_create": "2026-01-28T16:34:02.518Z",
+        "time_update": "2026-01-28T17:10:37.608Z",
+        "creditor": 28,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-29",
+        "end_date": "2026-12-15",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 37,
+    "fields": {
+        "name": "Номер займа: 27671592",
+        "slug": "nomer-zaima-27682624-moneyman-1769618445",
+        "note": "Сумма к погашению в личном кабинете верная, и я с ней согласен. 32712.",
+        "time_create": "2026-01-28T16:40:45.995Z",
+        "time_update": "2026-01-28T16:48:56.970Z",
+        "creditor": 29,
+        "loan_type": "PAYDAY",
+        "start_date": "2024-10-16",
+        "end_date": "2027-01-02",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 38,
+    "fields": {
+        "name": "Номер займа: 27682624",
+        "slug": "nomer-zaima-27682624-moneyman-1769618588",
+        "note": "Сумма к погашению в личном кабинете верная, и я с ней согласен. 22400.",
+        "time_create": "2026-01-28T16:43:08.807Z",
+        "time_update": "2026-01-28T16:47:53.456Z",
+        "creditor": 29,
+        "loan_type": "PAYDAY",
+        "start_date": "2024-10-17",
+        "end_date": "2027-01-01",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 39,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-banni-mani-1769619498",
+        "note": "Другое название ООО МКК «Ясень»",
+        "time_create": "2026-01-28T16:58:18.242Z",
+        "time_update": "2026-01-28T16:58:18.242Z",
+        "creditor": 30,
+        "loan_type": "PAYDAY",
+        "start_date": "2024-10-18",
+        "end_date": "2026-12-16",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 40,
+    "fields": {
+        "name": "Договор микрозайма НФ-981/2310964",
+        "slug": "dogovor-mikrozaima-nf-9812310964-dengi-srazu-1769619767",
+        "note": "«Деньги сразу» — это бренд двух юридических лиц: ООО «МКК НФ» (лицензия №1603760008057) и ООО «МКК Скорфин» (лицензия №1703020008232)",
+        "time_create": "2026-01-28T17:02:47.803Z",
+        "time_update": "2026-01-28T17:02:47.803Z",
+        "creditor": 31,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-28",
+        "end_date": "2026-12-16",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 41,
+    "fields": {
+        "name": "Договор №1904726252",
+        "slug": "dogovor-no-1904726252-laim-zaim-1769620115",
+        "note": "",
+        "time_create": "2026-01-28T17:08:35.987Z",
+        "time_update": "2026-01-28T17:08:35.987Z",
+        "creditor": 32,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-28",
+        "end_date": "2026-12-16",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 42,
+    "fields": {
+        "name": "Договор 44444/6356690",
+        "slug": "dogovor-444446356690-srochnodengi-1769620645",
+        "note": "",
+        "time_create": "2026-01-28T17:17:25.426Z",
+        "time_update": "2026-01-28T17:17:25.426Z",
+        "creditor": 33,
+        "loan_type": "PAYDAY",
+        "start_date": "2024-10-16",
+        "end_date": "2026-12-16",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 43,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-belka-kredit-1769620908",
+        "note": "Займ автоматически продлевается с нового года.\r\nДругое название ООО МКК «Финмодель»",
+        "time_create": "2026-01-28T17:21:48.376Z",
+        "time_update": "2026-01-28T17:21:48.376Z",
+        "creditor": 34,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-27",
+        "end_date": "2026-12-31",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 44,
+    "fields": {
+        "name": "Договор ЦЗВВД235727",
+        "slug": "dogovor-tszvvd235727-tsentrofinans-1769621136",
+        "note": "",
+        "time_create": "2026-01-28T17:25:36.123Z",
+        "time_update": "2026-01-28T17:25:36.124Z",
+        "creditor": 35,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-18",
+        "end_date": "2027-01-02",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 45,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-495-kredit-1769621342",
+        "note": "",
+        "time_create": "2026-01-28T17:29:02.250Z",
+        "time_update": "2026-01-28T17:29:02.250Z",
+        "creditor": 36,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-29",
+        "end_date": "2027-01-29",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 46,
+    "fields": {
+        "name": "Договор №5598153",
+        "slug": "dogovor-no-5598153-credit7-1769621598",
+        "note": "Другое название ООО \"каппадокия\"",
+        "time_create": "2026-01-28T17:33:18.837Z",
+        "time_update": "2026-01-28T17:33:18.837Z",
+        "creditor": 37,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-27",
+        "end_date": "2027-06-13",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 47,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-konga-1769622135",
+        "note": "На сайте компании информация, что займы они не выдают. До этого была информация о моем долге 12056. Все верно.",
+        "time_create": "2026-01-28T17:42:15.929Z",
+        "time_update": "2026-01-28T17:42:15.930Z",
+        "creditor": 38,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-21",
+        "end_date": "2027-06-14",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 48,
+    "fields": {
+        "name": "Договор нецелевого потребительского займа  № 1003005960/17",
+        "slug": "dogovor-netselevogo-potrebitelskogo-zaima-no-100300596017-vebbankir-1769622348",
+        "note": "",
+        "time_create": "2026-01-28T17:45:48.450Z",
+        "time_update": "2026-01-28T17:45:48.450Z",
+        "creditor": 39,
+        "loan_type": "PAYDAY",
+        "start_date": "2024-10-15",
+        "end_date": "2029-09-26",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 49,
+    "fields": {
+        "name": "Займ",
+        "slug": "zaim-viva-dengi-1769622541",
+        "note": "Другое название ЦФП",
+        "time_create": "2026-01-28T17:49:01.563Z",
+        "time_update": "2026-01-28T17:49:01.563Z",
+        "creditor": 40,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-05",
+        "end_date": "2199-07-13",
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 50,
+    "fields": {
+        "name": "Договор потребительского займа № 2845962",
+        "slug": "dogovor-potrebitelskogo-zaima-no-2845962-dzhoi-mani-1769622773",
+        "note": "Каникулы продлеваются автоматически.",
+        "time_create": "2026-01-28T17:52:53.944Z",
+        "time_update": "2026-01-28T17:52:53.944Z",
+        "creditor": 41,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-27",
+        "end_date": null,
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.record",
+    "pk": 51,
+    "fields": {
+        "name": "Договор займа №5192603",
+        "slug": "dogovoru-zaima-no-5192603-chastnoe-litso-1769623005",
+        "note": "По данным из интернета С 28 февраля 2025 года микрофинансовая организация «Честное слово» исключена из государственного реестра.",
+        "time_create": "2026-01-28T17:56:45.589Z",
+        "time_update": "2026-01-28T18:14:09.423Z",
+        "creditor": 42,
+        "loan_type": "PAYDAY",
+        "start_date": "2023-11-18",
+        "end_date": null,
+        "is_paid": false
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 1,
+    "fields": {
+        "record": 1,
+        "type": "ACCRUAL",
+        "amount": "43000.00",
+        "date": "2026-01-15",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 2,
+    "fields": {
+        "record": 2,
+        "type": "ACCRUAL",
+        "amount": "5000.00",
+        "date": "2026-01-15",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 3,
+    "fields": {
+        "record": 3,
+        "type": "ACCRUAL",
+        "amount": "10000.00",
+        "date": "2026-01-15",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 4,
+    "fields": {
+        "record": 4,
+        "type": "ACCRUAL",
+        "amount": "5000.00",
+        "date": "2026-01-15",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 5,
+    "fields": {
+        "record": 5,
+        "type": "ACCRUAL",
+        "amount": "3000.00",
+        "date": "2026-01-15",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 6,
+    "fields": {
+        "record": 6,
+        "type": "ACCRUAL",
+        "amount": "5000.00",
+        "date": "2026-01-15",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 7,
+    "fields": {
+        "record": 7,
+        "type": "ACCRUAL",
+        "amount": "3000.00",
+        "date": "2026-01-15",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 8,
+    "fields": {
+        "record": 8,
+        "type": "ACCRUAL",
+        "amount": "2000.00",
+        "date": "2026-01-15",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 9,
+    "fields": {
+        "record": 9,
+        "type": "ACCRUAL",
+        "amount": "5000.00",
+        "date": "2026-01-15",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 10,
+    "fields": {
+        "record": 10,
+        "type": "ACCRUAL",
+        "amount": "58000.00",
+        "date": "2023-08-16",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 11,
+    "fields": {
+        "record": 11,
+        "type": "ACCRUAL",
+        "amount": "207615.21",
+        "date": "2023-08-31",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 12,
+    "fields": {
+        "record": 12,
+        "type": "ACCRUAL",
+        "amount": "249870.33",
+        "date": "2021-11-19",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 13,
+    "fields": {
+        "record": 13,
+        "type": "ACCRUAL",
+        "amount": "9900.00",
+        "date": "2023-11-23",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 14,
+    "fields": {
+        "record": 13,
+        "type": "PAYMENT",
+        "amount": "9900.00",
+        "date": "2024-12-31",
+        "comment": "Оплата по реквизитам с Т-Банка на ООО МКК \"ДИВЭЛОПМЭНТ\""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 15,
+    "fields": {
+        "record": 14,
+        "type": "ACCRUAL",
+        "amount": "15000.00",
+        "date": "2023-11-17",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 16,
+    "fields": {
+        "record": 15,
+        "type": "ACCRUAL",
+        "amount": "7000.00",
+        "date": "2023-11-18",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 17,
+    "fields": {
+        "record": 16,
+        "type": "ACCRUAL",
+        "amount": "10000.00",
+        "date": "2024-10-18",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 18,
+    "fields": {
+        "record": 17,
+        "type": "ACCRUAL",
+        "amount": "9900.00",
+        "date": "2023-11-12",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 19,
+    "fields": {
+        "record": 18,
+        "type": "ACCRUAL",
+        "amount": "8000.00",
+        "date": "2023-11-17",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 20,
+    "fields": {
+        "record": 19,
+        "type": "ACCRUAL",
+        "amount": "19200.00",
+        "date": "2024-10-16",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 21,
+    "fields": {
+        "record": 20,
+        "type": "ACCRUAL",
+        "amount": "9900.00",
+        "date": "2023-11-28",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 22,
+    "fields": {
+        "record": 21,
+        "type": "ACCRUAL",
+        "amount": "14307.00",
+        "date": "2023-11-17",
+        "comment": "Также сюда входит дополнительные услуги, на которые я согласился."
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 23,
+    "fields": {
+        "record": 22,
+        "type": "ACCRUAL",
+        "amount": "22269.00",
+        "date": "2023-11-28",
+        "comment": "Сюда уже входит сумма начисленных процентов"
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 24,
+    "fields": {
+        "record": 23,
+        "type": "ACCRUAL",
+        "amount": "6000.00",
+        "date": "2023-11-17",
+        "comment": "Также сюда входят уже начисленные проценты"
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 25,
+    "fields": {
+        "record": 24,
+        "type": "ACCRUAL",
+        "amount": "28000.00",
+        "date": "2024-10-17",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 26,
+    "fields": {
+        "record": 25,
+        "type": "ACCRUAL",
+        "amount": "8000.00",
+        "date": "2024-10-17",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 27,
+    "fields": {
+        "record": 26,
+        "type": "ACCRUAL",
+        "amount": "9000.00",
+        "date": "2023-11-28",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 28,
+    "fields": {
+        "record": 27,
+        "type": "ACCRUAL",
+        "amount": "15000.00",
+        "date": "2023-11-24",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 29,
+    "fields": {
+        "record": 28,
+        "type": "ACCRUAL",
+        "amount": "10000.00",
+        "date": "2023-11-02",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 30,
+    "fields": {
+        "record": 29,
+        "type": "ACCRUAL",
+        "amount": "24000.00",
+        "date": "2023-11-27",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 31,
+    "fields": {
+        "record": 30,
+        "type": "ACCRUAL",
+        "amount": "21000.00",
+        "date": "2023-11-10",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 32,
+    "fields": {
+        "record": 31,
+        "type": "ACCRUAL",
+        "amount": "9900.00",
+        "date": "2023-11-05",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 33,
+    "fields": {
+        "record": 32,
+        "type": "ACCRUAL",
+        "amount": "24000.00",
+        "date": "2023-11-26",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 34,
+    "fields": {
+        "record": 33,
+        "type": "ACCRUAL",
+        "amount": "11000.00",
+        "date": "2023-11-16",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 35,
+    "fields": {
+        "record": 34,
+        "type": "ACCRUAL",
+        "amount": "26000.00",
+        "date": "2025-06-01",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 36,
+    "fields": {
+        "record": 35,
+        "type": "ACCRUAL",
+        "amount": "35189.89",
+        "date": "2023-10-30",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 37,
+    "fields": {
+        "record": 36,
+        "type": "ACCRUAL",
+        "amount": "9900.00",
+        "date": "2023-11-29",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 38,
+    "fields": {
+        "record": 37,
+        "type": "ACCRUAL",
+        "amount": "29000.00",
+        "date": "2024-10-16",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 39,
+    "fields": {
+        "record": 38,
+        "type": "ACCRUAL",
+        "amount": "20000.00",
+        "date": "2024-10-17",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 40,
+    "fields": {
+        "record": 38,
+        "type": "INTEREST",
+        "amount": "2400.00",
+        "date": "2024-11-02",
+        "comment": "Начислены до кредитных каникул. Все верно."
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 41,
+    "fields": {
+        "record": 37,
+        "type": "INTEREST",
+        "amount": "3712.00",
+        "date": "2024-11-02",
+        "comment": "Начислены до кредитных каникул. Все верно."
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 42,
+    "fields": {
+        "record": 39,
+        "type": "ACCRUAL",
+        "amount": "10000.00",
+        "date": "2024-10-18",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 43,
+    "fields": {
+        "record": 40,
+        "type": "ACCRUAL",
+        "amount": "35019.00",
+        "date": "2023-11-28",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 44,
+    "fields": {
+        "record": 41,
+        "type": "ACCRUAL",
+        "amount": "47100.00",
+        "date": "2023-11-28",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 45,
+    "fields": {
+        "record": 42,
+        "type": "ACCRUAL",
+        "amount": "29600.00",
+        "date": "2024-10-16",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 46,
+    "fields": {
+        "record": 43,
+        "type": "ACCRUAL",
+        "amount": "25000.00",
+        "date": "2023-11-27",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 47,
+    "fields": {
+        "record": 44,
+        "type": "ACCRUAL",
+        "amount": "5000.00",
+        "date": "2023-11-18",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 48,
+    "fields": {
+        "record": 45,
+        "type": "ACCRUAL",
+        "amount": "30000.00",
+        "date": "2023-11-29",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 49,
+    "fields": {
+        "record": 46,
+        "type": "ACCRUAL",
+        "amount": "23000.00",
+        "date": "2023-11-27",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 50,
+    "fields": {
+        "record": 47,
+        "type": "ACCRUAL",
+        "amount": "12056.00",
+        "date": "2023-11-21",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 51,
+    "fields": {
+        "record": 48,
+        "type": "ACCRUAL",
+        "amount": "9900.00",
+        "date": "2024-10-15",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 52,
+    "fields": {
+        "record": 49,
+        "type": "ACCRUAL",
+        "amount": "9000.00",
+        "date": "2023-11-05",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 53,
+    "fields": {
+        "record": 50,
+        "type": "ACCRUAL",
+        "amount": "20000.00",
+        "date": "2023-11-27",
+        "comment": ""
+    }
+},
+{
+    "model": "app_depts.transaction",
+    "pk": 54,
+    "fields": {
+        "record": 51,
+        "type": "ACCRUAL",
+        "amount": "10000.00",
+        "date": "2023-11-18",
+        "comment": ""
+    }
+}
+]
