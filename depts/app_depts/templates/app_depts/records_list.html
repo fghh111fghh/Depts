@@ -95,13 +95,16 @@
                 <span class="filter-label">Организации:</span>
 
                 <a href="?{% if search_query %}q={{ search_query }}&{% endif %}{% if current_sort %}sort={{ current_sort }}&{% endif %}{% if show_paid %}show_paid=1{% endif %}"
-                   class="type-link {% if not current_type %}active-all{% endif %}">ВСЕ</a>
+                   class="type-link {% if not current_type %}active-all{% endif %}">
+                    ВСЕ
+                </a>
 
-                <a href="?creditor_type=BANK{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
-                   class="type-link bank {% if current_type == 'BANK' %}active-bank{% endif %}">БАНКИ</a>
-
-                <a href="?creditor_type=MFO{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
-                   class="type-link mfo {% if current_type == 'MFO' %}active-mfo{% endif %}">МФО</a>
+                {% for type_value, type_label in creditor_types %}
+                <a href="?creditor_type={{ type_value }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
+                   class="type-link {{ type_value|lower }} {% if current_type == type_value %}active-{{ type_value|lower }}{% endif %}">
+                    {{ type_label|upper }}
+                </a>
+                {% endfor %}
             </div>
             <div>
                 <a href="?{% if show_paid %}show_paid=0{% else %}show_paid=1{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}"

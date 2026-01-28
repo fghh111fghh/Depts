@@ -19,7 +19,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import SimpleDocTemplate, TableStyle, Table, Paragraph
 
-from .models import Record, Transaction, TransactionType
+from .models import Record, Transaction, TransactionType, CreditorType
 
 
 class RecordsListView(ListView):
@@ -114,6 +114,7 @@ class RecordsListView(ListView):
         # Вычисление общего баланса (итерируемся по активным записям)
         total_balance: float = sum(r.balance for r in active_records)
         context['records_all'] = Record.objects.all().select_related('creditor')
+        context['creditor_types'] = CreditorType.choices
         context.update({
             'total_unpaid_amount': round(total_balance, 2),
             'overall_progress': round((float(t_pay) / float(t_acc)) * 100, 1),
