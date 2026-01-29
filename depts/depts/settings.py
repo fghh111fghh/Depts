@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'app_depts.apps.AppDeptsConfig',
     'app_main.apps.AppMainConfig',
+    'app_bets.apps.AppBetsConfig',
     'django.contrib.humanize',
 ]
 

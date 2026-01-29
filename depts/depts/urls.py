@@ -22,6 +22,7 @@ urlpatterns = [
     path('', include('app_main.urls', namespace='app_main')),
     path('admin/', admin.site.urls),
     path('depts/', include('app_depts.urls', namespace='app_depts')),
+    path('bets/', include('app_bets.urls', namespace='app_bets')),
 ]
 
 # Добавляем пути тулбара только в режиме отладки
