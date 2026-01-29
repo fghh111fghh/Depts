@@ -10,38 +10,33 @@
     </div>
 
     <div class="ds-modules-grid">
-        <a href="{% url 'app_depts:records_list' %}" class="ds-module-card">
-            <div class="ds-card-icon">
-                <i class="fa-solid fa-wallet"></i>
-            </div>
-            <div class="ds-card-content">
-                <h3>Финансовые обязательства</h3>
-                <p>Учет задолженностей, графики выплат и аналитика долгов.</p>
-                <span class="ds-tag ds-tag-active">Доступно</span>
-            </div>
-        </a>
+        {% for module in site_modules %}
+            {# Если модуль активен, делаем его ссылкой, иначе — просто блоком #}
+            {% if module.status == 'active' %}
+                <a href="{% url module.url_name %}" class="ds-module-card">
+            {% else %}
+                <div class="ds-module-card ds-mod-disabled">
+            {% endif %}
 
-        <div class="ds-module-card ds-mod-disabled">
-            <div class="ds-card-icon">
-                <i class="fa-solid fa-chart-line"></i>
-            </div>
-            <div class="ds-card-content">
-                <h3>Учет ставок</h3>
-                <p>Анализ спортивных событий и статистика по алгоритму.</p>
-                <span class="ds-tag ds-tag-wait">В разработке</span>
-            </div>
-        </div>
+                <div class="ds-card-icon">
+                    <i class="fa-solid {{ module.icon }}"></i>
+                </div>
 
-        <div class="ds-module-card ds-mod-disabled">
-            <div class="ds-card-icon">
-                <i class="fa-solid fa-boxes-stacked"></i>
-            </div>
-            <div class="ds-card-content">
-                <h3>Складской учет</h3>
-                <p>Инвентаризация, остатки товаров и логистика.</p>
-                <span class="ds-tag ds-tag-wait">В разработке</span>
-            </div>
-        </div>
+                <div class="ds-card-content">
+                    <h3>{{ module.title }}</h3>
+                    <p>{{ module.desc }}</p>
+                    {# Класс тега (active/wait) подставляется автоматически из статуса #}
+                    <span class="ds-tag ds-tag-{{ module.status }}">
+                        {{ module.status_text }}
+                    </span>
+                </div>
+
+            {% if module.status == 'active' %}
+                </a>
+            {% else %}
+                </div>
+            {% endif %}
+        {% endfor %}
     </div>
 </div>
 {% endblock %}
