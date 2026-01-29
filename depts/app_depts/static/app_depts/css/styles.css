@@ -452,8 +452,13 @@ body {
 
 /* Цвета активных состояний */
 .type-link.active-all { background: #2f3542; color: white; border-color: #2f3542; }
-.type-link.active-bank { background: #3498db; color: white; border-color: #3498db; }
-.type-link.active-mfo { background: #e67e22; color: white; border-color: #e67e22; }
+
+/* Универсальный стиль для любой активной кнопки типа */
+.type-link.active {
+    background-color: var(--primary-color); /* Синий цвет как у Банков */
+    color: white !important;
+    border-color: var(--primary-color);
+}
 
 /* Ховер для неактивных */
 .type-link:hover:not([class*="active-"]) {
