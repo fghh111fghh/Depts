@@ -10,53 +10,72 @@
 </head>
 <body>
 
-    <header class="main-header">
-        <div class="container">
-            <nav class="header-nav">
-                <div class="header-logo">
-                    <a href="{% url 'app_depts:records_list' %}" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: white;">
-                        <i class="fa-solid fa-wallet" style="font-size: 1.8rem; color: var(--primary-color);"></i>
-                        <span style="font-weight: 800; font-size: 1.1rem; line-height: 1.2; text-transform: uppercase; letter-spacing: 0.5px;">
-                            Финансовые<br>обязательства
-                        </span>
-                    </a>
-                </div>
+<header class="main-header">
+    <div class="container">
+        <nav class="header-nav">
+            <div class="header-logo">
+                <a href="{% url 'app_main:index' %}"
+                   style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: white;">
+                    <i class="fa-solid fa-layer-group" style="font-size: 1.8rem; color: var(--primary-color);"></i>
+                    <span style="font-weight: 800; font-size: 1.1rem; line-height: 1.2; text-transform: uppercase; letter-spacing: 0.5px;">
+                        ЛИЧНАЯ<br>ЭКОСИСТЕМА
+                    </span>
+                </a>
+            </div>
 
-                <div class="header-admin">
-                    <a href="/admin/" class="admin-button" target="_blank" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
-                        <i class="fa-solid fa-user-shield"></i>
-                        <span>АДМИН</span>
+            <ul class="nav-menu" style="display: flex; list-style: none; gap: 15px; margin: 0; padding: 0; align-items: center; flex-wrap: nowrap;">
+                {% for module in site_modules %}
+                {% if module.status == 'active' %}
+                <li>
+                    <a href="{% url module.url_name %}"
+                       class="nav-link {% if request.resolver_match.view_name in module.url_name %}active-link{% endif %}">
+                        <i class="fa-solid {{ module.icon }}"
+                           style="font-size: 1.4rem; color: var(--primary-color);"></i>
+                        <span class="nav-link-text">
+                    {{ module.title }}
+                </span>
                     </a>
-                </div>
-            </nav>
-        </div>
-    </header>
+                </li>
+                {% endif %}
+                {% endfor %}
+            </ul>
 
-    {% if messages %}
-    <div class="messages-container">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">
-            <i class="fa-solid {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}"></i>
-            <span>{{ message }}</span>
-        </div>
-        {% endfor %}
+            <div class="header-admin">
+                <a href="/admin/" class="admin-button" target="_blank"
+                   style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span>АДМИН</span>
+                </a>
+            </div>
+        </nav>
     </div>
-    {% endif %}
+</header>
 
-    <main class="main-content">
-        <div class="container" style="width: 100%;">
-            {% block content %}{% endblock %}
-        </div>
-    </main>
+{% if messages %}
+<div class="messages-container">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        <i class="fa-solid {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}"></i>
+        <span>{{ message }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 
-    <footer class="main-footer">
-        <div class="container">
-            <p style="margin: 0; opacity: 0.7; font-size: 0.9rem;">
-                &copy; 2026 Личная система управления | Разработано на Flexbox
-            </p>
-        </div>
-    </footer>
+<main class="main-content">
+    <div class="container" style="width: 100%;">
+        {% block content %}{% endblock %}
+    </div>
+</main>
 
-    <script src="{% static 'app_depts/js/scripts.js' %}"></script>
+<footer class="main-footer">
+    <div class="container">
+        <p style="margin: 0; opacity: 0.7; font-size: 0.9rem;">
+            &copy; 2026 Личная система управления | Разработано на Flexbox
+        </p>
+    </div>
+</footer>
+
+<script src="{% static 'app_depts/js/scripts.js' %}"></script>
 </body>
 </html>

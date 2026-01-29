@@ -2074,6 +2074,92 @@ body {
     margin-right: 4px;
 }
 
+/* Стили для динамического меню в хедере */
+.nav-link:hover {
+    opacity: 1 !important;
+    color: var(--primary-color) !important;
+}
+
+/* Подсветка текущей активной страницы */
+.nav-link.active-link {
+    opacity: 1 !important;
+    color: var(--primary-color) !important;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 4px;
+}
+
+/* Адаптивность: скрываем текст на мобилках, оставляем иконки */
+@media (max-width: 768px) {
+    .nav-link span {
+        display: none;
+    }
+    .nav-menu {
+        gap: 15px;
+    }
+}
+
+/* Общий контейнер ссылки в меню */
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: white;
+    transition: 0.3s;
+}
+
+/* Стилизация текста в 2 строки */
+.nav-link-text {
+    display: block;
+    max-width: 120px; /* Ограничиваем ширину, чтобы текст переносился */
+    font-weight: 800;
+    font-size: 0.85rem; /* Чуть меньше логотипа, чтобы не спорить с ним */
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+}
+
+/* Если ширина экрана меньше 992px (планшеты и ниже) */
+@media (max-width: 992px) {
+    .nav-link-text {
+        max-width: 90px; /* Сужаем еще сильнее */
+        font-size: 0.75rem;
+    }
+}
+
+/* Если ширина экрана меньше 768px (смартфоны) */
+@media (max-width: 768px) {
+    .nav-link-text {
+        display: none; /* Скрываем текст совсем, оставляем только иконки */
+    }
+
+    .nav-link {
+        padding: 10px; /* Увеличиваем область нажатия для пальца */
+    }
+
+    .header-logo span {
+        display: none; /* Скрываем текст логотипа, оставляем только иконку-слои */
+    }
+}
+
+/* Эффекты при наведении и активном состоянии */
+.nav-link:hover .nav-link-text,
+.nav-link.active-link .nav-link-text {
+    opacity: 1;
+    color: var(--primary-color);
+}
+
+.nav-link.active-link {
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 5px;
+    cursor: default;       /* Меняет "руку" на обычную стрелку */
+    pointer-events: none;  /* Делает ссылку некликабельной (опционально) */
+}
+
+
+
+
 
 
 
