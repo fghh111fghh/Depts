@@ -61,8 +61,8 @@ class Country(models.Model):
 class League(models.Model):
     """Лиги и чемпионаты (бывшие Tournament)."""
     name = models.CharField(max_length=150, verbose_name="Название лиги")
-    sport = models.ForeignKey(Sport, on_delete=models.CASCADE, related_name="sport_leagues")
-    country = models.ForeignKey(Country, on_delete=models.CASCADE, related_name="country_leagues")
+    sport = models.ForeignKey(Sport, on_delete=models.CASCADE, verbose_name="Вид спорта", related_name="sport_leagues")
+    country = models.ForeignKey(Country, on_delete=models.CASCADE, verbose_name="Страна", related_name="country_leagues")
 
     class Meta:
         unique_together = ('name', 'sport', 'country')
