@@ -1,9 +1,8 @@
 import math
-
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
-from django.db.models import Q, Avg
+from django.db.models import Q, Avg, Sum, Count, F
 from decimal import Decimal
 
 
@@ -73,6 +72,7 @@ class League(models.Model):
         """
         if not season:
             season = Season.objects.filter(is_current=True).first()
+        if not season: return None # Защита если нет сезонов
 
         matches = self.matches.filter(season=season, home_score_reg__isnull=False)
         stats = matches.aggregate(
@@ -107,6 +107,7 @@ class League(models.Model):
         """
         # 1. Получаем средние по лиге за сезон
         league_avg = self.get_season_averages(season)
+        if not league_avg: return "NORMAL"
         avg_total = (league_avg['avg_home_goals'] or 0) + (league_avg['avg_away_goals'] or 0)
 
         # 2. Получаем средние за конкретный тур
@@ -342,7 +343,7 @@ class Match(models.Model):
             home_score_reg__isnull=False
         ).order_by('-date')[:limit]
 
-        # --- МЕТОДЫ АНАЛИЗА АНОМАЛИЙ (КОРРЕКЦИЯ К СРЕДНЕМУ) ---
+    # --- МЕТОДЫ АНАЛИЗА АНОМАЛИЙ (КОРРЕКЦИЯ К СРЕДНЕМУ) ---
 
     def get_league_trends(self, window=3):
         """
@@ -419,8 +420,9 @@ class Match(models.Model):
             return None
 
         # Средние показатели лиги (B4, B5, B6, B7 из твоего примера)
-        l_avg_home_goals = Decimal(league_stats['avg_home_goals'])  # B4
-        l_avg_away_goals = Decimal(league_stats['avg_away_goals'])  # B5
+        # Защита от деления на 0 если голов в лиге еще нет
+        l_avg_home_goals = Decimal(str(league_stats['avg_home_goals'] or 1))
+        l_avg_away_goals = Decimal(str(league_stats['avg_away_goals'] or 1))
         l_avg_home_conceded = l_avg_away_goals  # B6
         l_avg_away_conceded = l_avg_home_goals  # B7
 
@@ -440,38 +442,26 @@ class Match(models.Model):
         if home_team_matches.count() < 5 or away_team_matches.count() < 5:
             return "Недостаточно данных (нужно >= 5 игр)"
 
-        # Статистика Хозяев дома (B8, B9, B20)
-        h_scored = home_team_matches.aggregate(models.Sum('home_score_reg'))['home_score_reg__sum']
-        h_conceded = home_team_matches.aggregate(models.Sum('away_score_reg'))['away_score_reg__sum']
-        h_games = home_team_matches.count()
+        # Агрегация с защитой от None (or 0)
+        h_agg = home_team_matches.aggregate(s=Sum('home_score_reg'), c=Sum('away_score_reg'))
+        a_agg = away_team_matches.aggregate(s=Sum('away_score_reg'), c=Sum('home_score_reg'))
 
-        h_avg_scored = Decimal(h_scored) / h_games  # B10
-        h_avg_conceded = Decimal(h_conceded) / h_games  # B21
+        # Статистика Хозяев дома (B8, B9, B20)
+        h_avg_scored = Decimal(str(h_agg['s'] or 0)) / home_team_matches.count()
+        h_avg_conceded = Decimal(str(h_agg['c'] or 0)) / home_team_matches.count()
 
         # Статистика Гостей в гостях (B11, B17, B12)
-        a_scored = away_team_matches.aggregate(models.Sum('away_score_reg'))['away_score_reg__sum']
-        a_conceded = away_team_matches.aggregate(models.Sum('home_score_reg'))['home_score_reg__sum']
-        a_games = away_team_matches.count()
-
-        a_avg_scored = Decimal(a_scored) / a_games  # B18
-        a_avg_conceded = Decimal(a_conceded) / a_games  # B13
+        a_avg_scored = Decimal(str(a_agg['s'] or 0)) / away_team_matches.count()
+        a_avg_conceded = Decimal(str(a_agg['c'] or 0)) / away_team_matches.count()
 
         # 4. РАСЧЕТ СИЛЫ (АТАКА / ОБОРОНА)
-        # Сила атаки хозяев = Ср. голы команды дома / Ср. голы лиги дома
         h_attack_strength = h_avg_scored / l_avg_home_goals  # B14
-        # Сила обороны гостей = Ср. пропущ. команды в гостях / Ср. пропущ. лиги в гостях
         a_defense_strength = a_avg_conceded / l_avg_away_conceded  # B15
-
-        # Сила атаки гостей = Ср. голы команды в гостях / Ср. голы лиги в гостях
         a_attack_strength = a_avg_scored / l_avg_away_goals  # B19
-        # Сила обороны хозяев = Ср. пропущ. команды дома / Ср. пропущ. лиги дома
         h_defense_strength = h_avg_conceded / l_avg_home_conceded  # B22
 
         # 5. ИТОГОВАЯ ВЕРОЯТНОСТЬ ГОЛОВ (LYAMBDA)
-        # Ожидаемые голы Хозяев = СилаАтакиХоз * СилаОборГост * СрГолыЛигиДома
         lambda_home = h_attack_strength * a_defense_strength * l_avg_home_goals  # B16
-
-        # Ожидаемые голы Гостей = СилаАтакиГост * СилаОборХоз * СрГолыЛигиГост
         lambda_away = a_attack_strength * h_defense_strength * l_avg_away_goals  # B23
 
         return {
@@ -484,7 +474,7 @@ class Match(models.Model):
         Рассчитывает сетку вероятностей счета на основе лямбд.
         """
         lambdas = self.calculate_poisson_lambda()
-        if isinstance(lambdas, str): return lambdas
+        if isinstance(lambdas, str) or not lambdas: return lambdas
 
         l_home = lambdas['home_lambda']
         l_away = lambdas['away_lambda']
