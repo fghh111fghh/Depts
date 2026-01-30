@@ -502,3 +502,89 @@ class Match(models.Model):
     def __str__(self):
         res = f"{self.home_score_final}:{self.away_score_final}" if self.home_score_final is not None else "VS"
         return f"{self.date.strftime('%d.%m')} {self.home_team.name} {res} {self.away_team.name}"
+
+    def get_historical_pattern_report(self, window=4):
+        """
+        Метод 'Исторический шаблон'.
+        Ищет матчи в этой же лиге с аналогичной формой команд перед игрой.
+        """
+
+        # 1. Получаем текущую форму команд (последние 4 игры каждой)
+        def get_team_form_string(team, date, season):
+            # Берем последние N матчей команды ДО текущей даты
+            past_matches = Match.objects.filter(
+                (Q(home_team=team) | Q(away_team=team)),
+                date__lt=date,
+                season=season,
+                home_score_reg__isnull=False
+            ).order_by('-date')[:window]
+
+            if past_matches.count() < window:
+                return None
+
+            form = []
+            # Идем от старых к новым
+            for m in reversed(list(past_matches)):
+                is_home = (m.home_team == team)
+                h_score = m.home_score_reg
+                a_score = m.away_score_reg
+
+                if h_score == a_score:
+                    form.append('D')  # Ничья
+                elif (is_home and h_score > a_score) or (not is_home and a_score > h_score):
+                    form.append('W')  # Победа
+                else:
+                    form.append('L')  # Поражение
+
+            return "".join(form)
+
+        home_form = get_team_form_string(self.home_team, self.date, self.season)
+        away_form = get_team_form_string(self.away_team, self.date, self.season)
+
+        if not home_form or not away_form:
+            return "Недостаточно данных (нужно минимум по 4 игры в сезоне)"
+
+        # 2. Ищем в базе матчи ЭТОЙ ЖЕ ЛИГИ с таким же шаблоном
+        # Это тяжелый запрос, поэтому берем только эту лигу (как ты и просил)
+        similar_matches = []
+
+        # Нам нужно проверить все матчи лиги из истории
+        # ВАЖНО: Мы не можем просто сделать filter по строке, так как форма
+        # для каждого исторического матча считается динамически.
+
+        all_historical_matches = Match.objects.filter(
+            league=self.league,
+            date__lt=self.date,  # Только те, что были раньше
+            home_score_reg__isnull=False
+        ).select_related('home_team', 'away_team', 'season')
+
+        matches_found = []
+
+        for h_match in all_historical_matches:
+            h_h_form = get_team_form_string(h_match.home_team, h_match.date, h_match.season)
+            h_a_form = get_team_form_string(h_match.away_team, h_match.date, h_match.season)
+
+            if h_h_form == home_form and h_a_form == away_form:
+                matches_found.append(h_match)
+
+        if not matches_found:
+            return f"Шаблон [{home_form} vs {away_form}] ранее не встречался в этой лиге."
+
+        # 3. Формируем отчет
+        total = len(matches_found)
+        h_wins = sum(1 for m in matches_found if m.home_score_reg > m.away_score_reg)
+        draws = sum(1 for m in matches_found if m.home_score_reg == m.away_score_reg)
+        a_wins = sum(1 for m in matches_found if m.home_score_reg < m.away_score_reg)
+
+        return {
+            'pattern': f"{home_form} vs {away_form}",
+            'matches_count': total,
+            'outcomes': {
+                'P1': round(h_wins / total * 100, 1),
+                'X': round(draws / total * 100, 1),
+                'P2': round(a_wins / total * 100, 1),
+            },
+            'avg_goals': round(sum(m.home_score_reg + m.away_score_reg for m in matches_found) / total, 2),
+            'history': [f"{m.date.year}: {m.home_team.name} {m.home_score_reg}:{m.away_score_reg} {m.away_team.name}"
+                        for m in matches_found]
+        }
