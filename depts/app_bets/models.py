@@ -33,6 +33,10 @@ class Sport(models.Model):
         help_text="Определяет, принимает ли букмекер ставки на 'Х' в основное время."
     )
 
+    class Meta:
+        verbose_name = "Вид спорта"
+        verbose_name_plural = "Виды спорта"
+
     def save(self, *args, **kwargs):
         # Автоматическая корректировка для видов спорта без ничьих
         if self.name in [self.Name.TENNIS, self.Name.VOLLEYBALL]:
@@ -150,6 +154,10 @@ class TeamAlias(models.Model):
     """
     name = models.CharField(max_length=150, unique=True, verbose_name="Вариант из источника")
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="aliases")
+
+    class Meta:
+        verbose_name = "Псевдоним команды"
+        verbose_name_plural = "Псевдонимы команд"
 
     def save(self, *args, **kwargs):
         # Глубокая очистка строки: убираем лишние пробелы и в нижний регистр
