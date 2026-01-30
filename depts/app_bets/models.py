@@ -327,20 +327,35 @@ class Match(models.Model):
 
     def get_twins(self, tolerance=Decimal('0.05')):
         """
-        Поиск матчей-'близнецов' в той же стране и спорте.
-        Учитывает кэфы П1 и П2 с погрешностью +- 0.05.
+        Поиск матчей-'близнецов' только по коэффициентам П1 и П2.
         """
-        qs = Match.objects.filter(
-            league__country=self.league.country,
-            league__sport=self.league.sport,
-            odds_home__range=(self.odds_home - tolerance, self.odds_home + tolerance),
-            odds_away__range=(self.odds_away - tolerance, self.odds_away + tolerance)
-        ).exclude(id=self.id)
+        from decimal import Decimal
 
-        if self.league.sport.has_draw and self.odds_draw:
-            qs = qs.filter(odds_draw__range=(self.odds_draw - tolerance, self.odds_draw + tolerance))
+        # Гарантируем точность Decimal
+        h_odd = Decimal(str(self.odds_home))
+        a_odd = Decimal(str(self.odds_away))
 
-        return qs
+        def perform_search(tol):
+            # Ищем только по П1 и П2 в пределах допуска
+            qs = Match.objects.filter(
+                league__country=self.league.country,
+                odds_home__range=(h_odd - tol, h_odd + tol),
+                odds_away__range=(a_odd - tol, a_odd + tol)
+            )
+
+            if self.id:
+                qs = qs.exclude(id=self.id)
+
+            return qs.select_related('home_team', 'away_team', 'league').order_by('-date')
+
+        # 1. Сначала ищем по стандартному допуску 0.05
+        results = perform_search(tolerance)
+
+        # 2. Если совсем ничего нет, расширяем до 0.10 (опционально, для большего охвата)
+        if not results.exists():
+            results = perform_search(Decimal('0.10'))
+
+        return results
 
     def get_h2h(self, limit=10):
         """История личных встреч (Head-to-Head)."""
@@ -447,8 +462,8 @@ class Match(models.Model):
         )
 
         # Проверка на твоё условие: не менее 5 игр
-        if home_team_matches.count() < 5 or away_team_matches.count() < 5:
-            return "Недостаточно данных (нужно >= 5 игр)"
+        if home_team_matches.count() < 3 or away_team_matches.count() < 3:
+            return "Недостаточно данных (нужно >= 3 игр)"
 
         # Агрегация с защитой от None (or 0)
         h_agg = home_team_matches.aggregate(s=Sum('home_score_reg'), c=Sum('away_score_reg'))
@@ -505,13 +520,11 @@ class Match(models.Model):
 
     def get_historical_pattern_report(self, window=4):
         """
-        Метод 'Исторический шаблон'.
-        Ищет матчи в этой же лиге с аналогичной формой команд перед игрой.
+        Метод 'Исторический шаблон' с выводом истории игр.
         """
+        from django.db.models import Q
 
-        # 1. Получаем текущую форму команд (последние 4 игры каждой)
         def get_team_form_string(team, date, season):
-            # Берем последние N матчей команды ДО текущей даты
             past_matches = Match.objects.filter(
                 (Q(home_team=team) | Q(away_team=team)),
                 date__lt=date,
@@ -523,19 +536,16 @@ class Match(models.Model):
                 return None
 
             form = []
-            # Идем от старых к новым
             for m in reversed(list(past_matches)):
                 is_home = (m.home_team == team)
                 h_score = m.home_score_reg
                 a_score = m.away_score_reg
-
                 if h_score == a_score:
-                    form.append('D')  # Ничья
+                    form.append('D')
                 elif (is_home and h_score > a_score) or (not is_home and a_score > h_score):
-                    form.append('W')  # Победа
+                    form.append('W')
                 else:
-                    form.append('L')  # Поражение
-
+                    form.append('L')
             return "".join(form)
 
         home_form = get_team_form_string(self.home_team, self.date, self.season)
@@ -544,22 +554,14 @@ class Match(models.Model):
         if not home_form or not away_form:
             return "Недостаточно данных (нужно минимум по 4 игры в сезоне)"
 
-        # 2. Ищем в базе матчи ЭТОЙ ЖЕ ЛИГИ с таким же шаблоном
-        # Это тяжелый запрос, поэтому берем только эту лигу (как ты и просил)
-        similar_matches = []
-
-        # Нам нужно проверить все матчи лиги из истории
-        # ВАЖНО: Мы не можем просто сделать filter по строке, так как форма
-        # для каждого исторического матча считается динамически.
-
+        # Поиск матчей в этой же лиге (история)
         all_historical_matches = Match.objects.filter(
             league=self.league,
-            date__lt=self.date,  # Только те, что были раньше
+            date__lt=self.date,
             home_score_reg__isnull=False
-        ).select_related('home_team', 'away_team', 'season')
+        ).select_related('home_team', 'away_team', 'season').order_by('-date')
 
         matches_found = []
-
         for h_match in all_historical_matches:
             h_h_form = get_team_form_string(h_match.home_team, h_match.date, h_match.season)
             h_a_form = get_team_form_string(h_match.away_team, h_match.date, h_match.season)
@@ -568,9 +570,8 @@ class Match(models.Model):
                 matches_found.append(h_match)
 
         if not matches_found:
-            return f"Шаблон [{home_form} vs {away_form}] ранее не встречался в этой лиге."
+            return f"Шаблон [{home_form} vs {away_form}] не встречался."
 
-        # 3. Формируем отчет
         total = len(matches_found)
         h_wins = sum(1 for m in matches_found if m.home_score_reg > m.away_score_reg)
         draws = sum(1 for m in matches_found if m.home_score_reg == m.away_score_reg)
@@ -580,11 +581,49 @@ class Match(models.Model):
             'pattern': f"{home_form} vs {away_form}",
             'matches_count': total,
             'outcomes': {
-                'P1': round(h_wins / total * 100, 1),
-                'X': round(draws / total * 100, 1),
-                'P2': round(a_wins / total * 100, 1),
+                'P1': round(h_wins/total*100, 1),
+                'X': round(draws/total*100, 1),
+                'P2': round(a_wins/total*100, 1),
             },
             'avg_goals': round(sum(m.home_score_reg + m.away_score_reg for m in matches_found) / total, 2),
-            'history': [f"{m.date.year}: {m.home_team.name} {m.home_score_reg}:{m.away_score_reg} {m.away_team.name}"
+            'history': [f"{m.date.strftime('%d.%m.%Y')}: {m.home_team.name} {m.home_score_reg}:{m.away_score_reg} {m.away_team.name}"
                         for m in matches_found]
         }
+
+    def get_vector_synthesis(self):
+        """
+        Синтез всех методов: Пуассон, Близнецы, Шаблоны, H2H.
+        """
+        score_poisson = self.get_poisson_probabilities()  # Твой метод
+        twins = self.get_twins()
+        pattern = self.get_historical_pattern_report()
+
+        signals = []
+
+        # 1. Анализ Пуассона
+        top_score = max(score_poisson, key=score_poisson.get) if isinstance(score_poisson, dict) else None
+        if top_score:
+            signals.append(f"Пуассон: {top_score}")
+
+        # 2. Анализ Близнецов
+        if twins.exists():
+            t_count = twins.count()
+            h_wins = twins.filter(home_score_reg__gt=F('away_score_reg')).count()
+            if (h_wins / t_count) > 0.6:
+                signals.append("Близнецы: Сильный сигнал на П1")
+            elif (h_wins / t_count) < 0.3:
+                signals.append("Близнецы: Сильный сигнал на X2")
+
+        # 3. Анализ Шаблона
+        if isinstance(pattern, dict):
+            if pattern['outcomes']['P1'] >= 70:
+                signals.append(f"Шаблон ({pattern['pattern']}): 100% П1 в истории" if pattern['outcomes'][
+                                                                                          'P1'] == 100 else "Шаблон: Высокая вероятность П1")
+            elif pattern['outcomes']['P2'] >= 70:
+                signals.append("Шаблон: Высокая вероятность П2")
+
+        # Итоговый вердикт (упрощенная логика)
+        if not signals:
+            return "Недостаточно данных для уверенного прогноза."
+
+        return " | ".join(signals)
