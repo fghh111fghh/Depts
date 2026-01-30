@@ -49,7 +49,7 @@ class Command(BaseCommand):
 
         try:
             with open(file_path, mode='r', encoding='utf-8-sig') as f:
-                reader = csv.DictReader(f, delimiter=';')
+                reader = csv.DictReader(f, delimiter=',')
                 for row in reader:
                     div_code = row.get('Div')
                     if div_code not in self.DIV_CONFIG:
