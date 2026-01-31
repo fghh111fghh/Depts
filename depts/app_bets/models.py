@@ -240,17 +240,20 @@ class Match(models.Model):
     odds_home = models.DecimalField(
         max_digits=6, decimal_places=2,
         validators=[MinValueValidator(Decimal('1.01'))],
+        db_index=True,
         verbose_name="Кэф П1"
     )
     odds_draw = models.DecimalField(
         max_digits=6, decimal_places=2,
         null=True, blank=True,
         validators=[MinValueValidator(Decimal('1.01'))],
+        db_index=True,
         verbose_name="Кэф Х"
     )
     odds_away = models.DecimalField(
         max_digits=6, decimal_places=2,
         validators=[MinValueValidator(Decimal('1.01'))],
+        db_index = True,
         verbose_name="Кэф П2"
     )
 
