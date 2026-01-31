@@ -1,0 +1,112 @@
+/* Контейнер анализатора */
+.bets-main-grid {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 25px;
+    margin-top: 20px;
+}
+
+/* Левая панель ввода */
+.bets-input-pane {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+.bets-textarea {
+    width: 100%;
+    border: 1px solid #ddd;
+    padding: 12px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    resize: vertical;
+    margin-bottom: 15px;
+}
+
+.bets-btn-analyze {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary-color, #2c3e50);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: opacity 0.2s;
+}
+
+.bets-btn-analyze:hover {
+    opacity: 0.9;
+}
+
+/* Карточки результатов */
+.bets-result-card {
+    background: #fff;
+    border-left: 6px solid #3498db;
+    padding: 20px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.bets-result-header {
+    margin: 0 0 12px 0;
+    font-size: 1.25rem;
+    color: #333;
+    display: flex;
+    justify-content: space-between;
+}
+
+.bets-info-row {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.bets-stat-label {
+    font-size: 0.8rem;
+    color: #888;
+    display: block;
+    text-transform: uppercase;
+}
+
+.bets-stat-value {
+    font-weight: 600;
+    color: #444;
+}
+
+.bets-verdict-box {
+    padding: 12px;
+    background: #f1f8ff;
+    border-radius: 4px;
+    font-weight: 700;
+    color: #0056b3;
+    border: 1px dashed #b3d7ff;
+}
+
+/* Обучение системы (неизвестные команды) */
+.bets-unknown-section {
+    background: #fff9e6;
+    border: 1px solid #ffeeba;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.bets-alias-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+    align-items: center;
+    margin-top: 10px;
+    background: rgba(255,255,255,0.5);
+    padding: 5px;
+    border-radius: 4px;
+}
+
