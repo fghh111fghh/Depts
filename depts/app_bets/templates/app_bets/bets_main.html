@@ -74,6 +74,28 @@
                         </div>
                     </div>
 
+                    <div style="margin-top:25px; background:#fffcf0; padding:15px; border-radius:8px; border:1px solid #f1e7bc;">
+                        <h4 style="margin-top:0; color:#856404; display:flex; justify-content:space-between;">
+                            <span><i class="fa-solid fa-clock-rotate-left"></i> Исторический шаблон (серия x4)</span>
+                            {% if res.pattern_data.count %}
+                                <span style="font-weight:normal; font-size:0.8rem;">Найдено: {{ res.pattern_data.count }}</span>
+                            {% endif %}
+                        </h4>
+
+                        {% if res.pattern_data.pattern %}
+                            <div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">
+                                <div style="background:#fff; padding:5px 15px; border-radius:4px; border:1px solid #f1e7bc; font-family:monospace; font-size:1.1rem; font-weight:bold;">
+                                    {{ res.pattern_data.pattern }}
+                                </div>
+                                <div style="font-weight:bold; color:#2c3e50; font-size:1.1rem;">
+                                    {{ res.pattern_data.dist }}
+                                </div>
+                            </div>
+                        {% else %}
+                            <div style="color:#6c757d; font-style:italic; font-size:0.9rem;">{{ res.pattern_data }}</div>
+                        {% endif %}
+                    </div>
+
                     <div style="margin-top:25px;">
                         <h4 style="margin-bottom:10px; display:flex; justify-content:space-between;">
                             <span><i class="fa-solid fa-history"></i> Личные встречи (в этом статусе)</span>
