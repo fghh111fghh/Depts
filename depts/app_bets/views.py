@@ -5,6 +5,7 @@ from decimal import Decimal
 from django.shortcuts import render
 from django.views.generic import View
 from django.db.models import F, Q
+from django.utils import timezone
 from .models import Match, TeamAlias, League, Season, Team
 
 
@@ -42,21 +43,39 @@ class AnalyzeView(View):
         if alias: return alias.team
         return Team.objects.filter(Q(name__iexact=search) | Q(name__icontains=search)).first()
 
+    def get_fast_form(self, team_id, date, matches_list, window=4):
+        """Скоростное извлечение формы из списка матчей в памяти"""
+        # Фильтруем матчи команды до конкретной даты
+        past = [m for m in matches_list if (m.home_team_id == team_id or m.away_team_id == team_id) and m.date < date]
+        # Берем последние window штук (они уже отсортированы по дате DESC в основном запросе)
+        relevant = past[:window]
+
+        if len(relevant) < window:
+            return None
+
+        form = []
+        # Разворачиваем, чтобы идти от старых к новым (ППНВ)
+        for m in reversed(relevant):
+            is_home = (m.home_team_id == team_id)
+            h, a = m.home_score_reg, m.away_score_reg
+            if h == a:
+                form.append('N')  # Ничья
+            elif (is_home and h > a) or (not is_home and a > h):
+                form.append('P')  # Победа
+            else:
+                form.append('V')  # Выигрыш (поражение в твоей терминологии В - Выигрыш соперника)
+        return "".join(form)
+
     def post(self, request):
         raw_text = request.POST.get('matches_text', '')
 
-        # --- БЕЗОПАСНОЕ СОХРАНЕНИЕ ---
         if 'create_alias' in request.POST:
             alias_raw = request.POST.get('alias_name', '')
             t_id = request.POST.get('team_id')
             if alias_raw and t_id:
                 try:
                     clean_n = self.clean_team_name(alias_raw)
-                    # Используем team_id (имя поля в модели + _id)
-                    TeamAlias.objects.update_or_create(
-                        name=clean_n,
-                        defaults={'team_id': t_id}
-                    )
+                    TeamAlias.objects.update_or_create(name=clean_n, defaults={'team_id': t_id})
                 except Exception as e:
                     print(f"Ошибка сохранения алиаса: {e}")
 
@@ -91,12 +110,13 @@ class AnalyzeView(View):
                             ref = Match.objects.filter(home_team=home_team).select_related('league__country').first()
                             league = ref.league if ref else League.objects.filter(country=home_team.country).first()
                             m_obj = Match(home_team=home_team, away_team=away_team, league=league, season=season,
-                                          odds_home=h_odd)
+                                          odds_home=h_odd, odds_draw=d_odd, odds_away=a_odd, date=timezone.now())
 
+                            # --- 1. ПУАССОН ---
                             p_data = m_obj.calculate_poisson_lambda()
                             top_scores = self.get_poisson_probs(p_data['home_lambda'], p_data['away_lambda'])
 
-                            # --- УМНЫЙ ПОИСК БЛИЗНЕЦОВ ---
+                            # --- 2. УМНЫЙ ПОИСК БЛИЗНЕЦОВ (ТВОЙ АЛГОРИТМ) ---
                             tol = Decimal('0.05')
                             twins_qs = Match.objects.filter(
                                 league__country=league.country,
@@ -104,7 +124,6 @@ class AnalyzeView(View):
                                 odds_away__range=(a_odd - tol, a_odd + tol)
                             ).exclude(home_score_reg__isnull=True)
 
-                            # Если пусто - расширяем поиск до 0.10
                             if twins_qs.count() == 0:
                                 tol = Decimal('0.10')
                                 twins_qs = Match.objects.filter(
@@ -116,11 +135,42 @@ class AnalyzeView(View):
                             t_count = twins_qs.count()
                             t_dist = "Нет данных"
                             if t_count > 0:
-                                hw = twins_qs.filter(home_score_reg__gt=F('away_score_reg')).count()
-                                dw = twins_qs.filter(home_score_reg=F('away_score_reg')).count()
-                                aw = twins_qs.filter(home_score_reg__lt=F('away_score_reg')).count()
-                                t_dist = f"П1: {round(hw / t_count * 100)}% | X: {round(dw / t_count * 100)}% | П2: {round(aw / t_count * 100)}%"
+                                hw_t = twins_qs.filter(home_score_reg__gt=F('away_score_reg')).count()
+                                dw_t = twins_qs.filter(home_score_reg=F('away_score_reg')).count()
+                                aw_t = twins_qs.filter(home_score_reg__lt=F('away_score_reg')).count()
+                                t_dist = f"П1: {round(hw_t / t_count * 100)}% | X: {round(dw_t / t_count * 100)}% | П2: {round(aw_t / t_count * 100)}%"
 
+                            # --- 3. ИСТОРИЧЕСКИЙ ШАБЛОН (ППНВ) - СКОРОСТНОЙ ---
+                            all_league_matches = list(Match.objects.filter(
+                                league=league, home_score_reg__isnull=False
+                            ).order_by('-date'))
+
+                            h_form = self.get_fast_form(home_team.id, m_obj.date, all_league_matches)
+                            a_form = self.get_fast_form(away_team.id, m_obj.date, all_league_matches)
+
+                            pattern_res = "Недостаточно данных"
+                            if h_form and a_form:
+                                p_count, p_hw, p_dw, p_aw = 0, 0, 0, 0
+                                for m in all_league_matches:
+                                    f_h = self.get_fast_form(m.home_team_id, m.date, all_league_matches)
+                                    f_a = self.get_fast_form(m.away_team_id, m.date, all_league_matches)
+                                    if f_h == h_form and f_a == a_form:
+                                        p_count += 1
+                                        if m.home_score_reg > m.away_score_reg:
+                                            p_hw += 1
+                                        elif m.home_score_reg == m.away_score_reg:
+                                            p_dw += 1
+                                        else:
+                                            p_aw += 1
+
+                                if p_count > 0:
+                                    pattern_res = {
+                                        'pattern': f"{h_form} - {a_form}",
+                                        'count': p_count,
+                                        'dist': f"П1: {round(p_hw / p_count * 100)}% | X: {round(p_dw / p_count * 100)}% | П2: {round(p_aw / p_count * 100)}%"
+                                    }
+
+                            # --- 4. H2H ---
                             h2h_qs = Match.objects.filter(home_team=home_team, away_team=away_team).exclude(
                                 home_score_reg__isnull=True).order_by('-date')
                             h2h_list = [
@@ -134,13 +184,15 @@ class AnalyzeView(View):
                                 'poisson_top': top_scores,
                                 'twins_count': t_count,
                                 'twins_dist': t_dist,
+                                'pattern_data': pattern_res,
                                 'h2h_list': h2h_list,
                                 'h2h_total': h2h_qs.count()
                             })
                         else:
                             if not home_team: unknown_teams.add(home_raw.strip())
                             if not away_team: unknown_teams.add(away_raw.strip())
-                except:
+                except Exception as e:
+                    print(f"Ошибка парсинга: {e}")
                     continue
 
         return render(request, self.template_name, {
@@ -149,7 +201,6 @@ class AnalyzeView(View):
         })
 
     def get(self, request):
-        # Обязательно добавляем метод GET, чтобы страница открывалась при первом заходе
         return render(request, self.template_name, {
             'all_teams': Team.objects.all().order_by('name'),
         })
