@@ -109,52 +109,46 @@ class AnalyzeView(View):
                         if home_team and away_team:
                             ref = Match.objects.filter(home_team=home_team).select_related('league__country').first()
                             league = ref.league if ref else League.objects.filter(country=home_team.country).first()
-                            m_obj = Match(home_team=home_team, away_team=away_team, league=league, season=season,
-                                          odds_home=h_odd, odds_draw=d_odd, odds_away=a_odd, date=timezone.now())
 
-                            # --- 1. ПУАССОН ---
-                            p_data = m_obj.calculate_poisson_lambda()
-                            top_scores = self.get_poisson_probs(p_data['home_lambda'], p_data['away_lambda'])
-
-                            # --- 2. УМНЫЙ ПОИСК БЛИЗНЕЦОВ (ТВОЙ АЛГОРИТМ) ---
-                            tol = Decimal('0.05')
-                            twins_qs = Match.objects.filter(
-                                league__country=league.country,
-                                odds_home__range=(h_odd - tol, h_odd + tol),
-                                odds_away__range=(a_odd - tol, a_odd + tol)
-                            ).exclude(home_score_reg__isnull=True)
-
-                            if twins_qs.count() == 0:
-                                tol = Decimal('0.10')
-                                twins_qs = Match.objects.filter(
-                                    league__country=league.country,
-                                    odds_home__range=(h_odd - tol, h_odd + tol),
-                                    odds_away__range=(a_odd - tol, a_odd + tol)
-                                ).exclude(home_score_reg__isnull=True)
-
-                            t_count = twins_qs.count()
-                            t_dist = "Нет данных"
-                            if t_count > 0:
-                                hw_t = twins_qs.filter(home_score_reg__gt=F('away_score_reg')).count()
-                                dw_t = twins_qs.filter(home_score_reg=F('away_score_reg')).count()
-                                aw_t = twins_qs.filter(home_score_reg__lt=F('away_score_reg')).count()
-                                t_dist = f"П1: {round(hw_t / t_count * 100)}% | X: {round(dw_t / t_count * 100)}% | П2: {round(aw_t / t_count * 100)}%"
-
-                            # --- 3. ИСТОРИЧЕСКИЙ ШАБЛОН (ППНВ) - СКОРОСТНОЙ ---
+                            # --- ПРЕДВАРИТЕЛЬНЫЙ РАСЧЕТ ФОРМ (ОПТИМИЗАЦИЯ) ---
                             all_league_matches = list(Match.objects.filter(
                                 league=league, home_score_reg__isnull=False
-                            ).order_by('-date'))
+                            ).order_by('date'))  # Сначала старые для накопления истории
 
-                            h_form = self.get_fast_form(home_team.id, m_obj.date, all_league_matches)
-                            a_form = self.get_fast_form(away_team.id, m_obj.date, all_league_matches)
+                            # Кэш форм: {team_id: [список последних результатов]}
+                            team_history = {}
+                            # Кэш паттернов для каждого матча: {match_id: (home_form, away_form)}
+                            match_patterns = {}
+
+                            for m in all_league_matches:
+                                h_id, a_id = m.home_team_id, m.away_team_id
+
+                                # Берем текущую форму из истории ДО этого матча
+                                h_f = "".join(team_history.get(h_id, []))[-4:]
+                                a_f = "".join(team_history.get(a_id, []))[-4:]
+
+                                if len(h_f) == 4 and len(a_f) == 4:
+                                    match_patterns[m.id] = (h_f, a_f)
+
+                                # Обновляем историю команд после матча
+                                res_h = 'N' if m.home_score_reg == m.away_score_reg else (
+                                    'P' if m.home_score_reg > m.away_score_reg else 'V')
+                                res_a = 'N' if m.home_score_reg == m.away_score_reg else (
+                                    'P' if m.away_score_reg > m.home_score_reg else 'V')
+
+                                team_history.setdefault(h_id, []).append(res_h)
+                                team_history.setdefault(a_id, []).append(res_a)
+
+                            # Форма текущих команд (на сегодня)
+                            curr_h_form = "".join(team_history.get(home_team.id, []))[-4:]
+                            curr_a_form = "".join(team_history.get(away_team.id, []))[-4:]
 
                             pattern_res = "Недостаточно данных"
-                            if h_form and a_form:
+                            if len(curr_h_form) == 4 and len(curr_a_form) == 4:
                                 p_count, p_hw, p_dw, p_aw = 0, 0, 0, 0
+                                # Мгновенный перебор кэша
                                 for m in all_league_matches:
-                                    f_h = self.get_fast_form(m.home_team_id, m.date, all_league_matches)
-                                    f_a = self.get_fast_form(m.away_team_id, m.date, all_league_matches)
-                                    if f_h == h_form and f_a == a_form:
+                                    if match_patterns.get(m.id) == (curr_h_form, curr_a_form):
                                         p_count += 1
                                         if m.home_score_reg > m.away_score_reg:
                                             p_hw += 1
@@ -165,12 +159,37 @@ class AnalyzeView(View):
 
                                 if p_count > 0:
                                     pattern_res = {
-                                        'pattern': f"{h_form} - {a_form}",
+                                        'pattern': f"{curr_h_form} - {curr_a_form}",
                                         'count': p_count,
                                         'dist': f"П1: {round(p_hw / p_count * 100)}% | X: {round(p_dw / p_count * 100)}% | П2: {round(p_aw / p_count * 100)}%"
                                     }
 
-                            # --- 4. H2H ---
+                            # --- ПУАССОН И БЛИЗНЕЦЫ (БЕЗ ИЗМЕНЕНИЙ) ---
+                            m_obj = Match(home_team=home_team, away_team=away_team, league=league, season=season,
+                                          odds_home=h_odd)
+                            p_data = m_obj.calculate_poisson_lambda()
+                            top_scores = self.get_poisson_probs(p_data['home_lambda'], p_data['away_lambda'])
+
+                            tol = Decimal('0.05')
+                            twins_qs = Match.objects.filter(league__country=league.country,
+                                                            odds_home__range=(h_odd - tol, h_odd + tol),
+                                                            odds_away__range=(a_odd - tol, a_odd + tol)).exclude(
+                                home_score_reg__isnull=True)
+                            if twins_qs.count() == 0:
+                                tol = Decimal('0.10')
+                                twins_qs = Match.objects.filter(league__country=league.country,
+                                                                odds_home__range=(h_odd - tol, h_odd + tol),
+                                                                odds_away__range=(a_odd - tol, a_odd + tol)).exclude(
+                                    home_score_reg__isnull=True)
+
+                            t_count = twins_qs.count()
+                            t_dist = "Нет данных"
+                            if t_count > 0:
+                                hw_t = twins_qs.filter(home_score_reg__gt=F('away_score_reg')).count()
+                                dw_t = twins_qs.filter(home_score_reg=F('away_score_reg')).count()
+                                aw_t = twins_qs.filter(home_score_reg__lt=F('away_score_reg')).count()
+                                t_dist = f"П1: {round(hw_t / t_count * 100)}% | X: {round(dw_t / t_count * 100)}% | П2: {round(aw_t / t_count * 100)}%"
+
                             h2h_qs = Match.objects.filter(home_team=home_team, away_team=away_team).exclude(
                                 home_score_reg__isnull=True).order_by('-date')
                             h2h_list = [
@@ -192,7 +211,7 @@ class AnalyzeView(View):
                             if not home_team: unknown_teams.add(home_raw.strip())
                             if not away_team: unknown_teams.add(away_raw.strip())
                 except Exception as e:
-                    print(f"Ошибка парсинга: {e}")
+                    print(f"Error: {e}")
                     continue
 
         return render(request, self.template_name, {
