@@ -96,12 +96,22 @@ class AnalyzeView(View):
                             p_data = m_obj.calculate_poisson_lambda()
                             top_scores = self.get_poisson_probs(p_data['home_lambda'], p_data['away_lambda'])
 
+                            # --- УМНЫЙ ПОИСК БЛИЗНЕЦОВ ---
                             tol = Decimal('0.05')
                             twins_qs = Match.objects.filter(
                                 league__country=league.country,
                                 odds_home__range=(h_odd - tol, h_odd + tol),
                                 odds_away__range=(a_odd - tol, a_odd + tol)
                             ).exclude(home_score_reg__isnull=True)
+
+                            # Если пусто - расширяем поиск до 0.10
+                            if twins_qs.count() == 0:
+                                tol = Decimal('0.10')
+                                twins_qs = Match.objects.filter(
+                                    league__country=league.country,
+                                    odds_home__range=(h_odd - tol, h_odd + tol),
+                                    odds_away__range=(a_odd - tol, a_odd + tol)
+                                ).exclude(home_score_reg__isnull=True)
 
                             t_count = twins_qs.count()
                             t_dist = "Нет данных"
