@@ -84,9 +84,9 @@ class Command(BaseCommand):
         else:
             self.stdout.write(f"  {pattern}")
 
-        # # 5. ВЕКТОРНЫЙ СИНТЕЗ
-        # self.stdout.write(self.style.MIGRATE_LABEL("\n--- [5] ИТОГОВЫЙ ВЕКТОР (СИНТЕЗ) ---"))
-        # verdict = match.get_vector_synthesis()
-        # self.stdout.write(self.style.SUCCESS(f"  ВЕРДИКТ: {verdict}"))
+        # 5. ВЕКТОРНЫЙ СИНТЕЗ
+        self.stdout.write(self.style.MIGRATE_LABEL("\n--- [5] ИТОГОВЫЙ ВЕКТОР (СИНТЕЗ) ---"))
+        verdict = match.get_vector_synthesis()
+        self.stdout.write(self.style.SUCCESS(f"  ВЕРДИКТ: {verdict}"))
 
         self.stdout.write(self.style.SUCCESS("\n=== АНАЛИЗ ЗАВЕРШЕН ===\n"))

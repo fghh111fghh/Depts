@@ -7,5 +7,5 @@ app_name: str = 'app_bets'
 
 urlpatterns = [
     # Главная страница приложения
-    path('', views.BetsTemplateView.as_view(), name='bets_maim'),
+    path('', views.AnalyzeView.as_view(), name='bets_maim'),
 ]
