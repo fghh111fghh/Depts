@@ -13,7 +13,6 @@ class AnalyzeView(View):
     template_name = 'app_bets/bets_main.html'
 
     def clean_team_name(self, name):
-        """Очистка названия от мусора"""
         if not name: return ""
         name = unicodedata.normalize('NFKC', str(name))
         name = re.sub(r'\d{1,2}[:\.]\d{2}', '', name)
@@ -42,29 +41,6 @@ class AnalyzeView(View):
         alias = TeamAlias.objects.filter(name__iexact=search).select_related('team').first()
         if alias: return alias.team
         return Team.objects.filter(Q(name__iexact=search) | Q(name__icontains=search)).first()
-
-    def get_fast_form(self, team_id, date, matches_list, window=4):
-        """Скоростное извлечение формы из списка матчей в памяти"""
-        # Фильтруем матчи команды до конкретной даты
-        past = [m for m in matches_list if (m.home_team_id == team_id or m.away_team_id == team_id) and m.date < date]
-        # Берем последние window штук (они уже отсортированы по дате DESC в основном запросе)
-        relevant = past[:window]
-
-        if len(relevant) < window:
-            return None
-
-        form = []
-        # Разворачиваем, чтобы идти от старых к новым (ППНВ)
-        for m in reversed(relevant):
-            is_home = (m.home_team_id == team_id)
-            h, a = m.home_score_reg, m.away_score_reg
-            if h == a:
-                form.append('N')  # Ничья
-            elif (is_home and h > a) or (not is_home and a > h):
-                form.append('P')  # Победа
-            else:
-                form.append('V')  # Выигрыш (поражение в твоей терминологии В - Выигрыш соперника)
-        return "".join(form)
 
     def post(self, request):
         raw_text = request.POST.get('matches_text', '')
@@ -110,91 +86,79 @@ class AnalyzeView(View):
                             ref = Match.objects.filter(home_team=home_team).select_related('league__country').first()
                             league = ref.league if ref else League.objects.filter(country=home_team.country).first()
 
-                            # --- ПРЕДВАРИТЕЛЬНЫЙ РАСЧЕТ ФОРМ (ОПТИМИЗАЦИЯ) ---
-                            all_league_matches = list(Match.objects.filter(
-                                league=league, home_score_reg__isnull=False
-                            ).order_by('date'))  # Сначала старые для накопления истории
-
-                            # Кэш форм: {team_id: [список последних результатов]}
+                            # --- ШАБЛОНЫ (ОПТИМИЗИРОВАНО) ---
+                            all_league_matches = list(Match.objects.filter(league=league, home_score_reg__isnull=False).order_by('date'))
                             team_history = {}
-                            # Кэш паттернов для каждого матча: {match_id: (home_form, away_form)}
                             match_patterns = {}
-
                             for m in all_league_matches:
                                 h_id, a_id = m.home_team_id, m.away_team_id
-
-                                # Берем текущую форму из истории ДО этого матча
                                 h_f = "".join(team_history.get(h_id, []))[-4:]
                                 a_f = "".join(team_history.get(a_id, []))[-4:]
-
-                                if len(h_f) == 4 and len(a_f) == 4:
-                                    match_patterns[m.id] = (h_f, a_f)
-
-                                # Обновляем историю команд после матча
-                                res_h = 'N' if m.home_score_reg == m.away_score_reg else (
-                                    'P' if m.home_score_reg > m.away_score_reg else 'V')
-                                res_a = 'N' if m.home_score_reg == m.away_score_reg else (
-                                    'P' if m.away_score_reg > m.home_score_reg else 'V')
-
+                                if len(h_f) == 4 and len(a_f) == 4: match_patterns[m.id] = (h_f, a_f)
+                                res_h = 'N' if m.home_score_reg == m.away_score_reg else ('P' if m.home_score_reg > m.away_score_reg else 'V')
+                                res_a = 'N' if m.home_score_reg == m.away_score_reg else ('P' if m.away_score_reg > m.home_score_reg else 'V')
                                 team_history.setdefault(h_id, []).append(res_h)
                                 team_history.setdefault(a_id, []).append(res_a)
 
-                            # Форма текущих команд (на сегодня)
                             curr_h_form = "".join(team_history.get(home_team.id, []))[-4:]
                             curr_a_form = "".join(team_history.get(away_team.id, []))[-4:]
 
                             pattern_res = "Недостаточно данных"
+                            p_hw, p_dw, p_aw, p_count = 0, 0, 0, 0
                             if len(curr_h_form) == 4 and len(curr_a_form) == 4:
-                                p_count, p_hw, p_dw, p_aw = 0, 0, 0, 0
-                                # Мгновенный перебор кэша
                                 for m in all_league_matches:
                                     if match_patterns.get(m.id) == (curr_h_form, curr_a_form):
                                         p_count += 1
-                                        if m.home_score_reg > m.away_score_reg:
-                                            p_hw += 1
-                                        elif m.home_score_reg == m.away_score_reg:
-                                            p_dw += 1
-                                        else:
-                                            p_aw += 1
-
+                                        if m.home_score_reg > m.away_score_reg: p_hw += 1
+                                        elif m.home_score_reg == m.away_score_reg: p_dw += 1
+                                        else: p_aw += 1
                                 if p_count > 0:
-                                    pattern_res = {
-                                        'pattern': f"{curr_h_form} - {curr_a_form}",
-                                        'count': p_count,
-                                        'dist': f"П1: {round(p_hw / p_count * 100)}% | X: {round(p_dw / p_count * 100)}% | П2: {round(p_aw / p_count * 100)}%"
-                                    }
+                                    pattern_res = {'pattern': f"{curr_h_form} - {curr_a_form}", 'count': p_count, 'dist': f"П1: {round(p_hw / p_count * 100)}% | X: {round(p_dw / p_count * 100)}% | П2: {round(p_aw / p_count * 100)}%"}
 
-                            # --- ПУАССОН И БЛИЗНЕЦЫ (БЕЗ ИЗМЕНЕНИЙ) ---
-                            m_obj = Match(home_team=home_team, away_team=away_team, league=league, season=season,
-                                          odds_home=h_odd)
+                            # --- ПУАССОН И БЛИЗНЕЦЫ ---
+                            m_obj = Match(home_team=home_team, away_team=away_team, league=league, season=season, odds_home=h_odd)
                             p_data = m_obj.calculate_poisson_lambda()
                             top_scores = self.get_poisson_probs(p_data['home_lambda'], p_data['away_lambda'])
 
                             tol = Decimal('0.05')
-                            twins_qs = Match.objects.filter(league__country=league.country,
-                                                            odds_home__range=(h_odd - tol, h_odd + tol),
-                                                            odds_away__range=(a_odd - tol, a_odd + tol)).exclude(
-                                home_score_reg__isnull=True)
+                            twins_qs = Match.objects.filter(league__country=league.country, odds_home__range=(h_odd - tol, h_odd + tol), odds_away__range=(a_odd - tol, a_odd + tol)).exclude(home_score_reg__isnull=True)
                             if twins_qs.count() == 0:
                                 tol = Decimal('0.10')
-                                twins_qs = Match.objects.filter(league__country=league.country,
-                                                                odds_home__range=(h_odd - tol, h_odd + tol),
-                                                                odds_away__range=(a_odd - tol, a_odd + tol)).exclude(
-                                    home_score_reg__isnull=True)
+                                twins_qs = Match.objects.filter(league__country=league.country, odds_home__range=(h_odd - tol, h_odd + tol), odds_away__range=(a_odd - tol, a_odd + tol)).exclude(home_score_reg__isnull=True)
 
                             t_count = twins_qs.count()
-                            t_dist = "Нет данных"
+                            t_dist, hw_t, dw_t, aw_t = "Нет данных", 0, 0, 0
                             if t_count > 0:
                                 hw_t = twins_qs.filter(home_score_reg__gt=F('away_score_reg')).count()
                                 dw_t = twins_qs.filter(home_score_reg=F('away_score_reg')).count()
                                 aw_t = twins_qs.filter(home_score_reg__lt=F('away_score_reg')).count()
                                 t_dist = f"П1: {round(hw_t / t_count * 100)}% | X: {round(dw_t / t_count * 100)}% | П2: {round(aw_t / t_count * 100)}%"
 
-                            h2h_qs = Match.objects.filter(home_team=home_team, away_team=away_team).exclude(
-                                home_score_reg__isnull=True).order_by('-date')
-                            h2h_list = [
-                                {'date': m.date.strftime('%d.%m.%y'), 'score': f"{m.home_score_reg}:{m.away_score_reg}"}
-                                for m in h2h_qs]
+                            h2h_qs = Match.objects.filter(home_team=home_team, away_team=away_team).exclude(home_score_reg__isnull=True).order_by('-date')
+                            h2h_list = [{'date': m.date.strftime('%d.%m.%y'), 'score': f"{m.home_score_reg}:{m.away_score_reg}"} for m in h2h_qs]
+
+                            # --- ВЕКТОРНЫЙ СИНТЕЗ (ВЕСА) ---
+                            v_p1, v_x, v_p2 = 0, 0, 0
+                            if top_scores:
+                                ms = top_scores[0]['score'].split(':')
+                                if int(ms[0]) > int(ms[1]): v_p1 += 0.2
+                                elif int(ms[0]) == int(ms[1]): v_x += 0.2
+                                else: v_p2 += 0.2
+                            if t_count > 0:
+                                if hw_t/t_count > 0.45: v_p1 += 0.4
+                                if dw_t/t_count > 0.30: v_x += 0.4
+                                if aw_t/t_count > 0.45: v_p2 += 0.4
+                            if p_count > 0:
+                                if p_hw/p_count > 0.45: v_p1 += 0.4
+                                if p_dw/p_count > 0.30: v_x += 0.4
+                                if p_aw/p_count > 0.45: v_p2 += 0.4
+
+                            if v_p1 >= 0.6: verdict = "СИГНАЛ: П1"
+                            elif v_p2 >= 0.6: verdict = "СИГНАЛ: П2"
+                            elif v_x >= 0.6: verdict = "СИГНАЛ: НИЧЬЯ"
+                            elif v_p1 >= 0.4: verdict = "АКЦЕНТ: 1X"
+                            elif v_p2 >= 0.4: verdict = "АКЦЕНТ: X2"
+                            else: verdict = "НЕТ ЧЕТКОГО ВЕКТОРА"
 
                             results.append({
                                 'match': f"{home_team.name} - {away_team.name}",
@@ -205,7 +169,8 @@ class AnalyzeView(View):
                                 'twins_dist': t_dist,
                                 'pattern_data': pattern_res,
                                 'h2h_list': h2h_list,
-                                'h2h_total': h2h_qs.count()
+                                'h2h_total': h2h_qs.count(),
+                                'verdict': verdict
                             })
                         else:
                             if not home_team: unknown_teams.add(home_raw.strip())
@@ -220,6 +185,4 @@ class AnalyzeView(View):
         })
 
     def get(self, request):
-        return render(request, self.template_name, {
-            'all_teams': Team.objects.all().order_by('name'),
-        })
+        return render(request, self.template_name, {'all_teams': Team.objects.all().order_by('name')})
