@@ -8,4 +8,5 @@ app_name: str = 'app_bets'
 urlpatterns = [
     # Главная страница приложения
     path('', views.AnalyzeView.as_view(), name='bets_maim'),
+    path('upload-csv/', views.UploadCSVView.as_view(), name='upload_csv')
 ]
