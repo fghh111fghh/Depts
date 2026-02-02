@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'debug_toolbar',
+    'django_extensions',
     'app_depts.apps.AppDeptsConfig',
     'app_main.apps.AppMainConfig',
     'app_bets.apps.AppBetsConfig',

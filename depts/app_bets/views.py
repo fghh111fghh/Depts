@@ -1,3 +1,4 @@
+import csv
 import os
 import re
 import math
@@ -7,7 +8,7 @@ import unicodedata
 from decimal import Decimal
 
 from django.conf import settings
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.views.generic import View
 from django.db.models import F, Q
 from django.utils import timezone
@@ -41,11 +42,30 @@ class AnalyzeView(View):
         return sorted(probs, key=lambda x: x['prob'], reverse=True)[:5]
 
     def get_team_smart(self, name):
-        search = self.clean_team_name(name)
-        if not search: return None
-        alias = TeamAlias.objects.filter(name__iexact=search).select_related('team').first()
+        """Поиск команды: сначала по имени, потом по алиасу."""
+        clean_name = self.clean_team_name(name)
+        # 1. По точному имени
+        team = Team.objects.filter(name__iexact=clean_name).first()
+        if team: return team
+
+        # 2. По алиасу (ИСПРАВЛЕНО: поле 'name' вместо 'alias_name')
+        alias = TeamAlias.objects.filter(name__iexact=clean_name).first()
         if alias: return alias.team
-        return Team.objects.filter(Q(name__iexact=search) | Q(name__icontains=search)).first()
+        return None
+
+    def parse_csv_date(self, d_str):
+        """Конвертация даты из CSV с поддержкой часовых поясов."""
+        if not d_str:
+            return timezone.now()
+        for fmt in ('%d/%m/%Y', '%d/%m/%y'):
+            try:
+                dt = datetime.strptime(d_str, fmt)
+                if settings.USE_TZ:
+                    return timezone.make_aware(datetime.combine(dt.date(), datetime.min.time()))
+                return dt
+            except (ValueError, TypeError):
+                continue
+        return timezone.now()
 
     def post(self, request):
         raw_text = request.POST.get('matches_text', '')
@@ -193,107 +213,96 @@ class AnalyzeView(View):
         return render(request, self.template_name, {'all_teams': Team.objects.all().order_by('name')})
 
 
-import csv
-from django.shortcuts import redirect
-from django.contrib import messages
-
-
 class UploadCSVView(View):
     def post(self, request):
-        # Добавляем обработку новой кнопки "Синхронизировать файлы"
         if 'sync_files' in request.POST:
-            count = self.sync_local_files()
-            messages.success(request, f"База обновлена! Обработано матчей: {count}")
-        csv_file = request.FILES.get('csv_file')
-        if not csv_file:
+            stats = self.sync_local_files()
+            from django.contrib import messages
+
+            # Формируем основное сообщение
+            msg = f"Добавлено: {stats['added']}, Обновлено: {stats['updated']}. "
+
+            # Если есть неизвестные команды, добавляем их имена прямо в сообщение
+            if stats['unknown_teams']:
+                teams_list = ", ".join(list(stats['unknown_teams']))
+                msg += f"НЕ ОПОЗНАНО ({len(stats['unknown_teams'])}): [{teams_list}]"
+
+            if stats['unknown_leagues']:
+                leagues_list = ", ".join(list(stats['unknown_leagues']))
+                msg += f" | Неизвестные лиги: {leagues_list}"
+
+            messages.success(request, msg)
             return redirect('app_bets:bets_maim')
-
-        decoded_file = csv_file.read().decode('utf-8').splitlines()
-        reader = csv.DictReader(decoded_file)
-
-        count = 0
-        for row in reader:
-            # Названия колонок зависят от формата CSV (обычно HomeTeam, AwayTeam, FTHG, FTAG)
-            h_name = row.get('HomeTeam')
-            a_name = row.get('AwayTeam')
-            h_score = row.get('FTHG')
-            a_score = row.get('FTAG')
-            date_str = row.get('Date')  # Формат обычно dd/mm/yy
-
-            if h_name and a_name and h_score and a_score:
-                # Используем твою логику поиска команд
-                home = AnalyzeView().get_team_smart(h_name)
-                away = AnalyzeView().get_team_smart(a_name)
-
-                if home and away:
-                    # Обновляем или создаем матч
-                    Match.objects.update_or_create(
-                        home_team=home,
-                        away_team=away,
-                        date=self.parse_date(date_str),  # Нужна вспомогательная функция
-                        defaults={
-                            'home_score_reg': int(h_score),
-                            'away_score_reg': int(a_score),
-                        }
-                    )
-                    count += 1
-
-        messages.success(request, f"Успешно обновлено матчей: {count}")
         return redirect('app_bets:bets_maim')
 
     def sync_local_files(self):
-        # Папка, где лежат твои CSV (создай её в корне проекта)
         folder_path = os.path.join(settings.BASE_DIR, 'import_data')
+        stats = {'added': 0, 'updated': 0, 'unknown_teams': set(), 'unknown_leagues': set()}
+
+        # Текущий сезон
+        current_season = Season.objects.filter(is_current=True).first() or Season.objects.last()
+        analyzer = AnalyzeView()
+
         if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
-            return 0
+            return stats
 
-        total_updated = 0
         for filename in os.listdir(folder_path):
-            if filename.endswith('.csv'):
-                file_path = os.path.join(folder_path, filename)
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    reader = csv.DictReader(f)
-                    for row in reader:
-                        try:
-                            # Извлекаем данные по формату football-data.co.uk
-                            h_name = row.get('HomeTeam')
-                            a_name = row.get('AwayTeam')
-                            h_score = row.get('FTHG')
-                            a_score = row.get('FTAG')
-                            date_str = row.get('Date')
+            if not filename.endswith('.csv'): continue
 
-                            # Нам нужны только сыгранные матчи
-                            if not h_score or not a_score: continue
+            file_path = os.path.join(folder_path, filename)
+            with open(file_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    try:
+                        div_code = row.get('Div')
+                        h_raw, a_raw = row.get('HomeTeam'), row.get('AwayTeam')
+                        h_score, a_score = row.get('FTHG'), row.get('FTAG')
 
-                            home = self.get_team_smart(h_name)
-                            away = self.get_team_smart(a_name)
+                        if not h_raw or h_score is None: continue
 
-                            if home and away:
-                                # Парсим дату (у них бывает 25/01/26 или 25/01/2026)
-                                match_date = self.parse_csv_date(date_str)
-
-                                # update_or_create сам проверяет, есть ли матч.
-                                # Если есть — обновит счет, если нет — создаст.
-                                obj, created = Match.objects.update_or_create(
-                                    home_team=home,
-                                    away_team=away,
-                                    date=match_date,
-                                    defaults={
-                                        'home_score_reg': int(h_score),
-                                        'away_score_reg': int(a_score),
-                                    }
-                                )
-                                if created: total_updated += 1
-                        except Exception as e:
-                            print(f"Ошибка в строке: {e}")
+                        # Поиск лиги
+                        league = League.objects.filter(external_id=div_code).first()
+                        if not league:
+                            stats['unknown_leagues'].add(div_code)
                             continue
-        return total_updated
 
-    def parse_csv_date(self, d_str):
-        for fmt in ('%d/%m/%y', '%d/%m/%Y'):
-            try:
-                return datetime.strptime(d_str, fmt).date()
-            except:
-                continue
-        return timezone.now().date()
+                        # Поиск команд
+                        home = analyzer.get_team_smart(h_raw)
+                        away = analyzer.get_team_smart(a_raw)
+
+                        if not home or not away:
+                            if not home: stats['unknown_teams'].add(h_raw)
+                            if not away: stats['unknown_teams'].add(a_raw)
+                            continue
+
+                        def get_dec(v):
+                            try:
+                                return Decimal(str(v).replace(',', '.')) if v else Decimal(0)
+                            except:
+                                return Decimal(0)
+
+                        # Сохранение (ИСПРАВЛЕНО: добавлены final счета для валидации)
+                        obj, created = Match.objects.update_or_create(
+                            home_team=home,
+                            away_team=away,
+                            date=analyzer.parse_csv_date(row.get('Date')),
+                            defaults={
+                                'home_score_reg': int(h_score),
+                                'away_score_reg': int(a_score),
+                                'home_score_final': int(h_score),
+                                'away_score_final': int(a_score),
+                                'league': league,
+                                'season': current_season,
+                                'odds_home': get_dec(row.get('B365H')),
+                                'odds_draw': get_dec(row.get('B365D')),
+                                'odds_away': get_dec(row.get('B365A')),
+                            }
+                        )
+                        if created:
+                            stats['added'] += 1
+                        else:
+                            stats['updated'] += 1
+
+                    except Exception as e:
+                        print(f"Ошибка в {filename}: {e}")
+        return stats
