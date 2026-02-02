@@ -34,6 +34,9 @@ class Sport(models.Model):
     )
 
     class Meta:
+        indexes = [
+            models.Index(fields=["name"]),
+        ]
         verbose_name = "Вид спорта"
         verbose_name_plural = "Виды спорта"
 
@@ -52,6 +55,9 @@ class Country(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="Название страны")
 
     class Meta:
+        indexes = [
+            models.Index(fields=["name"]),
+        ]
         verbose_name_plural = "Страны"
 
     def __str__(self):
@@ -63,8 +69,18 @@ class League(models.Model):
     name = models.CharField(max_length=150, verbose_name="Название лиги")
     sport = models.ForeignKey(Sport, on_delete=models.CASCADE, verbose_name="Вид спорта", related_name="sport_leagues")
     country = models.ForeignKey(Country, on_delete=models.CASCADE, verbose_name="Страна", related_name="country_leagues")
+    external_id = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        unique=True,
+        verbose_name="Внешний код (например, E0)"
+    )
 
     class Meta:
+        indexes = [
+            models.Index(fields=["name"]),
+        ]
         unique_together = ('name', 'sport', 'country')
         verbose_name = "Лига"
         verbose_name_plural = "Лиги"
@@ -140,6 +156,9 @@ class Team(models.Model):
     country = models.ForeignKey(Country, on_delete=models.CASCADE)
 
     class Meta:
+        indexes = [
+            models.Index(fields=["name"]),
+        ]
         unique_together = ('name', 'sport', 'country')
         verbose_name = "Команда / Игрок"
         verbose_name_plural = "Команды и Игроки"
@@ -156,6 +175,9 @@ class TeamAlias(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="aliases")
 
     class Meta:
+        indexes = [
+            models.Index(fields=["name"]),
+        ]
         verbose_name = "Псевдоним команды"
         verbose_name_plural = "Псевдонимы команд"
 
@@ -180,6 +202,9 @@ class Season(models.Model):
     end_date = models.DateField(verbose_name="Дата окончания (включительно)")
 
     class Meta:
+        indexes = [
+            models.Index(fields=["name"]),
+        ]
         verbose_name = "Сезон"
         verbose_name_plural = "Сезоны"
         ordering = ['-start_date']
@@ -240,20 +265,17 @@ class Match(models.Model):
     odds_home = models.DecimalField(
         max_digits=6, decimal_places=2,
         validators=[MinValueValidator(Decimal('1.01'))],
-        db_index=True,
         verbose_name="Кэф П1"
     )
     odds_draw = models.DecimalField(
         max_digits=6, decimal_places=2,
         null=True, blank=True,
         validators=[MinValueValidator(Decimal('1.01'))],
-        db_index=True,
         verbose_name="Кэф Х"
     )
     odds_away = models.DecimalField(
         max_digits=6, decimal_places=2,
         validators=[MinValueValidator(Decimal('1.01'))],
-        db_index = True,
         verbose_name="Кэф П2"
     )
 
@@ -263,11 +285,18 @@ class Match(models.Model):
     away_lineup = models.JSONField(null=True, blank=True, verbose_name="Состав (Гости)")
 
     class Meta:
+        indexes = [
+            models.Index(fields=["odds_home", "odds_away"]),
+        ]
         verbose_name = "Матч"
         verbose_name_plural = "Матчи"
         ordering = ['-date']
 
     # --- МАКСИМАЛЬНАЯ ВАЛИДАЦИЯ ---
+
+    def __str__(self):
+        return (f'{self.date} {self.home_team} - {self.away_team} {self.home_score_final}'
+                f':{self.away_score_final}')
 
     def clean(self):
         """Логическая проверка данных перед сохранением в БД."""
@@ -517,9 +546,9 @@ class Match(models.Model):
 
         return prob_matrix
 
-    def __str__(self):
-        res = f"{self.home_score_final}:{self.away_score_final}" if self.home_score_final is not None else "VS"
-        return f"{self.date.strftime('%d.%m')} {self.home_team.name} {res} {self.away_team.name}"
+    # def __str__(self):
+    #     res = f"{self.home_score_final}:{self.away_score_final}" if self.home_score_final is not None else "VS"
+    #     return f"{self.date.strftime('%d.%m')} {self.home_team.name} {res} {self.away_team.name}"
 
     def get_historical_pattern_report(self, window=4):
         """
