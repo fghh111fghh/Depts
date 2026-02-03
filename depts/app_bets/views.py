@@ -12,33 +12,80 @@ from django.shortcuts import render, redirect
 from django.views.generic import View
 from django.db.models import F, Q
 from django.utils import timezone
+
+from .constants import Outcome
 from .models import Match, TeamAlias, League, Season, Team
 
 
 class AnalyzeView(View):
     template_name = 'app_bets/bets_main.html'
 
-    def clean_team_name(self, name):
-        if not name: return ""
-        name = unicodedata.normalize('NFKC', str(name))
-        name = re.sub(r'\d{1,2}[:\.]\d{2}', '', name)
-        name = re.sub(r'[^\w\s\d]', ' ', name)
-        name = ' '.join(name.split())
-        return name.strip().lower()
+    @staticmethod
+    def clean_team_name(name: str) -> str:
+        """
+        Очищает название команды от лишних символов,
+        приводит к единому формату для сравнения.
 
-    def get_poisson_probs(self, l_home, l_away):
+        Args:
+            name (str): Исходное название команды
+
+        Returns:
+            str: Очищенное название в нижнем регистре
+        """
+        if not name:
+            return ""
+
+        try:
+            # Нормализация Unicode
+            name = unicodedata.normalize('NFKC', str(name))
+
+            # Удаление временных меток (15:30, 21.45)
+            name = re.sub(r'\b\d{1,2}[:\.]\d{2}\b', '', name)
+
+            # Удаление символов в скобках и спецсимволов
+            name = re.sub(r'[^\w\s\d\-]', ' ', name)
+
+            # Замена нескольких дефисов/тире на один пробел
+            name = re.sub(r'[\-\–\—]+', ' ', name)
+
+            # Удаление лишних пробелов
+            name = ' '.join(name.split())
+
+            return name.strip().lower()
+
+        except Exception as e:
+            # Логирование ошибки в продакшене
+            # logger.warning(f"Error cleaning team name '{name}': {e}")
+            return str(name).strip().lower() if name else ""
+
+    @staticmethod
+    def get_poisson_probs(l_home: int | float, l_away: int | float) -> list:
+        """
+        Рассчитывает вероятности различных счетов (например, 2:1, 0:0 и т.д.)
+        между домашней (home) и гостевой (away) командами, используя
+        распределение Пуассона. Метод возвращает 5 самых вероятных счетов/
+        """
         probs = []
         try:
+            # l_home, l_away λ (лямбда) - среднее ожидаемое количество голов
             l_home, l_away = float(l_home), float(l_away)
+            # Минимальное значение для избежания ошибок
             if l_home <= 0: l_home = 0.01
             if l_away <= 0: l_away = 0.01
+            # Вероятность что домашняя команда забьет h голов
             for h in range(5):
+                # Вероятность что гостевая команда забьет a голов
                 for a in range(5):
                     p_h = (math.exp(-l_home) * (l_home ** h)) / math.factorial(h)
                     p_a = (math.exp(-l_away) * (l_away ** a)) / math.factorial(a)
+                    # Вероятность конкретного счета (h:a)
                     probs.append({'score': f"{h}:{a}", 'prob': p_h * p_a * 100})
         except:
             return []
+        # Пример расчета Пуассона для счета 1:0
+        # P(home=1) = (e ^ (-1.5) * 1.5 ^ 1) / 1! ≈ 0.3347
+        # P(away=0) = (e ^ (-1.0) * 1.0 ^ 0) / 0! ≈ 0.3679
+        # P(1: 0) = 0.3347 * 0.3679 ≈ 0.1231 = 12.31 %
         return sorted(probs, key=lambda x: x['prob'], reverse=True)[:5]
 
     def get_team_smart(self, name):
@@ -112,7 +159,8 @@ class AnalyzeView(View):
                             league = ref.league if ref else League.objects.filter(country=home_team.country).first()
 
                             # --- ШАБЛОНЫ (ОПТИМИЗИРОВАНО) ---
-                            all_league_matches = list(Match.objects.filter(league=league, home_score_reg__isnull=False).order_by('date'))
+                            all_league_matches = list(
+                                Match.objects.filter(league=league, home_score_reg__isnull=False).order_by('date'))
                             team_history = {}
                             match_patterns = {}
                             for m in all_league_matches:
@@ -120,8 +168,10 @@ class AnalyzeView(View):
                                 h_f = "".join(team_history.get(h_id, []))[-4:]
                                 a_f = "".join(team_history.get(a_id, []))[-4:]
                                 if len(h_f) == 4 and len(a_f) == 4: match_patterns[m.id] = (h_f, a_f)
-                                res_h = 'Н' if m.home_score_reg == m.away_score_reg else ('В' if m.home_score_reg > m.away_score_reg else 'П')
-                                res_a = 'Н' if m.home_score_reg == m.away_score_reg else ('В' if m.away_score_reg > m.home_score_reg else 'П')
+                                res_h = Outcome.DRAW if m.home_score_reg == m.away_score_reg else (
+                                    Outcome.WIN if m.home_score_reg > m.away_score_reg else Outcome.LOSE)
+                                res_a = Outcome.DRAW if m.home_score_reg == m.away_score_reg else (
+                                    Outcome.WIN if m.away_score_reg > m.home_score_reg else Outcome.LOSE)
                                 team_history.setdefault(h_id, []).append(res_h)
                                 team_history.setdefault(a_id, []).append(res_a)
 
@@ -134,22 +184,33 @@ class AnalyzeView(View):
                                 for m in all_league_matches:
                                     if match_patterns.get(m.id) == (curr_h_form, curr_a_form):
                                         p_count += 1
-                                        if m.home_score_reg > m.away_score_reg: p_hw += 1
-                                        elif m.home_score_reg == m.away_score_reg: p_dw += 1
-                                        else: p_aw += 1
+                                        if m.home_score_reg > m.away_score_reg:
+                                            p_hw += 1
+                                        elif m.home_score_reg == m.away_score_reg:
+                                            p_dw += 1
+                                        else:
+                                            p_aw += 1
                                 if p_count > 0:
-                                    pattern_res = {'pattern': f"{curr_h_form} - {curr_a_form}", 'count': p_count, 'dist': f"П1: {round(p_hw / p_count * 100)}% | X: {round(p_dw / p_count * 100)}% | П2: {round(p_aw / p_count * 100)}%"}
+                                    pattern_res = {'pattern': f"{curr_h_form} - {curr_a_form}", 'count': p_count,
+                                                   'dist': f"П1: {round(p_hw / p_count * 100)}% | X: {round(p_dw / p_count * 100)}% | П2: {round(p_aw / p_count * 100)}%"}
 
                             # --- ПУАССОН И БЛИЗНЕЦЫ ---
-                            m_obj = Match(home_team=home_team, away_team=away_team, league=league, season=season, odds_home=h_odd)
+                            m_obj = Match(home_team=home_team, away_team=away_team, league=league, season=season,
+                                          odds_home=h_odd)
                             p_data = m_obj.calculate_poisson_lambda()
                             top_scores = self.get_poisson_probs(p_data['home_lambda'], p_data['away_lambda'])
 
                             tol = Decimal('0.05')
-                            twins_qs = Match.objects.filter(league__country=league.country, odds_home__range=(h_odd - tol, h_odd + tol), odds_away__range=(a_odd - tol, a_odd + tol)).exclude(home_score_reg__isnull=True)
+                            twins_qs = Match.objects.filter(league__country=league.country,
+                                                            odds_home__range=(h_odd - tol, h_odd + tol),
+                                                            odds_away__range=(a_odd - tol, a_odd + tol)).exclude(
+                                home_score_reg__isnull=True)
                             if twins_qs.count() == 0:
                                 tol = Decimal('0.10')
-                                twins_qs = Match.objects.filter(league__country=league.country, odds_home__range=(h_odd - tol, h_odd + tol), odds_away__range=(a_odd - tol, a_odd + tol)).exclude(home_score_reg__isnull=True)
+                                twins_qs = Match.objects.filter(league__country=league.country,
+                                                                odds_home__range=(h_odd - tol, h_odd + tol),
+                                                                odds_away__range=(a_odd - tol, a_odd + tol)).exclude(
+                                    home_score_reg__isnull=True)
 
                             t_count = twins_qs.count()
                             t_dist, hw_t, dw_t, aw_t = "Нет данных", 0, 0, 0
@@ -159,31 +220,43 @@ class AnalyzeView(View):
                                 aw_t = twins_qs.filter(home_score_reg__lt=F('away_score_reg')).count()
                                 t_dist = f"П1: {round(hw_t / t_count * 100)}% | X: {round(dw_t / t_count * 100)}% | П2: {round(aw_t / t_count * 100)}%"
 
-                            h2h_qs = Match.objects.filter(home_team=home_team, away_team=away_team).exclude(home_score_reg__isnull=True).order_by('-date')
-                            h2h_list = [{'date': m.date.strftime('%d.%m.%y'), 'score': f"{m.home_score_reg}:{m.away_score_reg}"} for m in h2h_qs]
+                            h2h_qs = Match.objects.filter(home_team=home_team, away_team=away_team).exclude(
+                                home_score_reg__isnull=True).order_by('-date')
+                            h2h_list = [
+                                {'date': m.date.strftime('%d.%m.%y'), 'score': f"{m.home_score_reg}:{m.away_score_reg}"}
+                                for m in h2h_qs]
 
                             # --- ВЕКТОРНЫЙ СИНТЕЗ (ВЕСА) ---
                             v_p1, v_x, v_p2 = 0, 0, 0
                             if top_scores:
                                 ms = top_scores[0]['score'].split(':')
-                                if int(ms[0]) > int(ms[1]): v_p1 += 0.2
-                                elif int(ms[0]) == int(ms[1]): v_x += 0.2
-                                else: v_p2 += 0.2
+                                if int(ms[0]) > int(ms[1]):
+                                    v_p1 += 0.2
+                                elif int(ms[0]) == int(ms[1]):
+                                    v_x += 0.2
+                                else:
+                                    v_p2 += 0.2
                             if t_count > 0:
-                                if hw_t/t_count > 0.45: v_p1 += 0.4
-                                if dw_t/t_count > 0.30: v_x += 0.4
-                                if aw_t/t_count > 0.45: v_p2 += 0.4
+                                if hw_t / t_count > 0.45: v_p1 += 0.4
+                                if dw_t / t_count > 0.30: v_x += 0.4
+                                if aw_t / t_count > 0.45: v_p2 += 0.4
                             if p_count > 0:
-                                if p_hw/p_count > 0.45: v_p1 += 0.4
-                                if p_dw/p_count > 0.30: v_x += 0.4
-                                if p_aw/p_count > 0.45: v_p2 += 0.4
+                                if p_hw / p_count > 0.45: v_p1 += 0.4
+                                if p_dw / p_count > 0.30: v_x += 0.4
+                                if p_aw / p_count > 0.45: v_p2 += 0.4
 
-                            if v_p1 >= 0.6: verdict = "СИГНАЛ: П1"
-                            elif v_p2 >= 0.6: verdict = "СИГНАЛ: П2"
-                            elif v_x >= 0.6: verdict = "СИГНАЛ: НИЧЬЯ"
-                            elif v_p1 >= 0.4: verdict = "АКЦЕНТ: 1X"
-                            elif v_p2 >= 0.4: verdict = "АКЦЕНТ: X2"
-                            else: verdict = "НЕТ ЧЕТКОГО ВЕКТОРА"
+                            if v_p1 >= 0.6:
+                                verdict = "СИГНАЛ: П1"
+                            elif v_p2 >= 0.6:
+                                verdict = "СИГНАЛ: П2"
+                            elif v_x >= 0.6:
+                                verdict = "СИГНАЛ: НИЧЬЯ"
+                            elif v_p1 >= 0.4:
+                                verdict = "АКЦЕНТ: 1X"
+                            elif v_p2 >= 0.4:
+                                verdict = "АКЦЕНТ: X2"
+                            else:
+                                verdict = "НЕТ ЧЕТКОГО ВЕКТОРА"
 
                             results.append({
                                 'match': f"{home_team.name} - {away_team.name}",
