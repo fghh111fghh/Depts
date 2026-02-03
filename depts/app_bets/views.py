@@ -120,8 +120,8 @@ class AnalyzeView(View):
                                 h_f = "".join(team_history.get(h_id, []))[-4:]
                                 a_f = "".join(team_history.get(a_id, []))[-4:]
                                 if len(h_f) == 4 and len(a_f) == 4: match_patterns[m.id] = (h_f, a_f)
-                                res_h = 'N' if m.home_score_reg == m.away_score_reg else ('P' if m.home_score_reg > m.away_score_reg else 'V')
-                                res_a = 'N' if m.home_score_reg == m.away_score_reg else ('P' if m.away_score_reg > m.home_score_reg else 'V')
+                                res_h = 'Н' if m.home_score_reg == m.away_score_reg else ('В' if m.home_score_reg > m.away_score_reg else 'П')
+                                res_a = 'Н' if m.home_score_reg == m.away_score_reg else ('В' if m.away_score_reg > m.home_score_reg else 'П')
                                 team_history.setdefault(h_id, []).append(res_h)
                                 team_history.setdefault(a_id, []).append(res_a)
 
