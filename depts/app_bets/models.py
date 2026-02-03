@@ -2,11 +2,10 @@ import math
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
-from django.db.models import Q, Avg, Sum, Count, F
+from django.db.models import Q, Avg, Sum, F
 from decimal import Decimal
 
 
-# --- СПРАВОЧНИКИ И ГЕОГРАФИЯ ---
 
 class Sport(models.Model):
     """
@@ -147,8 +146,6 @@ class League(models.Model):
         return f"{self.name} ({self.country.name})"
 
 
-# --- СИСТЕМА ИМЕН И СИНОНИМОВ ---
-
 class Team(models.Model):
     """Каноническая запись команды или игрока (Мастер-запись)."""
     name = models.CharField(max_length=100, verbose_name="Каноническое название")
@@ -220,7 +217,6 @@ class Season(models.Model):
     def __str__(self):
         return self.name
 
-# --- ГЛАВНАЯ МОДЕЛЬ МАТЧА ---
 
 class Match(models.Model):
     """
