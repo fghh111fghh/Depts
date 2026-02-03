@@ -10,7 +10,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.shortcuts import render, redirect
 from django.views.generic import View
-from django.db.models import F, Q
+from django.db.models import F
 from django.utils import timezone
 
 from .constants import Outcome
@@ -63,7 +63,7 @@ class AnalyzeView(View):
         """
         Рассчитывает вероятности различных счетов (например, 2:1, 0:0 и т.д.)
         между домашней (home) и гостевой (away) командами, используя
-        распределение Пуассона. Метод возвращает 5 самых вероятных счетов/
+        распределение Пуассона. Метод возвращает 5 самых вероятных счетов
         """
         probs = []
         try:
@@ -88,31 +88,50 @@ class AnalyzeView(View):
         # P(1: 0) = 0.3347 * 0.3679 ≈ 0.1231 = 12.31 %
         return sorted(probs, key=lambda x: x['prob'], reverse=True)[:5]
 
-    def get_team_smart(self, name):
-        """Поиск команды: сначала по имени, потом по алиасу."""
-        clean_name = self.clean_team_name(name)
-        # 1. По точному имени
-        team = Team.objects.filter(name__iexact=clean_name).first()
-        if team: return team
-
-        # 2. По алиасу (ИСПРАВЛЕНО: поле 'name' вместо 'alias_name')
-        alias = TeamAlias.objects.filter(name__iexact=clean_name).first()
-        if alias: return alias.team
-        return None
-
-    def parse_csv_date(self, d_str):
-        """Конвертация даты из CSV с поддержкой часовых поясов."""
+    @staticmethod
+    def parse_csv_date(d_str: str) -> datetime:
+        """
+        Преобразует строку с датой из CSV в объект datetime Django с учетом
+        часового пояса, поддерживая несколько форматов дат
+        """
         if not d_str:
             return timezone.now()
+        # Поддерживает два формата
+        # %d / % m / % Y — полный год(например: "25/12/2023")
+        # %d / % m / % y — короткий год(например: "25/12/23")
         for fmt in ('%d/%m/%Y', '%d/%m/%y'):
             try:
+                # Преобразование строки в datetime
+                # "25/12/2023" → datetime(2023, 12, 25, 0, 0)
                 dt = datetime.strptime(d_str, fmt)
+                # Если USE_TZ = True(используются часовые пояса)
+                # dt.date() — получает только дату(без времени)
+                # datetime.min.time() — минимальное время 00: 00:00
+                # datetime.combine() — объединяет дату и время
+                # timezone.make_aware() — добавляет часовой пояс
+                # Результат: aware datetime с временем 00: 00 в текущем часовом поясе
                 if settings.USE_TZ:
                     return timezone.make_aware(datetime.combine(dt.date(), datetime.min.time()))
                 return dt
             except (ValueError, TypeError):
                 continue
         return timezone.now()
+
+    def get_team_smart(self, name: str) -> Team | None:
+        """
+        Ищет команду по названию, сначала проверяя точное совпадение с основной
+        таблицей команд, затем с таблицей алиасов (альтернативных названий/синонимов).
+        """
+        clean_name = self.clean_team_name(name)
+        # 1. По точному имени
+        team = Team.objects.filter(name__iexact=clean_name).first()
+        if team: return team
+
+        # 2. По алиасу
+        alias = TeamAlias.objects.filter(name__iexact=clean_name).first()
+        if alias: return alias.team
+        return None
+
 
     def post(self, request):
         raw_text = request.POST.get('matches_text', '')
