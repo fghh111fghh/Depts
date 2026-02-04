@@ -19,7 +19,7 @@ import csv
 import logging
 import os
 from decimal import Decimal
-from typing import List, Dict, Set, Optional
+from typing import List, Dict, Optional
 
 from django.conf import settings
 from django.db import transaction
@@ -30,7 +30,7 @@ import re
 import math
 import unicodedata
 
-from app_bets.constants import Outcome
+from app_bets.constants import Outcome, ParsingConstants, AnalysisConstants, Messages
 
 # Настройка логгера для мониторинга
 logger = logging.getLogger(__name__)
@@ -68,18 +68,6 @@ class AnalyzeView(View):
     """
 
     template_name = 'app_bets/bets_main.html'
-
-    # Константы для настройки анализа
-    TWINS_TOLERANCE_SMALL = Decimal('0.05')  # Допуск для поиска "близнецов" (5%)
-    TWINS_TOLERANCE_LARGE = Decimal('0.10')  # Расширенный допуск (10%)
-    PATTERN_FORM_LENGTH = 4  # Длина паттерна формы (последние 4 матча)
-    POISSON_MAX_GOALS = 5  # Максимальное количество голов для расчета Пуассона
-
-    # Пороги для принятия решений
-    VERDICT_STRONG_THRESHOLD = 0.60  # Порог для СИГНАЛА
-    VERDICT_WEAK_THRESHOLD = 0.40    # Порог для АКЦЕНТА
-    WIN_THRESHOLD = 0.45             # Порог победы для учета
-    DRAW_THRESHOLD = 0.30            # Порог ничьей для учета
 
     def get(self, request):
         """
@@ -132,7 +120,7 @@ class AnalyzeView(View):
             name = unicodedata.normalize('NFKC', str(name))
 
             # Удаление временных меток (15:30, 21.45, 20.30 и т.д.)
-            name = re.sub(r'\b\d{1,2}[:\.]\d{1,2}\b', '', name)
+            name = re.sub(ParsingConstants.TIME_REGEX, '', name)
 
             # Удаление символов в скобках и спецсимволов
             name = re.sub(r'[^\w\s\d\-\']', ' ', name)
@@ -174,21 +162,22 @@ class AnalyzeView(View):
         probs = []
         try:
             # Защита от нулевых или отрицательных значений
-            l_home = max(float(l_home), 0.01)
-            l_away = max(float(l_away), 0.01)
+            l_home = max(float(l_home), AnalysisConstants.POISSON_MIN_LAMBDA)
+            l_away = max(float(l_away), AnalysisConstants.POISSON_MIN_LAMBDA)
 
             # Предварительный расчет экспонент для производительности
             exp_home = math.exp(-l_home)
             exp_away = math.exp(-l_away)
 
             # Рассчитываем вероятности для счетов до POISSON_MAX_GOALS голов
-            for h in range(AnalyzeView.POISSON_MAX_GOALS):
+            for h in range(AnalysisConstants.POISSON_MAX_GOALS):
                 p_h = (exp_home * (l_home ** h)) / math.factorial(h)
-                for a in range(AnalyzeView.POISSON_MAX_GOALS):
+                for a in range(AnalysisConstants.POISSON_MAX_GOALS):
                     p_a = (exp_away * (l_away ** a)) / math.factorial(a)
                     probability = p_h * p_a * 100
-                    # Сохраняем только вероятности > 0.01%
-                    if probability > 0.01:
+
+                    # Сохраняем только вероятности выше минимального порога
+                    if probability > AnalysisConstants.MIN_PROBABILITY:
                         probs.append({
                             'score': f"{h}:{a}",
                             'prob': round(probability, 2)
@@ -252,8 +241,8 @@ class AnalyzeView(View):
             List[str]: Список из 2 названий команд или пустой список
         """
         names = []
-        # Ищем до 10 строк выше коэффициентов
-        search_depth = min(10, odds_index)
+        # Ищем до MAX_SEARCH_DEPTH строк выше коэффициентов
+        search_depth = min(ParsingConstants.MAX_SEARCH_DEPTH, odds_index)
 
         for j in range(odds_index - 1, odds_index - search_depth - 1, -1):
             if j < 0:
@@ -269,22 +258,25 @@ class AnalyzeView(View):
             if row == '-':
                 continue
 
-            # Пропускаем время (формат: 20:30 или 20.30)
-            if re.match(r'^\d{1,2}[:\.]\d{2}$', row):
+            # Пропускаем время
+            if re.match(ParsingConstants.TIME_REGEX, row):
                 continue
 
             # Пропускаем заголовки столбцов
-            if row.lower() in ['1', 'x', '2', '1 x 2']:
+            if row.lower() in ParsingConstants.SKIP_KEYWORDS:
                 continue
 
             # Пропускаем названия лиг и стран
-            league_keywords = ['чемпионшип', 'бундеслига', 'примера', 'англия', 'германия', 'испания']
-            if any(keyword in row.lower() for keyword in league_keywords):
+            if any(keyword in row.lower() for keyword in ParsingConstants.LEAGUE_KEYWORDS):
                 continue
 
             # Проверяем, может ли строка быть названием команды
             clean_name = self.clean_team_name(row)
-            if clean_name and len(clean_name) >= 2 and not re.match(r'^\d+$', clean_name):
+            if (clean_name and
+                    len(clean_name) >= AnalysisConstants.MIN_TEAM_NAME_LENGTH and
+                    not re.match(ParsingConstants.DIGITS_ONLY_REGEX, clean_name) and
+                    clean_name not in ParsingConstants.BLACKLIST):
+
                 names.append(row)
                 if len(names) == 2:
                     break
@@ -324,9 +316,16 @@ class AnalyzeView(View):
             if alias_raw and t_id:
                 try:
                     clean_n = self.clean_team_name(alias_raw)
-                    TeamAlias.objects.update_or_create(name=clean_n, defaults={'team_id': t_id})
+                    with transaction.atomic():
+                        TeamAlias.objects.update_or_create(
+                            name=clean_n,
+                            defaults={'team_id': t_id}
+                        )
+                    logger.info(Messages.ALIAS_CREATED.format(clean_n, t_id))
                 except Exception as e:
-                    print(f"Ошибка сохранения алиаса: {e}")
+                    error_msg = f"Ошибка сохранения алиаса: {e}"
+                    logger.error(error_msg)
+                    print(error_msg)
 
         # --- 2. ПОДГОТОВКА ДАННЫХ ДЛЯ АНАЛИЗА ---
         results = []
@@ -354,13 +353,13 @@ class AnalyzeView(View):
             if i <= skip_to:
                 continue
 
-            # Проверяем, является ли строка коэффициентом (формат: 1.23 или 1,23)
-            if re.match(r'^\d+[\.,]\d+$', line):
+            # Проверяем, является ли строка коэффициентом
+            if re.match(ParsingConstants.ODDS_REGEX, line):
                 try:
                     # Парсим коэффициенты
-                    h_odd = Decimal(line.replace(',', '.')).quantize(Decimal('0.00'))
-                    d_odd = Decimal(lines[i + 1].replace(',', '.')).quantize(Decimal('0.00'))
-                    a_odd = Decimal(lines[i + 2].replace(',', '.')).quantize(Decimal('0.00'))
+                    h_odd = Decimal(line.replace(',', '.')).quantize(Decimal(Messages.DECIMAL_FORMAT))
+                    d_odd = Decimal(lines[i + 1].replace(',', '.')).quantize(Decimal(Messages.DECIMAL_FORMAT))
+                    a_odd = Decimal(lines[i + 2].replace(',', '.')).quantize(Decimal(Messages.DECIMAL_FORMAT))
                     skip_to = i + 2
 
                     # Извлекаем названия команд
@@ -374,6 +373,11 @@ class AnalyzeView(View):
                         away_team = self.get_team_smart(away_raw)
 
                         if home_team and away_team:
+                            # Логирование найденного матча
+                            logger.info(Messages.MATCH_FOUND.format(
+                                home_team.name, away_team.name, h_odd, d_odd, a_odd
+                            ))
+
                             # --- АНАЛИЗ МАТЧА ---
 
                             # Определяем лигу
@@ -387,9 +391,10 @@ class AnalyzeView(View):
                             match_patterns = {}
                             for m in all_league_matches:
                                 h_id, a_id = m.home_team_id, m.away_team_id
-                                h_f = "".join(team_history.get(h_id, []))[-4:]
-                                a_f = "".join(team_history.get(a_id, []))[-4:]
-                                if len(h_f) == 4 and len(a_f) == 4:
+                                h_f = "".join(team_history.get(h_id, []))[-AnalysisConstants.PATTERN_FORM_LENGTH:]
+                                a_f = "".join(team_history.get(a_id, []))[-AnalysisConstants.PATTERN_FORM_LENGTH:]
+                                if len(h_f) == AnalysisConstants.PATTERN_FORM_LENGTH and len(
+                                        a_f) == AnalysisConstants.PATTERN_FORM_LENGTH:
                                     match_patterns[m.id] = (h_f, a_f)
 
                                 # Определяем результат для каждой команды
@@ -407,14 +412,17 @@ class AnalyzeView(View):
                                 team_history.setdefault(a_id, []).append(res_a)
 
                             # Получаем текущие формы команд
-                            curr_h_form = "".join(team_history.get(home_team.id, []))[-4:]
-                            curr_a_form = "".join(team_history.get(away_team.id, []))[-4:]
+                            curr_h_form = "".join(team_history.get(home_team.id, []))[
+                                          -AnalysisConstants.PATTERN_FORM_LENGTH:]
+                            curr_a_form = "".join(team_history.get(away_team.id, []))[
+                                          -AnalysisConstants.PATTERN_FORM_LENGTH:]
 
                             # Анализируем паттерны
-                            pattern_res = "Недостаточно данных"
+                            pattern_res = Messages.PATTERN_INSUFFICIENT_DATA
                             p_hw, p_dw, p_aw, p_count = 0, 0, 0, 0
 
-                            if len(curr_h_form) == 4 and len(curr_a_form) == 4:
+                            if len(curr_h_form) == AnalysisConstants.PATTERN_FORM_LENGTH and len(
+                                    curr_a_form) == AnalysisConstants.PATTERN_FORM_LENGTH:
                                 for m in all_league_matches:
                                     if match_patterns.get(m.id) == (curr_h_form, curr_a_form):
                                         p_count += 1
@@ -444,7 +452,7 @@ class AnalyzeView(View):
                             top_scores = self.get_poisson_probs(p_data['home_lambda'], p_data['away_lambda'])
 
                             # Поиск "близнецов" - матчей с похожими коэффициентами
-                            tol = Decimal('0.05')
+                            tol = AnalysisConstants.TWINS_TOLERANCE_SMALL
                             twins_qs = Match.objects.filter(
                                 league__country=league.country,
                                 odds_home__range=(h_odd - tol, h_odd + tol),
@@ -452,7 +460,7 @@ class AnalyzeView(View):
                             ).exclude(home_score_reg__isnull=True)
 
                             if twins_qs.count() == 0:
-                                tol = Decimal('0.10')
+                                tol = AnalysisConstants.TWINS_TOLERANCE_LARGE
                                 twins_qs = Match.objects.filter(
                                     league__country=league.country,
                                     odds_home__range=(h_odd - tol, h_odd + tol),
@@ -460,7 +468,7 @@ class AnalyzeView(View):
                                 ).exclude(home_score_reg__isnull=True)
 
                             t_count = twins_qs.count()
-                            t_dist, hw_t, dw_t, aw_t = "Нет данных", 0, 0, 0
+                            t_dist, hw_t, dw_t, aw_t = Messages.TWINS_NO_DATA, 0, 0, 0
                             if t_count > 0:
                                 hw_t = twins_qs.filter(home_score_reg__gt=F('away_score_reg')).count()
                                 dw_t = twins_qs.filter(home_score_reg=F('away_score_reg')).count()
@@ -475,7 +483,7 @@ class AnalyzeView(View):
 
                             h2h_list = [
                                 {
-                                    'date': m.date.strftime('%d.%m.%y'),
+                                    'date': m.date.strftime(Messages.DATE_FORMAT),
                                     'score': f"{m.home_score_reg}:{m.away_score_reg}"
                                 }
                                 for m in h2h_qs
@@ -484,47 +492,47 @@ class AnalyzeView(View):
                             # --- ВЕКТОРНЫЙ СИНТЕЗ (ВЕСА) ---
                             v_p1, v_x, v_p2 = 0, 0, 0
 
-                            # 1. Учитываем Пуассон (вес 0.2)
+                            # 1. Учитываем Пуассон
                             if top_scores:
                                 ms = top_scores[0]['score'].split(':')
                                 if int(ms[0]) > int(ms[1]):
-                                    v_p1 += 0.2
+                                    v_p1 += AnalysisConstants.POISSON_WEIGHT
                                 elif int(ms[0]) == int(ms[1]):
-                                    v_x += 0.2
+                                    v_x += AnalysisConstants.POISSON_WEIGHT
                                 else:
-                                    v_p2 += 0.2
+                                    v_p2 += AnalysisConstants.POISSON_WEIGHT
 
-                            # 2. Учитываем близнецов (вес 0.4)
+                            # 2. Учитываем близнецов
                             if t_count > 0:
-                                if hw_t / t_count > self.WIN_THRESHOLD:
-                                    v_p1 += 0.4
-                                if dw_t / t_count > self.DRAW_THRESHOLD:
-                                    v_x += 0.4
-                                if aw_t / t_count > self.WIN_THRESHOLD:
-                                    v_p2 += 0.4
+                                if hw_t / t_count > AnalysisConstants.WIN_THRESHOLD:
+                                    v_p1 += AnalysisConstants.TWINS_WEIGHT
+                                if dw_t / t_count > AnalysisConstants.DRAW_THRESHOLD:
+                                    v_x += AnalysisConstants.TWINS_WEIGHT
+                                if aw_t / t_count > AnalysisConstants.WIN_THRESHOLD:
+                                    v_p2 += AnalysisConstants.TWINS_WEIGHT
 
-                            # 3. Учитываем паттерны (вес 0.4)
+                            # 3. Учитываем паттерны
                             if isinstance(pattern_res, dict) and 'count' in pattern_res and pattern_res['count'] > 0:
-                                if p_hw / p_count > self.WIN_THRESHOLD:
-                                    v_p1 += 0.4
-                                if p_dw / p_count > self.DRAW_THRESHOLD:
-                                    v_x += 0.4
-                                if p_aw / p_count > self.WIN_THRESHOLD:
-                                    v_p2 += 0.4
+                                if p_hw / p_count > AnalysisConstants.WIN_THRESHOLD:
+                                    v_p1 += AnalysisConstants.PATTERN_WEIGHT
+                                if p_dw / p_count > AnalysisConstants.DRAW_THRESHOLD:
+                                    v_x += AnalysisConstants.PATTERN_WEIGHT
+                                if p_aw / p_count > AnalysisConstants.WIN_THRESHOLD:
+                                    v_p2 += AnalysisConstants.PATTERN_WEIGHT
 
                             # --- ФОРМИРОВАНИЕ ВЕРДИКТА ---
-                            if v_p1 >= self.VERDICT_STRONG_THRESHOLD:
-                                verdict = "СИГНАЛ: П1"
-                            elif v_p2 >= self.VERDICT_STRONG_THRESHOLD:
-                                verdict = "СИГНАЛ: П2"
-                            elif v_x >= self.VERDICT_STRONG_THRESHOLD:
-                                verdict = "СИГНАЛ: НИЧЬЯ"
-                            elif v_p1 >= self.VERDICT_WEAK_THRESHOLD:
-                                verdict = "АКЦЕНТ: 1X"
-                            elif v_p2 >= self.VERDICT_WEAK_THRESHOLD:
-                                verdict = "АКЦЕНТ: X2"
+                            if v_p1 >= AnalysisConstants.VERDICT_STRONG_THRESHOLD:
+                                verdict = Messages.VERDICT_SIGNAL_P1
+                            elif v_p2 >= AnalysisConstants.VERDICT_STRONG_THRESHOLD:
+                                verdict = Messages.VERDICT_SIGNAL_P2
+                            elif v_x >= AnalysisConstants.VERDICT_STRONG_THRESHOLD:
+                                verdict = Messages.VERDICT_SIGNAL_DRAW
+                            elif v_p1 >= AnalysisConstants.VERDICT_WEAK_THRESHOLD:
+                                verdict = Messages.VERDICT_ACCENT_1X
+                            elif v_p2 >= AnalysisConstants.VERDICT_WEAK_THRESHOLD:
+                                verdict = Messages.VERDICT_ACCENT_X2
                             else:
-                                verdict = "НЕТ ЧЕТКОГО ВЕКТОРА"
+                                verdict = Messages.VERDICT_NO_CLEAR_VECTOR
 
                             # --- СОХРАНЕНИЕ РЕЗУЛЬТАТА (ОРИГИНАЛЬНАЯ СТРУКТУРА) ---
                             results.append({
@@ -551,6 +559,9 @@ class AnalyzeView(View):
                     logger.error(error_msg)
                     print(error_msg)
                     continue
+
+        # Логирование общего количества найденных матчей
+        logger.info(Messages.TOTAL_MATCHES.format(len(results)))
 
         # --- 4. ВОЗВРАТ РЕЗУЛЬТАТОВ (СОХРАНЯЕМ ОРИГИНАЛЬНУЮ СТРУКТУРУ) ---
         return render(request, self.template_name, {
