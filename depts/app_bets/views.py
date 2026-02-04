@@ -521,18 +521,21 @@ class AnalyzeView(View):
                                     v_p2 += AnalysisConstants.PATTERN_WEIGHT
 
                             # --- ФОРМИРОВАНИЕ ВЕРДИКТА ---
-                            if v_p1 >= AnalysisConstants.VERDICT_STRONG_THRESHOLD:
-                                verdict = Messages.VERDICT_SIGNAL_P1
-                            elif v_p2 >= AnalysisConstants.VERDICT_STRONG_THRESHOLD:
-                                verdict = Messages.VERDICT_SIGNAL_P2
-                            elif v_x >= AnalysisConstants.VERDICT_STRONG_THRESHOLD:
-                                verdict = Messages.VERDICT_SIGNAL_DRAW
-                            elif v_p1 >= AnalysisConstants.VERDICT_WEAK_THRESHOLD:
-                                verdict = Messages.VERDICT_ACCENT_1X
-                            elif v_p2 >= AnalysisConstants.VERDICT_WEAK_THRESHOLD:
-                                verdict = Messages.VERDICT_ACCENT_X2
-                            else:
-                                verdict = Messages.VERDICT_NO_CLEAR_VECTOR
+                            # Определяем правила в порядке приоритета
+                            verdict_rules = [
+                                (v_p1 >= AnalysisConstants.VERDICT_STRONG_THRESHOLD, Messages.VERDICT_SIGNAL_P1),
+                                (v_p2 >= AnalysisConstants.VERDICT_STRONG_THRESHOLD, Messages.VERDICT_SIGNAL_P2),
+                                (v_x >= AnalysisConstants.VERDICT_STRONG_THRESHOLD, Messages.VERDICT_SIGNAL_DRAW),
+                                (v_p1 >= AnalysisConstants.VERDICT_WEAK_THRESHOLD, Messages.VERDICT_ACCENT_1X),
+                                (v_p2 >= AnalysisConstants.VERDICT_WEAK_THRESHOLD, Messages.VERDICT_ACCENT_X2),
+                            ]
+
+                            # Ищем первое выполняющееся условие
+                            verdict = Messages.VERDICT_NO_CLEAR_VECTOR  # Значение по умолчанию
+                            for condition, verdict_text in verdict_rules:
+                                if condition:
+                                    verdict = verdict_text
+                                    break
 
                             # --- СОХРАНЕНИЕ РЕЗУЛЬТАТА (ОРИГИНАЛЬНАЯ СТРУКТУРА) ---
                             results.append({
