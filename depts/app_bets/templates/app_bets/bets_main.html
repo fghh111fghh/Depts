@@ -29,129 +29,141 @@
         <div class="bets-unknown-section">
             <h4 style="margin:0 0 10px 0;"><i class="fa-solid fa-graduation-cap"></i> Обучение системы</h4>
             {% for name in unknown_teams %}
-            <form method="post" action="." style="background:#fff3cd; padding:12px; border-radius:8px; margin-bottom:10px; border:1px solid #ffeeba;">
+            <form method="post" action="."
+                  style="background:#fff3cd; padding:12px; border-radius:8px; margin-bottom:10px; border:1px solid #ffeeba;">
                 {% csrf_token %}
                 <input type="hidden" name="matches_text" value="{{ raw_text }}">
                 <input type="hidden" name="alias_name" value="{{ name }}">
                 <div style="font-size:0.9rem; font-weight:bold; margin-bottom:8px;">{{ name }}</div>
                 <select name="team_id" required style="width:100%; padding:5px; border-radius:4px;">
                     <option value="">-- выбери из базы --</option>
-                    {% for team in all_teams %}<option value="{{ team.id }}">{{ team.name }}</option>{% endfor %}
+                    {% for team in all_teams %}
+                    <option value="{{ team.id }}">{{ team.name }}</option>
+                    {% endfor %}
                 </select>
-                <button type="submit" name="create_alias" class="bets-btn-analyze" style="margin-top:8px; padding:6px; font-size:12px; background:#856404; color:#fff;">
+                <button type="submit" name="create_alias" class="bets-btn-analyze"
+                        style="margin-top:8px; padding:6px; font-size:12px; background:#856404; color:#fff;">
                     Сохранить привязку
                 </button>
             </form>
             {% endfor %}
         </div>
         {% endif %}
-        <div class="bets-input-pane" style="margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px;">
-    <form method="post" action="{% url 'app_bets:upload_csv' %}">
-        {% csrf_token %}
-        <label style="display:block; margin-bottom:10px; font-weight:600; color: #2c3e50;">
-            <i class="fa-solid fa-folder-open"></i> Локальная папка (import_data):
-        </label>
-        <p style="font-size: 0.75rem; color: #7f8c8d; margin-bottom: 10px;">
-            Положить CSV файлы в папку import_data и нажать кнопку.
-        </p>
-        <button type="submit" name="sync_files" class="bets-btn-analyze" style="background: #16a085;">
-            Синхронизировать базу
-        </button>
-    </form>
-</div>
+<!--        <div class="bets-input-pane" style="margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px;">-->
+<!--            <form method="post" action="{% url 'app_bets:upload_csv' %}">-->
+<!--                {% csrf_token %}-->
+<!--                <label style="display:block; margin-bottom:10px; font-weight:600; color: #2c3e50;">-->
+<!--                    <i class="fa-solid fa-folder-open"></i> Локальная папка (import_data):-->
+<!--                </label>-->
+<!--                <p style="font-size: 0.75rem; color: #7f8c8d; margin-bottom: 10px;">-->
+<!--                    Положить CSV файлы в папку import_data и нажать кнопку.-->
+<!--                </p>-->
+<!--                <button type="submit" name="sync_files" class="bets-btn-analyze" style="background: #16a085;">-->
+<!--                    Синхронизировать базу-->
+<!--                </button>-->
+<!--            </form>-->
+<!--        </div>-->
     </div>
 
     <div class="bets-results-area">
         {% if results %}
-            {% for res in results %}
-                <div class="bets-result-card" style="margin-bottom:30px; border: 1px solid #ddd; padding: 25px; background: #fff; border-radius: 12px;">
-                    <h2 style="margin-top:0; color:#2c3e50; border-bottom: 2px solid #f8f9fa; padding-bottom: 15px; margin-bottom: 15px;">
-                        {{ res.match }} <small style="color:#95a5a6; font-weight:normal;">({{ res.league }})</small>
-                    </h2>
+        {% for res in results %}
+        <div class="bets-result-card"
+             style="margin-bottom:30px; border: 1px solid #ddd; padding: 25px; background: #fff; border-radius: 12px;">
+            <h2 style="margin-top:0; color:#2c3e50; border-bottom: 2px solid #f8f9fa; padding-bottom: 15px; margin-bottom: 15px;">
+                {{ res.match }} <small style="color:#95a5a6; font-weight:normal;">({{ res.league }})</small>
+            </h2>
 
-                    <div style="margin-bottom:25px;">
-                        <h4 style="margin-bottom:10px;"><i class="fa-solid fa-microchip"></i> Итоговый векторный синтез</h4>
-                        <div style="background:#f1f3f5; padding:15px; border-radius:8px; border:1px solid #dee2e6;">
-                            <div style="background:#fff; padding:15px; border-radius:6px; text-align:center; border:1px solid #ced4da;">
-                                <span style="font-size:1.5rem; color:#2c3e50; font-weight:bold;">{{ res.verdict }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top:20px;">
-                        <div style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #e9ecef;">
-                            <h4 style="margin-top:0;"><i class="fa-solid fa-calculator"></i> Пуассон: {{ res.poisson_l }}</h4>
-                            <strong style="font-size:0.85rem; color:#6c757d;">Вероятные счета:</strong>
-                            <ul style="padding-left:18px; margin:10px 0;">
-                                {% for s in res.poisson_top %}
-                                    <li style="margin-bottom:3px;">{{ s.score }} — <b>{{ s.prob|floatformat:1 }}%</b></li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-
-                        <div style="background:#f1f3f5; padding:15px; border-radius:8px; border:1px solid #dee2e6;">
-                            <h4 style="margin-top:0;"><i class="fa-solid fa-copy"></i> Близнецы (совпадений: {{ res.twins_count }})</h4>
-                            <div style="background:#fff; padding:15px; border-radius:6px; text-align:center; border:1px solid #ced4da;">
-                                <span style="font-size:1.2rem; color:#007bff; font-weight:bold;">{{ res.twins_dist }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="margin-top:25px; background:#fffcf0; padding:15px; border-radius:8px; border:1px solid #f1e7bc;">
-                        <h4 style="margin-top:0; color:#856404; display:flex; justify-content:space-between;">
-                            <span><i class="fa-solid fa-clock-rotate-left"></i> Исторический шаблон (серия x4)</span>
-                            {% if res.pattern_data.count %}
-                                <span style="font-weight:normal; font-size:0.8rem;">Найдено: {{ res.pattern_data.count }}</span>
-                            {% endif %}
-                        </h4>
-
-                        {% if res.pattern_data.pattern %}
-                            <div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">
-                                <div style="background:#fff; padding:5px 15px; border-radius:4px; border:1px solid #f1e7bc; font-family:monospace; font-size:1.1rem; font-weight:bold;">
-                                    {{ res.pattern_data.pattern }}
-                                </div>
-                                <div style="font-weight:bold; color:#2c3e50; font-size:1.1rem;">
-                                    {{ res.pattern_data.dist }}
-                                </div>
-                            </div>
-                        {% else %}
-                            <div style="color:#6c757d; font-style:italic; font-size:0.9rem;">{{ res.pattern_data }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div style="margin-top:25px;">
-                        <h4 style="margin-bottom:10px; display:flex; justify-content:space-between;">
-                            <span><i class="fa-solid fa-history"></i> Личные встречи (в этом статусе)</span>
-                            <span style="font-weight:normal; font-size:0.8rem; color:#6c757d;">Найдено: {{ res.h2h_total }}</span>
-                        </h4>
-                        <div style="max-height: 250px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 6px;">
-                            <table style="width:100%; border-collapse: collapse; font-size:0.9rem;">
-                                <thead style="background:#f8f9fa; position: sticky; top: 0;">
-                                    <tr>
-                                        <th style="padding:10px; text-align:left;">Дата</th>
-                                        <th style="padding:10px; text-align:center;">Результат (Хозяева : Гости)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for h in res.h2h_list %}
-                                    <tr style="border-bottom: 1px solid #f1f3f5;">
-                                        <td style="padding:10px; color:#6c757d;">{{ h.date }}</td>
-                                        <td style="padding:10px; text-align:center; font-weight:bold; color:#e74c3c;">{{ h.score }}</td>
-                                    </tr>
-                                    {% empty %}
-                                    <tr><td colspan="2" style="padding:20px; text-align:center; color:#adb5bd;">Игр в таком статусе не найдено</td></tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
+            <div style="margin-bottom:25px;">
+                <h4 style="margin-bottom:10px;"><i class="fa-solid fa-microchip"></i> Итоговый векторный синтез</h4>
+                <div style="background:#f1f3f5; padding:15px; border-radius:8px; border:1px solid #dee2e6;">
+                    <div style="background:#fff; padding:15px; border-radius:6px; text-align:center; border:1px solid #ced4da;">
+                        <span style="font-size:1.5rem; color:#2c3e50; font-weight:bold;">{{ res.verdict }}</span>
                     </div>
                 </div>
-            {% endfor %}
-        {% else %}
-            <div style="text-align: center; padding: 100px; color: #dee2e6;">
-                <i class="fa-solid fa-futbol" style="font-size: 5rem; opacity:0.2;"></i>
-                <p>Введите данные матча для начала анализа</p>
             </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top:20px;">
+                <div style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #e9ecef;">
+                    <h4 style="margin-top:0;"><i class="fa-solid fa-calculator"></i> Пуассон: {{ res.poisson_l }}</h4>
+                    <strong style="font-size:0.85rem; color:#6c757d;">Вероятные счета:</strong>
+                    <ul style="padding-left:18px; margin:10px 0;">
+                        {% for s in res.poisson_top %}
+                        <li style="margin-bottom:3px;">{{ s.score }} — <b>{{ s.prob|floatformat:1 }}%</b></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div style="background:#f1f3f5; padding:15px; border-radius:8px; border:1px solid #dee2e6;">
+                    <h4 style="margin-top:0;"><i class="fa-solid fa-copy"></i> Близнецы (совпадений: {{ res.twins_count
+                        }})</h4>
+                    <div style="background:#fff; padding:15px; border-radius:6px; text-align:center; border:1px solid #ced4da;">
+                        <span style="font-size:1.2rem; color:#007bff; font-weight:bold;">{{ res.twins_dist }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:25px; background:#fffcf0; padding:15px; border-radius:8px; border:1px solid #f1e7bc;">
+                <h4 style="margin-top:0; color:#856404; display:flex; justify-content:space-between;">
+                    <span><i class="fa-solid fa-clock-rotate-left"></i> Исторический шаблон (серия x4)</span>
+                    {% if res.pattern_data.count %}
+                    <span style="font-weight:normal; font-size:0.8rem;">Найдено: {{ res.pattern_data.count }}</span>
+                    {% endif %}
+                </h4>
+
+                {% if res.pattern_data.pattern %}
+                <div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">
+                    <div style="background:#fff; padding:5px 15px; border-radius:4px; border:1px solid #f1e7bc; font-family:monospace; font-size:1.1rem; font-weight:bold;">
+                        {{ res.pattern_data.pattern }}
+                    </div>
+                    <div style="font-weight:bold; color:#2c3e50; font-size:1.1rem;">
+                        {{ res.pattern_data.dist }}
+                    </div>
+                </div>
+                {% else %}
+                <div style="color:#6c757d; font-style:italic; font-size:0.9rem;">{{ res.pattern_data }}</div>
+                {% endif %}
+            </div>
+
+            <div style="margin-top:25px;">
+                <h4 style="margin-bottom:10px; display:flex; justify-content:space-between;">
+                    <span><i class="fa-solid fa-history"></i> Личные встречи (в этом статусе)</span>
+                    <span style="font-weight:normal; font-size:0.8rem; color:#6c757d;">Найдено: {{ res.h2h_total }}</span>
+                </h4>
+                <div style="max-height: 250px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 6px;">
+                    <table style="width:100%; border-collapse: collapse; font-size:0.9rem;">
+                        <thead style="background:#f8f9fa; position: sticky; top: 0;">
+                        <tr>
+                            <th style="padding:10px; text-align:left;">Дата</th>
+                            <th style="padding:10px; text-align:center;">Результат (Хозяева : Гости)</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for h in res.h2h_list %}
+                        <tr style="border-bottom: 1px solid #f1f3f5;">
+                            <td style="padding:10px; color:#6c757d;">{{ h.date }}</td>
+                            <td style="padding:10px; text-align:center; font-weight:bold; color:#e74c3c;">{{ h.score
+                                }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="2" style="padding:20px; text-align:center; color:#adb5bd;">Игр в таком статусе
+                                не найдено
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div style="text-align: center; padding: 100px; color: #dee2e6;">
+            <i class="fa-solid fa-futbol" style="font-size: 5rem; opacity:0.2;"></i>
+            <p>Введите данные матча для начала анализа</p>
+        </div>
         {% endif %}
     </div>
 </div>
