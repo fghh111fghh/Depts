@@ -34,16 +34,17 @@
             {% endif %}
 
             <div class="verdict-line
-                {% if res.verdict == 'P1_SIGNAL' %}verdict-p1
-                {% elif res.verdict == 'P2_SIGNAL' %}verdict-p2
-                {% elif res.verdict == 'DRAW_SIGNAL' %}verdict-draw
-                {% endif %}">
-                {% if res.verdict == 'P1_SIGNAL' %}P1
-                {% elif res.verdict == 'P2_SIGNAL' %}P2
-                {% elif res.verdict == 'DRAW_SIGNAL' %}НИЧЬЯ
-                {% else %}{{ res.verdict }}
-                {% endif %}
-            </div>
+    {% if res.verdict == 'СИГНАЛ: П1' %}verdict-p1
+    {% elif res.verdict == 'СИГНАЛ: П2' %}verdict-p2
+    {% elif res.verdict == 'СИГНАЛ: НИЧЬЯ' %}verdict-draw
+    {% endif %}">
+
+    {% if res.verdict == 'СИГНАЛ: П1' %}П1
+    {% elif res.verdict == 'СИГНАЛ: П2' %}П2
+    {% elif res.verdict == 'СИГНАЛ: НИЧЬЯ' %}НИЧЬЯ
+    {% else %}{{ res.verdict }}
+    {% endif %}
+</div>
         </div>
 
         <!-- Пуассон -->
