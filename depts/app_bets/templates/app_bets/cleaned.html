@@ -4,187 +4,194 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'app_bets/css/styles.css' %}">
 
-<div class="bets-main-grid">
-    <!-- Левая панель (не менял) -->
-    <aside class="bets-input-pane">
-        <h3>Анализатор</h3>
-        <p>Результаты фильтрации по сигналам (P1, P2, X).</p>
-        <a href="{% url 'app_bets:cleaned' %}" class="bets-btn-analyze"
-           style="display: block; text-align: center; text-decoration: none;">Новый анализ</a>
-    </aside>
-
-    <!-- Основной контейнер с результатами -->
-    <main class="bets-results-container">
-        {% for res in cleaned_results %}
-        <div class="bets-result-card">
-            <!-- Заголовок матча с флекс-контейнером -->
-            <div class="bets-result-header">
-                <div class="match-title-section">
-                    <strong class="match-name">{{ res.match }}</strong>
-                    <span class="match-league">{{ res.league }}</span>
-                </div>
-                <div class="match-status">
-                    <span class="status-indicator">Сигнал</span>
-                </div>
+<div class="bets-results-container-full">
+    {% for res in cleaned_results %}
+    <div class="bets-result-card">
+        <!-- Верхняя строка: все в одну линию -->
+        <div class="match-header-line">
+            <div class="match-title-line">
+                <strong class="match-name-large">{{ res.match }}</strong>
+                <div class="league-line">{{ res.league }}</div>
             </div>
 
-            <!-- Пуассон: лямбда и топ-счета в одной строке -->
-            <div class="bets-info-row poisson-row">
-                <div class="poisson-lambda">
-                    <span class="bets-stat-label">Коэф. Пуассона</span>
-                    <div class="lambda-values">
-                        {% with lambda_parts=res.poisson_l|default:"0 : 0" %}
-                        {% with parts=lambda_parts.split %}
-                            <span class="lambda-home">{{ parts.0|default:"0" }}</span>
-                            <span class="lambda-separator">:</span>
-                            <span class="lambda-away">{{ parts.2|default:"0" }}</span>
-                        {% endwith %}
-                        {% endwith %}
-                    </div>
+            <!-- Кэфы в одну линию -->
+            {% if res.odds %}
+            <div class="odds-line">
+                <div class="odd-box-line">
+                    <div class="odd-label-line">P1</div>
+                    <div class="odd-value-line">{{ res.odds.0|default:"-"|floatformat:2 }}</div>
                 </div>
-                <div class="poisson-top-scores">
-                    <span class="bets-stat-label">Топ-5 счетов (Пуассон)</span>
-                    <div class="scores-list">
-                        {% for item in res.poisson_top|slice:":5" %}
-                        <div class="score-badge">
-                            <span class="score-value">{{ item.score }}</span>
-                            <span class="prob-value">{{ item.prob }}%</span>
-                        </div>
-                        {% empty %}
-                        <div class="no-scores">Нет данных</div>
-                        {% endfor %}
-                    </div>
+                <div class="odd-sep-line">|</div>
+                <div class="odd-box-line">
+                    <div class="odd-label-line">X</div>
+                    <div class="odd-value-line">{{ res.odds.1|default:"-"|floatformat:2 }}</div>
+                </div>
+                <div class="odd-sep-line">|</div>
+                <div class="odd-box-line">
+                    <div class="odd-label-line">P2</div>
+                    <div class="odd-value-line">{{ res.odds.2|default:"-"|floatformat:2 }}</div>
                 </div>
             </div>
+            {% endif %}
 
-            <!-- Twins анализ в отдельной строке -->
-            <div class="bets-info-row twins-row">
-                <div class="twins-count">
-                    <span class="bets-stat-label">Игр-близнецов (кэфы)</span>
-                    <span class="bets-stat-value twins-value">{{ res.twins_count }}</span>
-                </div>
-                <div class="twins-distribution">
-                    <span class="bets-stat-label">Вероятность по близнецам</span>
-                    <span class="bets-stat-value dist-value">{{ res.twins_dist }}</span>
+            <!-- Вердикт без слова "Сигнал" -->
+            <div class="verdict-line
+                {% if res.verdict == 'P1_SIGNAL' %}verdict-p1
+                {% elif res.verdict == 'P2_SIGNAL' %}verdict-p2
+                {% elif res.verdict == 'DRAW_SIGNAL' %}verdict-draw
+                {% endif %}">
+                {% if res.verdict == 'P1_SIGNAL' %}P1
+                {% elif res.verdict == 'P2_SIGNAL' %}P2
+                {% elif res.verdict == 'DRAW_SIGNAL' %}НИЧЬЯ
+                {% else %}{{ res.verdict }}
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Пуассон: лямбда и топ-счета -->
+        <div class="bets-info-row poisson-row">
+            <div class="poisson-lambda">
+                <span class="bets-stat-label">Коэф. Пуассона</span>
+                <div class="lambda-values">
+                    {% with lambda_parts=res.poisson_l|default:"0 : 0" %}
+                    {% with parts=lambda_parts.split %}
+                        <span class="lambda-home">{{ parts.0|default:"0" }}</span>
+                        <span class="lambda-separator">:</span>
+                        <span class="lambda-away">{{ parts.2|default:"0" }}</span>
+                    {% endwith %}
+                    {% endwith %}
                 </div>
             </div>
-
-            <!-- История очных встреч -->
-            <div class="bets-info-row h2h-row">
-                <div class="h2h-container">
-                    <div class="h2h-header">
-                        <span class="bets-stat-label">Последние встречи (из {{ res.h2h_total }})</span>
-                        <span class="h2h-count">
-                            {% if res.h2h_list %}
-                                {{ res.h2h_list|length }} матчей
-                            {% else %}
-                                0 матчей
-                            {% endif %}
-                        </span>
+            <div class="poisson-top-scores">
+                <span class="bets-stat-label">Топ-5 счетов (Пуассон)</span>
+                <div class="scores-list">
+                    {% for item in res.poisson_top|slice:":5" %}
+                    <div class="score-rectangle">  <!-- Изменили класс -->
+                        <span class="score-value">{{ item.score }}</span>
+                        <span class="prob-value">{{ item.prob }}%</span>
                     </div>
-                    <div class="h2h-history">
+                    {% empty %}
+                    <div class="no-scores">Нет данных</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Twins анализ -->
+        <div class="bets-info-row twins-row">
+            <div class="twins-count">
+                <span class="bets-stat-label">Игр-близнецов (кэфы)</span>
+                <span class="bets-stat-value twins-value">{{ res.twins_count }}</span>
+            </div>
+            <div class="twins-distribution">
+                <span class="bets-stat-label">Вероятность по близнецам</span>
+                <span class="bets-stat-value dist-value">{{ res.twins_dist }}</span>
+            </div>
+        </div>
+
+        <!-- История встреч -->
+        <div class="bets-info-row h2h-row">
+            <div class="h2h-container">
+                <div class="h2h-header">
+                    <span class="bets-stat-label">Последние встречи (из {{ res.h2h_total }})</span>
+                    <span class="h2h-count">
                         {% if res.h2h_list %}
-                            {% for match in res.h2h_list|slice:":5" %}
-                            <div class="h2h-item">
-                                {% if match.date %}
-                                    <span class="h2h-date">{{ match.date }}</span>
-                                {% else %}
-                                    <span class="h2h-date">-</span>
-                                {% endif %}
-
-                                {% if match.score %}
-                                    <span class="h2h-score">{{ match.score }}</span>
-                                {% else %}
-                                    <span class="h2h-score"> - </span>
-                                {% endif %}
-
-                                <span class="h2h-teams">
-                                    {% if match.home and match.away %}
-                                        {{ match.home }} - {{ match.away }}
-                                    {% else %}
-                                        {{ res.match }}
-                                    {% endif %}
-                                </span>
-                            </div>
-                            {% endfor %}
+                            {{ res.h2h_list|length }} матчей
                         {% else %}
-                            <div class="no-h2h-data">Нет данных о встречах</div>
+                            0 матчей
                         {% endif %}
-                    </div>
+                    </span>
                 </div>
-            </div>
+                <div class="h2h-history">
+                    {% if res.h2h_list %}
+                        {% for match in res.h2h_list|slice:":5" %}
+                        <div class="h2h-item">
+                            {% if match.date %}
+                                <span class="h2h-date">{{ match.date }}</span>
+                            {% else %}
+                                <span class="h2h-date">-</span>
+                            {% endif %}
 
-            <!-- Паттерны (исторический шаблон) -->
-            <div class="bets-info-row pattern-row">
-                <div class="pattern-container">
-                    <div class="pattern-header">
-                        <span class="bets-stat-label pattern-label">Исторический шаблон (последние 4 игры)</span>
-                    </div>
+                            {% if match.score %}
+                                <span class="h2h-score">{{ match.score }}</span>
+                            {% else %}
+                                <span class="h2h-score"> - </span>
+                            {% endif %}
 
-                    {% if res.pattern_data and res.pattern_data.pattern %}
-                    <div class="pattern-content">
-                        <!-- Бейджи с паттернами -->
-                        <div class="pattern-badges-row">
-                            {% for char in res.pattern_data.pattern %}
-                                {% if char == 'В' %}
-                                <span class="p-badge v-win">В</span>
-                                {% elif char == 'П' %}
-                                <span class="p-badge v-loss">П</span>
-                                {% elif char == 'Н' %}
-                                <span class="p-badge v-draw">Н</span>
-                                {% elif char == '-' %}
-                                <span class="p-separator">—</span>
+                            <span class="h2h-teams">
+                                {% if match.home and match.away %}
+                                    {{ match.home }} - {{ match.away }}
                                 {% else %}
-                                <span class="p-badge">{{ char }}</span>
+                                    {{ res.match }}
                                 {% endif %}
-                            {% endfor %}
+                            </span>
                         </div>
-
-                        <!-- Статистика паттернов -->
-                        <div class="pattern-stats">
-                            <div class="pattern-stat-item">
-                                <span class="bets-stat-label">Найдено совпадений</span>
-                                <span class="bets-stat-value pattern-count">
-                                    {{ res.pattern_data.count|default:"0" }}
-                                </span>
-                            </div>
-                            <div class="pattern-stat-item">
-                                <span class="bets-stat-label">Итог по истории</span>
-                                <span class="bets-stat-value pattern-dist">
-                                    {{ res.pattern_data.dist|default:"Н/Д" }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                        {% endfor %}
                     {% else %}
-                    <div class="no-pattern-data">
-                        <span class="bets-stat-label">Данных недостаточно для анализа паттернов</span>
-                    </div>
+                        <div class="no-h2h-data">Нет данных о встречах</div>
                     {% endif %}
                 </div>
             </div>
+        </div>
 
-            <!-- Вердикт системы -->
-            <div class="bets-verdict-box">
-                <div class="verdict-content">
-                    <span class="verdict-label">Вердикт системы:</span>
-                    <span class="verdict-value">{{ res.verdict|default:"НЕТ ВЕРДИКТА"|upper }}</span>
+        <!-- Паттерны -->
+        <div class="bets-info-row pattern-row">
+            <div class="pattern-container">
+                <div class="pattern-header">
+                    <span class="bets-stat-label pattern-label">Исторический шаблон (последние 4 игры)</span>
                 </div>
+
+                {% if res.pattern_data and res.pattern_data.pattern %}
+                <div class="pattern-content">
+                    <div class="pattern-badges-row">
+                        {% for char in res.pattern_data.pattern %}
+                            {% if char == 'В' %}
+                            <span class="p-badge v-win">В</span>
+                            {% elif char == 'П' %}
+                            <span class="p-badge v-loss">П</span>
+                            {% elif char == 'Н' %}
+                            <span class="p-badge v-draw">Н</span>
+                            {% elif char == '-' %}
+                            <span class="p-separator">—</span>
+                            {% else %}
+                            <span class="p-badge">{{ char }}</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <div class="pattern-stats">
+                        <div class="pattern-stat-item">
+                            <span class="bets-stat-label">Найдено совпадений</span>
+                            <span class="bets-stat-value pattern-count">
+                                {{ res.pattern_data.count|default:"0" }}
+                            </span>
+                        </div>
+                        <div class="pattern-stat-item">
+                            <span class="bets-stat-label">Итог по истории</span>
+                            <span class="bets-stat-value pattern-dist">
+                                {{ res.pattern_data.dist|default:"Н/Д" }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="no-pattern-data">
+                    <span class="bets-stat-label">Данных недостаточно для анализа паттернов</span>
+                </div>
+                {% endif %}
             </div>
         </div>
-        {% empty %}
-        <div class="no-results">
-            <h3>Нет результатов для отображения</h3>
-            <p>Не найдено матчей с сигналами P1, P2 или X.</p>
-        </div>
-        {% endfor %}
-    </main>
+    </div>
+    {% empty %}
+    <div class="no-results">
+        <h3>Нет результатов для отображения</h3>
+        <p>Не найдено матчей с сигналами P1, P2 или X.</p>
+    </div>
+    {% endfor %}
 </div>
 
 <script>
-// Простой скрипт для разделения коэффициентов Пуассона, если нужно
 document.addEventListener('DOMContentLoaded', function() {
-    // Если нужно разделить коэффициенты на лету
     document.querySelectorAll('.lambda-values').forEach(function(container) {
         var text = container.textContent.trim();
         if (text.includes(':')) {
