@@ -7,14 +7,13 @@
 <div class="bets-results-container-full">
     {% for res in cleaned_results %}
     <div class="bets-result-card">
-        <!-- Верхняя строка: все в одну линию -->
+        <!-- Верхняя строка -->
         <div class="match-header-line">
             <div class="match-title-line">
                 <strong class="match-name-large">{{ res.match }}</strong>
                 <div class="league-line">{{ res.league }}</div>
             </div>
 
-            <!-- Кэфы в одну линию -->
             {% if res.odds %}
             <div class="odds-line">
                 <div class="odd-box-line">
@@ -34,7 +33,6 @@
             </div>
             {% endif %}
 
-            <!-- Вердикт без слова "Сигнал" -->
             <div class="verdict-line
                 {% if res.verdict == 'P1_SIGNAL' %}verdict-p1
                 {% elif res.verdict == 'P2_SIGNAL' %}verdict-p2
@@ -48,7 +46,7 @@
             </div>
         </div>
 
-        <!-- Пуассон: лямбда и топ-счета -->
+        <!-- Пуассон -->
         <div class="bets-info-row poisson-row">
             <div class="poisson-lambda">
                 <span class="bets-stat-label">Коэф. Пуассона</span>
@@ -66,7 +64,7 @@
                 <span class="bets-stat-label">Топ-5 счетов (Пуассон)</span>
                 <div class="scores-list">
                     {% for item in res.poisson_top|slice:":5" %}
-                    <div class="score-rectangle">  <!-- Изменили класс -->
+                    <div class="score-rectangle">
                         <span class="score-value">{{ item.score }}</span>
                         <span class="prob-value">{{ item.prob }}%</span>
                     </div>
@@ -77,7 +75,7 @@
             </div>
         </div>
 
-        <!-- Twins анализ -->
+        <!-- Twins -->
         <div class="bets-info-row twins-row">
             <div class="twins-count">
                 <span class="bets-stat-label">Игр-близнецов (кэфы)</span>
@@ -102,29 +100,37 @@
                         {% endif %}
                     </span>
                 </div>
-                <div class="h2h-history">
+                <div class="h2h-history-compact">
                     {% if res.h2h_list %}
                         {% for match in res.h2h_list|slice:":5" %}
-                        <div class="h2h-item">
-                            {% if match.date %}
-                                <span class="h2h-date">{{ match.date }}</span>
-                            {% else %}
-                                <span class="h2h-date">-</span>
-                            {% endif %}
-
-                            {% if match.score %}
-                                <span class="h2h-score">{{ match.score }}</span>
-                            {% else %}
-                                <span class="h2h-score"> - </span>
-                            {% endif %}
-
-                            <span class="h2h-teams">
-                                {% if match.home and match.away %}
-                                    {{ match.home }} - {{ match.away }}
+                        <div class="h2h-item-compact">
+                            <!-- Верхняя строка: дата -->
+                            <div class="h2h-date-compact">
+                                {{ match.date|default:"-" }}
+                            </div>
+                            <!-- Нижняя строка: счет с цветом -->
+                            <div class="h2h-score-container">
+                                {% if match.score %}
+                                    <!-- Простой способ определения цвета без фильтра split -->
+                                    {% if ":" in match.score %}
+                                        {% with score_str=match.score|stringformat:"s" %}
+                                            {% with home_goals=score_str|slice:":1" away_goals=score_str|slice:"2:" %}
+                                                {% if home_goals|add:"0" > away_goals|add:"0" %}
+                                                    <span class="h2h-score h2h-win">{{ match.score }}</span>
+                                                {% elif home_goals|add:"0" < away_goals|add:"0" %}
+                                                    <span class="h2h-score h2h-loss">{{ match.score }}</span>
+                                                {% else %}
+                                                    <span class="h2h-score h2h-draw">{{ match.score }}</span>
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% endwith %}
+                                    {% else %}
+                                        <span class="h2h-score">{{ match.score }}</span>
+                                    {% endif %}
                                 {% else %}
-                                    {{ res.match }}
+                                    <span class="h2h-score"> - </span>
                                 {% endif %}
-                            </span>
+                            </div>
                         </div>
                         {% endfor %}
                     {% else %}
@@ -135,52 +141,37 @@
         </div>
 
         <!-- Паттерны -->
-        <div class="bets-info-row pattern-row">
-            <div class="pattern-container">
-                <div class="pattern-header">
-                    <span class="bets-stat-label pattern-label">Исторический шаблон (последние 4 игры)</span>
-                </div>
-
-                {% if res.pattern_data and res.pattern_data.pattern %}
-                <div class="pattern-content">
-                    <div class="pattern-badges-row">
-                        {% for char in res.pattern_data.pattern %}
-                            {% if char == 'В' %}
-                            <span class="p-badge v-win">В</span>
-                            {% elif char == 'П' %}
-                            <span class="p-badge v-loss">П</span>
-                            {% elif char == 'Н' %}
-                            <span class="p-badge v-draw">Н</span>
-                            {% elif char == '-' %}
-                            <span class="p-separator">—</span>
-                            {% else %}
-                            <span class="p-badge">{{ char }}</span>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-
-                    <div class="pattern-stats">
-                        <div class="pattern-stat-item">
-                            <span class="bets-stat-label">Найдено совпадений</span>
-                            <span class="bets-stat-value pattern-count">
-                                {{ res.pattern_data.count|default:"0" }}
-                            </span>
-                        </div>
-                        <div class="pattern-stat-item">
-                            <span class="bets-stat-label">Итог по истории</span>
-                            <span class="bets-stat-value pattern-dist">
-                                {{ res.pattern_data.dist|default:"Н/Д" }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                {% else %}
-                <div class="no-pattern-data">
-                    <span class="bets-stat-label">Данных недостаточно для анализа паттернов</span>
-                </div>
-                {% endif %}
-            </div>
+        <!-- Паттерны в одну строку -->
+<!-- Паттерны -->
+<div class="bets-info-row pattern-row">
+    <div class="pattern-container">
+        <!-- ТОЧНО ТАКОЙ ЖЕ КРУПНЫЙ ШРИФТ -->
+        <div class="pattern-big-font">
+            <span class="pattern-title-big">Исторический шаблон (последние 4 игры)</span>
+            <span class="pattern-stats-big">
+                совпадений: <strong>{{ res.pattern_data.count|default:"0" }}</strong>
+                <span class="pattern-sep-big">|</span>
+                итог: <strong>{{ res.pattern_data.dist|default:"Н/Д" }}</strong>
+            </span>
         </div>
+
+        {% if res.pattern_data and res.pattern_data.pattern %}
+        <div class="pattern-badges-row">
+            {% for char in res.pattern_data.pattern %}
+                {% if char == 'В' %}
+                <span class="p-badge v-win">В</span>
+                {% elif char == 'П' %}
+                <span class="p-badge v-loss">П</span>
+                {% elif char == 'Н' %}
+                <span class="p-badge v-draw">Н</span>
+                {% elif char == '-' %}
+                <span class="p-separator">—</span>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
     </div>
     {% empty %}
     <div class="no-results">
@@ -200,6 +191,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 container.innerHTML = '<span class="lambda-home">' + parts[0].trim() + '</span>' +
                                     '<span class="lambda-separator">:</span>' +
                                     '<span class="lambda-away">' + parts[1].trim() + '</span>';
+            }
+        }
+    });
+
+    // Цвета для истории встреч через JavaScript
+    document.querySelectorAll('.h2h-score').forEach(function(scoreElement) {
+        var scoreText = scoreElement.textContent.trim();
+        if (scoreText.includes(':')) {
+            var parts = scoreText.split(':');
+            if (parts.length === 2) {
+                var home = parseInt(parts[0]) || 0;
+                var away = parseInt(parts[1]) || 0;
+
+                // Убираем все классы цветов
+                scoreElement.classList.remove('h2h-win', 'h2h-loss', 'h2h-draw');
+
+                // Добавляем нужный класс
+                if (home > away) {
+                    scoreElement.classList.add('h2h-win');
+                } else if (home < away) {
+                    scoreElement.classList.add('h2h-loss');
+                } else {
+                    scoreElement.classList.add('h2h-draw');
+                }
             }
         }
     });
