@@ -13,6 +13,7 @@
         <div class="bets-input-pane">
             <form method="post" action=".">
                 {% csrf_token %}
+                <button type="submit" class="bets-btn-analyze">Рассчитать вероятность</button>
                 <label style="display:block; margin-bottom:10px; font-weight:600;">Ввод данных:</label>
                 <textarea name="matches_text" class="bets-textarea" rows="18"
                           placeholder="Пример формата:
@@ -21,7 +22,7 @@
 2.10
 3.10
 3.80">{{ raw_text }}</textarea>
-                <button type="submit" class="bets-btn-analyze">Рассчитать вероятность</button>
+
             </form>
         </div>
 

@@ -117,3 +117,37 @@
     margin-left: 5px;      /* Отступ от счета */
 }
 
+/* Ряд с буквами */
+.pattern-badges-row {
+    display: flex;
+    align-items: center;
+    gap: 6px; /* Расстояние между буквами */
+}
+
+/* Общий стиль для каждой буквы */
+.p-badge {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-weight: 900;
+    font-size: 0.9rem;
+    color: #fff;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
+}
+
+/* Цвета для исходов */
+.v-win { background-color: #2ecc71; border-bottom: 2px solid #27ae60; }   /* Зеленый - Выигрыш */
+.v-loss { background-color: #e74c3c; border-bottom: 2px solid #c0392b; }  /* Красный - Проигрыш */
+.v-draw { background-color: #95a5a6; border-bottom: 2px solid #7f8c8d; }  /* Серый - Ничья */
+
+/* Стиль разделителя команд */
+.p-separator {
+    margin: 0 10px;
+    color: #ccc;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
