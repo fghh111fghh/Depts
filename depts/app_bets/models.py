@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q, Avg, Sum, F
 from decimal import Decimal
 
+from django.utils.timezone import is_naive, make_aware, get_current_timezone
 
 
 class Sport(models.Model):
@@ -348,6 +349,11 @@ class Match(models.Model):
                     raise ValidationError("Итоговый счет после овертайма/буллитов не может быть ничейным.")
 
     def save(self, *args, **kwargs):
+        # Если дата без часового пояса (naive)
+        if is_naive(self.date):
+            # Добавляем часовой пояс из настроек Django (Europe/Moscow)
+            self.date = make_aware(self.date, get_current_timezone())
+        # Если дата уже с часовым поясом (aware) - оставляем как есть
         self.full_clean()  # Принудительная валидация при любом способе сохранения
         super().save(*args, **kwargs)
 
