@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from django.utils.timezone import make_aware
+from django.utils.timezone import make_aware, get_current_timezone
 from app_bets.models import Match, TeamAlias, Season, League
 from app_bets.constants import ParsingConstants
 
@@ -89,7 +89,7 @@ class Command(BaseCommand):
                         continue
 
                     # Проверка на дубликат (по дате и хозяевам)
-                    dt_aware = make_aware(dt)
+                    dt_aware = make_aware(dt, get_current_timezone())
                     if Match.objects.filter(date=dt_aware, home_team=home_team).exists():
                         continue
 
