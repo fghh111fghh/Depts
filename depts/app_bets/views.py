@@ -550,6 +550,11 @@ class AnalyzeView(View):
                                 'pattern_data': pattern_res,
                                 'h2h_list': h2h_list,
                                 'h2h_total': h2h_qs.count(),
+                                'odds': (
+                                    float(h_odd) if h_odd is not None else None,
+                                    float(d_odd) if d_odd is not None else None,
+                                    float(a_odd) if a_odd is not None else None
+                                ),
                                 'verdict': verdict
                             })
                         else:
