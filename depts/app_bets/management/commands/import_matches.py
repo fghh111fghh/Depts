@@ -1,5 +1,4 @@
 import csv
-import os
 from datetime import datetime
 from decimal import Decimal
 from django.core.management.base import BaseCommand
@@ -23,13 +22,13 @@ class Command(BaseCommand):
         'I2': 'Серия Б',
         'F1': 'Лига 1',
         'F2': 'Лига 2',
-        'RU1': 'РПЛ',
         'N1': 'Эредивизи',
     }
 
     def add_arguments(self, parser):
         parser.add_argument('csv_file', type=str)
 
+    @staticmethod
     def get_team_by_alias(self, name):
         # Здесь мы создаем переменную clean_alias
         clean_alias = " ".join(name.split()).lower()
@@ -37,15 +36,18 @@ class Command(BaseCommand):
         alias = TeamAlias.objects.filter(name=clean_alias).select_related('team').first()
         return alias.team if alias else None
 
+    @staticmethod
     def get_season_by_date(self, dt):
         return Season.objects.filter(start_date__lte=dt.date(), end_date__gte=dt.date()).first()
 
+    @staticmethod
     def parse_score(self, val):
         """Превращает '2.0', '2' или '2,0' в целое число 2"""
         if not val or str(val).strip() == "" or str(val).lower() == 'nan':
             return 0
         return int(float(str(val).replace(',', '.')))
 
+    @staticmethod
     def parse_odd(self, val):
         """Безопасно парсит коэффициент в Decimal"""
         if not val or str(val).strip() == "" or str(val).lower() == 'nan':
