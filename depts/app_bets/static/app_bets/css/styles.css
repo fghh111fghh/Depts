@@ -151,3 +151,492 @@
     font-size: 1.2rem;
 }
 
+/* ДОПОЛНЕНИЯ К СУЩЕСТВУЮЩЕМУ CSS */
+
+/* Основной контейнер результатов */
+.bets-results-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Заголовок матча с Flexbox */
+.bets-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.match-title-section {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.match-name {
+    font-size: 1.3rem;
+    color: #2c3e50;
+    font-weight: 700;
+}
+
+.match-league {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    background: #f8f9fa;
+    padding: 3px 10px;
+    border-radius: 12px;
+    display: inline-block;
+    width: fit-content;
+}
+
+.match-status {
+    display: flex;
+    align-items: center;
+}
+
+.status-indicator {
+    background: #3498db;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Строка с данными Пуассона */
+.poisson-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 40px;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e3e8f0;
+}
+
+.poisson-lambda {
+    display: flex;
+    flex-direction: column;
+    min-width: 120px;
+}
+
+.lambda-values {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.lambda-home {
+    color: #27ae60;
+}
+
+.lambda-away {
+    color: #e74c3c;
+}
+
+.lambda-separator {
+    color: #95a5a6;
+    font-weight: 400;
+}
+
+.poisson-top-scores {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.scores-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.score-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    min-width: 70px;
+    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11);
+    transition: transform 0.2s;
+}
+
+.score-badge:hover {
+    transform: translateY(-3px);
+}
+
+.score-value {
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin-bottom: 2px;
+}
+
+.prob-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+/* Строка Twins анализа */
+.twins-row {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    padding: 20px;
+    background: #e8f4fc;
+    border-radius: 8px;
+    border: 1px solid #c5e3fc;
+}
+
+.twins-count, .twins-distribution {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.twins-value {
+    color: #2980b9;
+    font-size: 1.3rem;
+    margin-top: 5px;
+}
+
+.dist-value {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    margin-top: 5px;
+    font-weight: 700;
+}
+
+/* Строка истории очных встреч */
+.h2h-row {
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #e3e8f0;
+}
+
+.h2h-container {
+    width: 100%;
+}
+
+.h2h-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.h2h-count {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    background: #f8f9fa;
+    padding: 3px 10px;
+    border-radius: 12px;
+}
+
+.h2h-history {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.h2h-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 10px 15px;
+    background: #f8fafc;
+    border-radius: 6px;
+    border-left: 3px solid #3498db;
+    transition: background 0.2s;
+}
+
+.h2h-item:hover {
+    background: #e3f2fd;
+}
+
+.h2h-date {
+    min-width: 80px;
+    color: #7f8c8d;
+    font-size: 0.85rem;
+}
+
+.h2h-score {
+    min-width: 50px;
+    font-weight: 700;
+    color: #2c3e50;
+    text-align: center;
+}
+
+.h2h-teams {
+    flex: 1;
+    color: #555;
+    font-size: 0.9rem;
+}
+
+.no-h2h-data {
+    padding: 20px;
+    text-align: center;
+    color: #95a5a6;
+    font-style: italic;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+/* Строка паттернов */
+.pattern-row {
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    background: #fffcf5;
+    border-radius: 8px;
+    border: 1px solid #ffeaa7;
+}
+
+.pattern-container {
+    width: 100%;
+}
+
+.pattern-header {
+    margin-bottom: 15px;
+}
+
+.pattern-label {
+    color: #e67e22;
+    font-weight: 700;
+}
+
+.pattern-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.pattern-badges-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Обновленные стили для бейджей паттернов */
+.p-badge {
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-weight: 900;
+    font-size: 1rem;
+    color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.p-badge:hover {
+    transform: scale(1.1);
+}
+
+.v-win {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    border-bottom: 3px solid #219653;
+}
+
+.v-loss {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    border-bottom: 3px solid #a93226;
+}
+
+.v-draw {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    border-bottom: 3px solid #616a6b;
+}
+
+.p-separator {
+    margin: 0 15px;
+    color: #d5dbdb;
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.pattern-stats {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+    background: #fff;
+    padding: 15px 20px;
+    border-radius: 8px;
+    border: 1px dashed #f1c40f;
+    width: fit-content;
+}
+
+.pattern-stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.pattern-count {
+    color: #2c3e50;
+    font-size: 1.2rem;
+}
+
+.pattern-dist {
+    color: #d35400;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.no-pattern-data {
+    padding: 20px;
+    text-align: center;
+    color: #bdc3c7;
+    font-style: italic;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+/* Обновленный блок вердикта */
+.bets-verdict-box {
+    padding: 20px;
+    background: linear-gradient(135deg, #f1f8ff, #d1e9ff);
+    border-radius: 10px;
+    border: 2px solid #3498db;
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.verdict-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.verdict-label {
+    font-size: 1rem;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.verdict-value {
+    font-size: 1.4rem;
+    color: #0056b3;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 8px 20px;
+    background: white;
+    border-radius: 20px;
+    border: 2px solid #3498db;
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.2);
+}
+
+/* Нет результатов */
+.no-results {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.no-results h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.no-results p {
+    color: #7f8c8d;
+    max-width: 400px;
+    line-height: 1.6;
+}
+
+/* Адаптивность */
+@media (max-width: 1024px) {
+    .bets-main-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .bets-input-pane {
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .poisson-row,
+    .twins-row {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .lambda-values {
+        justify-content: flex-start;
+    }
+
+    .h2h-item {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .h2h-date,
+    .h2h-score {
+        min-width: auto;
+    }
+
+    .pattern-stats {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+        width: 100%;
+    }
+
+    .verdict-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .bets-result-card {
+        padding: 15px;
+    }
+
+    .bets-info-row {
+        padding: 15px;
+    }
+
+    .scores-list {
+        justify-content: center;
+    }
+
+    .score-badge {
+        min-width: 60px;
+        padding: 8px 10px;
+    }
+}
+
+
+
