@@ -1,20 +1,142 @@
-/* ====== ОСНОВНЫЕ СТИЛИ ====== */
+/* ====== ОБЩИЕ СТИЛИ ДЛЯ ВСЕХ ШАБЛОНОВ ====== */
+
+/* 1. КОНТЕЙНЕР АНАЛИЗАТОРА (с левой панелью) */
+.bets-main-grid {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 25px;
+    margin-top: 20px;
+}
+
+/* Левая панель ввода */
+.bets-input-pane {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+.bets-textarea {
+    width: 100%;
+    border: 1px solid #ddd;
+    padding: 12px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    resize: vertical;
+    margin-bottom: 15px;
+}
+
+.bets-btn-analyze {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary-color, #2c3e50);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: opacity 0.2s;
+}
+
+.bets-btn-analyze:hover {
+    opacity: 0.9;
+}
+
+/* Обучение системы (неизвестные команды) */
+.bets-unknown-section {
+    background: #fff9e6;
+    border: 1px solid #ffeeba;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.bets-alias-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+    align-items: center;
+    margin-top: 10px;
+    background: rgba(255,255,255,0.5);
+    padding: 5px;
+    border-radius: 4px;
+}
+
+/* 2. КАРТОЧКИ РЕЗУЛЬТАТОВ (общие) */
+.bets-result-card {
+    background: #fff;
+    border-left: 6px solid #3498db;
+    padding: 20px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.bets-result-header {
+    margin: 0 0 12px 0;
+    font-size: 1.25rem;
+    color: #333;
+    display: flex;
+    justify-content: space-between;
+}
+
+.bets-info-row {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.bets-stat-label {
+    font-size: 0.8rem;
+    color: #888;
+    display: block;
+    text-transform: uppercase;
+}
+
+.bets-stat-value {
+    font-weight: 600;
+    color: #444;
+}
+
+/* 3. СТИЛИ ДЛЯ ШАБЛОНА С ФОРМОЙ АНАЛИЗА (ТВОЙ ПЕРВЫЙ ШАБЛОН) */
+.bets-left-col {
+    /* Левая колонка с формой */
+}
+
+.bets-results-area {
+    /* Правая область с результатами */
+}
+
+.prob-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2980b9;
+    margin-left: 5px;
+}
+
+/* Для счетов в прямоугольниках */
+.score-rectangle .prob-value {
+    color: white !important;
+}
+
+/* 4. СТИЛИ ДЛЯ ШАБЛОНА С ОЧИЩЕННЫМИ РЕЗУЛЬТАТАМИ (ВТОРОЙ ШАБЛОН) */
 
 /* Контейнер результатов (сужен на треть) */
 .bets-results-container-full {
     margin: 20px auto;
-    max-width: 800px; /* Сузили на треть */
+    max-width: 800px;
     width: 66.66%;
 }
 
-/* Карточка матча */
+/* Карточка матча компактная */
 .bets-result-card {
-    background: #fff;
-    border-left: 6px solid #3498db;
     padding: 15px;
     margin-bottom: 12px;
-    border-radius: 6px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 /* ====== ВЕРХНЯЯ СТРОКА (матч + кэфы + вердикт) ====== */
@@ -113,29 +235,6 @@
     background: linear-gradient(135deg, #fff3cd, #ffeaa7);
     color: #856404;
     border: 2px solid #ffdf7e;
-}
-
-/* ====== БЛОКИ ИНФОРМАЦИИ ====== */
-.bets-info-row {
-    display: flex;
-    gap: 30px;
-    margin-bottom: 12px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-/* Подписи */
-.bets-stat-label {
-    font-size: 0.8rem;
-    color: #888;
-    display: block;
-    text-transform: uppercase;
-}
-
-/* Значения */
-.bets-stat-value {
-    font-weight: 600;
-    color: #444;
 }
 
 /* ====== ПУАССОН ====== */
@@ -252,7 +351,7 @@
     font-weight: 700;
 }
 
-/* ====== ИСТОРИЯ ВСТРЕЧ (2 строки) ====== */
+/* ====== ИСТОРИЯ ВСТРЕЧ (2 строки, яркие даты) ====== */
 .h2h-row {
     display: flex;
     flex-direction: column;
@@ -266,6 +365,7 @@
     width: 100%;
 }
 
+/* ЗАГОЛОВОК - ярче и жирнее */
 .h2h-header {
     display: flex;
     justify-content: space-between;
@@ -273,12 +373,23 @@
     margin-bottom: 15px;
 }
 
+.h2h-header .bets-stat-label {
+    font-size: 0.85rem;
+    color: #2c3e50;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Счетчик матчей - ярче */
 .h2h-count {
     font-size: 0.85rem;
-    color: #7f8c8d;
-    background: #f8f9fa;
-    padding: 3px 10px;
+    color: #3498db;
+    background: #e8f4fc;
+    padding: 4px 12px;
     border-radius: 12px;
+    font-weight: 600;
+    border: 1px solid #c5e3fc;
 }
 
 .h2h-history-compact {
@@ -297,18 +408,25 @@
     padding: 8px;
     min-width: 70px;
     border: 1px solid #e9ecef;
+    transition: transform 0.2s;
 }
 
-/* Верхняя строка: дата */
+.h2h-item-compact:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* ДАТЫ - ярче и жирнее */
 .h2h-date-compact {
-    font-size: 0.75rem;
-    color: #6c757d;
+    font-size: 0.8rem;
+    color: #2c3e50;
     margin-bottom: 4px;
     text-align: center;
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 0.3px;
 }
 
-/* Нижняя строка: счет с цветами */
+/* Счета с цветами */
 .h2h-score-container {
     text-align: center;
 }
@@ -409,7 +527,7 @@
     font-weight: 300;
 }
 
-/* Буквы паттернов */
+/* Ряд с буквами */
 .pattern-badges-row {
     display: flex;
     align-items: center;
@@ -417,6 +535,7 @@
     margin-top: 8px;
 }
 
+/* Общий стиль для каждой буквы */
 .p-badge {
     width: 28px;
     height: 28px;
@@ -430,6 +549,7 @@
     text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
 }
 
+/* Цвета для исходов */
 .v-win {
     background-color: #2ecc71;
     border-bottom: 2px solid #27ae60;
@@ -445,6 +565,7 @@
     border-bottom: 2px solid #7f8c8d;
 }
 
+/* Стиль разделителя команд */
 .p-separator {
     margin: 0 10px;
     color: #ccc;
@@ -487,6 +608,11 @@
 
 /* ====== АДАПТИВНОСТЬ ====== */
 @media (max-width: 1024px) {
+    .bets-main-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
     .bets-results-container-full {
         width: 80%;
         max-width: 700px;
