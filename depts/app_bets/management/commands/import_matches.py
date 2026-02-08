@@ -5,31 +5,17 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils.timezone import make_aware
 from app_bets.models import Match, TeamAlias, Season, League
+from app_bets.constants import ParsingConstants
 
 
 class Command(BaseCommand):
     help = 'Этап 3: Финальный импорт матчей (с защитой от ошибок формата)'
 
-    # Маппинг лиг согласно твоим ID в базе
-    DIV_TO_LEAGUE_NAME = {
-        'E0': 'АПЛ',
-        'E1': 'Чемпионшип',
-        'D1': 'Бундеслига',
-        'D2': 'Бундеслига 2',
-        'SP1': 'Ла Лига',
-        'SP2': 'Сегунда',
-        'I1': 'Серия А',
-        'I2': 'Серия Б',
-        'F1': 'Лига 1',
-        'F2': 'Лига 2',
-        'N1': 'Эредивизи',
-    }
-
     def add_arguments(self, parser):
         parser.add_argument('csv_file', type=str)
 
     @staticmethod
-    def get_team_by_alias(self, name):
+    def get_team_by_alias(name):
         # Здесь мы создаем переменную clean_alias
         clean_alias = " ".join(name.split()).lower()
         # И здесь же её используем
@@ -37,18 +23,18 @@ class Command(BaseCommand):
         return alias.team if alias else None
 
     @staticmethod
-    def get_season_by_date(self, dt):
+    def get_season_by_date(dt):
         return Season.objects.filter(start_date__lte=dt.date(), end_date__gte=dt.date()).first()
 
     @staticmethod
-    def parse_score(self, val):
+    def parse_score(val):
         """Превращает '2.0', '2' или '2,0' в целое число 2"""
         if not val or str(val).strip() == "" or str(val).lower() == 'nan':
             return 0
         return int(float(str(val).replace(',', '.')))
 
     @staticmethod
-    def parse_odd(self, val):
+    def parse_odd(val):
         """Безопасно парсит коэффициент в Decimal"""
         if not val or str(val).strip() == "" or str(val).lower() == 'nan':
             return Decimal('1.01')
@@ -72,7 +58,7 @@ class Command(BaseCommand):
                 try:
                     # 1. Поиск лиги по названию
                     div_code = row.get('Div')
-                    league_name = self.DIV_TO_LEAGUE_NAME.get(div_code)
+                    league_name = ParsingConstants.DIV_TO_LEAGUE_NAME.get(div_code)
 
                     if not league_name:
                         continue
