@@ -691,3 +691,35 @@
         padding: 6px;
     }
 }
+
+/* Вердикт - только цвет текста как в истории */
+.verdict-line {
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 1.2rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    min-width: 90px;
+    text-align: center;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    border: 2px solid;
+}
+
+.verdict-p1 {
+    background: linear-gradient(135deg, #d4edda, #c3e6cb) !important;
+    color: #155724 !important;
+    border-color: #b1dfbb !important;
+}
+
+.verdict-p2 {
+    background: linear-gradient(135deg, #f8d7da, #f5c6cb) !important;
+    color: #721c24 !important;
+    border-color: #f1b0b7 !important;
+}
+
+.verdict-draw {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7) !important;
+    color: #856404 !important;
+    border-color: #ffdf7e !important;
+}
