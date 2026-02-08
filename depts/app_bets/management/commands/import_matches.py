@@ -1,4 +1,5 @@
 import csv
+import os
 from datetime import datetime
 from decimal import Decimal
 from django.core.management.base import BaseCommand
@@ -62,7 +63,6 @@ class Command(BaseCommand):
         errors = 0
 
         self.stdout.write(self.style.SUCCESS(f"Запуск импорта матчей из {file_path}..."))
-
         with open(file_path, mode='r', encoding='utf-8-sig') as f:
             reader = csv.DictReader(f, delimiter=',')
 

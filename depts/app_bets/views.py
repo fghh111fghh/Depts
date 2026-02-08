@@ -29,7 +29,9 @@ from django.views import View
 import re
 import math
 import unicodedata
+from django.views.generic import TemplateView
 
+from app_bets import constants
 from app_bets.constants import Outcome, ParsingConstants, AnalysisConstants, Messages
 
 # Настройка логгера для мониторинга
@@ -563,6 +565,14 @@ class AnalyzeView(View):
                     print(error_msg)
                     continue
 
+        self.request.session['cleaned_results'] = []
+        for el in results:
+            if el['verdict'] == constants.Messages.VERDICT_SIGNAL_P1 or \
+                    el['verdict'] == constants.Messages.VERDICT_SIGNAL_P2 or \
+                    el['verdict'] == constants.Messages.VERDICT_SIGNAL_DRAW:
+                self.request.session['cleaned_results'].append(el)
+        # self.request.session['cleaned_results'] = results
+
         # Логирование общего количества найденных матчей
         logger.info(Messages.TOTAL_MATCHES.format(len(results)))
 
@@ -574,6 +584,13 @@ class AnalyzeView(View):
             'all_teams': Team.objects.all().order_by('name'),
         })
 
+class CleanedTemplateView(TemplateView):
+    template_name = 'app_bets/cleaned.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['cleaned_results'] = self.request.session.get('cleaned_results')
+        return context
 
 # Импорты моделей (должны быть в конце во избежание циклических импортов)
 from app_bets.models import Team, TeamAlias, Match, League, Season

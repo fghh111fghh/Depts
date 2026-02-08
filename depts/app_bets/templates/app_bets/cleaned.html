@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'app_bets/css/styles.css' %}">
+
+<div class="bets-main-grid">
+    <aside class="bets-input-pane">
+        <h3>Анализатор</h3>
+        <p>Результаты фильтрации по сигналам (P1, P2, X).</p>
+        <a href="{% url 'app_bets:cleaned' %}" class="bets-btn-analyze" style="display: block; text-align: center; text-decoration: none;">Новый анализ</a>
+
+    </aside>
+
+    <main class="bets-results-container">
+        {% for res in cleaned_results %}
+    <div class="bets-result-card">
+        <div class="bets-result-header">
+            <strong>{{ res.match }}</strong>
+            <span class="bets-stat-label" style="color: #2c3e50;">{{ res.league }}</span>
+        </div>
+
+        <div class="bets-info-row">
+            <div style="min-width: 110px;">
+                <span class="bets-stat-label">Poisson (λ)</span>
+                <span class="bets-stat-value">{{ res.poisson_l }}</span>
+            </div>
+            <div>
+                <span class="bets-stat-label">Top 5 Scores (%)</span>
+                <div class="scores-list">
+                    {% for item in res.poisson_top|slice:":5" %}
+                        <div class="score-badge">
+                            <span style="font-weight: 800;">{{ item.score }}</span>
+                            <span class="prob-value">{{ item.prob }}%</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="bets-info-row" style="background: #f1f8ff; border: 1px solid #d1e9ff; padding: 10px; border-radius: 4px;">
+            <div style="min-width: 110px;">
+                <span class="bets-stat-label">Twins Count</span>
+                <span class="bets-stat-value">{{ res.twins_count }}</span>
+            </div>
+            <div style="flex-grow: 1;">
+                <span class="bets-stat-label">Twins Dist (Вероятности по БД)</span>
+                <span class="bets-stat-value" style="color: #0056b3; font-size: 1rem;">
+                    {{ res.twins_dist }}
+                </span>
+            </div>
+        </div>
+
+        <div class="bets-info-row" style="border-bottom: none; margin-bottom: 5px;">
+            <div style="width: 100%;">
+                <span class="bets-stat-label">Последние 5 личных встреч (из {{ res.h2h_total }})</span>
+                <div class="h2h-history">
+                    {% for match in res.h2h_list|slice:":5" %}
+                        <div class="h2h-item">
+                            <span style="color: #888; width: 70px; display: inline-block;">{{ match.date }}</span>
+                            <span style="font-weight: 600;">{{ match.score }}</span>
+                            <span style="margin-left: 10px; color: #555;">{{ res.match }}</span>
+                        </div>
+                    {% empty %}
+                        <div class="h2h-item">Нет данных по личным встречам</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="bets-verdict-box">
+            {{ res.verdict|upper }}
+        </div>
+    </div>
+{% endfor %}
+    </main>
+</div>
+{% endblock %}
