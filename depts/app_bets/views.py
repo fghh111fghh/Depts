@@ -171,14 +171,21 @@ class AnalyzeView(View):
             exp_home = math.exp(-l_home)
             exp_away = math.exp(-l_away)
 
+            # Предвычисляем факториалы один раз
+            max_goals = AnalysisConstants.POISSON_MAX_GOALS
+            factorials = [math.factorial(i) for i in range(max_goals)]
+
+            # Предвычисляем степени для оптимизации
+            home_powers = [l_home ** i for i in range(max_goals)]
+            away_powers = [l_away ** i for i in range(max_goals)]
+
             # Рассчитываем вероятности для счетов до POISSON_MAX_GOALS голов
-            for h in range(AnalysisConstants.POISSON_MAX_GOALS):
-                p_h = (exp_home * (l_home ** h)) / math.factorial(h)
-                for a in range(AnalysisConstants.POISSON_MAX_GOALS):
-                    p_a = (exp_away * (l_away ** a)) / math.factorial(a)
+            for h in range(max_goals):
+                p_h = (exp_home * home_powers[h]) / factorials[h]
+                for a in range(max_goals):
+                    p_a = (exp_away * away_powers[a]) / factorials[a]
                     probability = p_h * p_a * 100
 
-                    # Сохраняем только вероятности выше минимального порога
                     if probability > AnalysisConstants.MIN_PROBABILITY:
                         probs.append({
                             'score': f"{h}:{a}",
