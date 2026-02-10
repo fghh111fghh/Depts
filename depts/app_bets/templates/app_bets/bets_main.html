@@ -58,6 +58,33 @@
         <button type="submit" name="sync_files" class="bets-btn-analyze" style="background: #16a085;">
             Синхронизировать базу
         </button>
+{% if import_message %}
+    <div class="bets-input-pane" style="margin-top: 20px; background:
+        {% if import_status == 'success' %}#d4edda{% endif %}
+        {% if import_status == 'error' %}#f8d7da{% endif %}
+        {% if import_status == 'warning' %}#fff3cd{% endif %};
+        border: 1px solid
+        {% if import_status == 'success' %}#c3e6cb{% endif %}
+        {% if import_status == 'error' %}#f5c6cb{% endif %}
+        {% if import_status == 'warning' %}#ffeeba{% endif %};
+        border-radius: 8px; padding: 15px;">
+        <h4 style="margin-top: 0; margin-bottom: 10px; color:
+            {% if import_status == 'success' %}#155724{% endif %}
+            {% if import_status == 'error' %}#721c24{% endif %}
+            {% if import_status == 'warning' %}#856404{% endif %};">
+            <i class="fa-solid fa-file-import"></i> Результат импорта
+        </h4>
+        <pre style="white-space: pre-line; font-family: monospace; margin: 0; font-size: 0.9rem; background: rgba(255,255,255,0.5); padding: 10px; border-radius: 4px;">{{ import_message }}</pre>
+        {% if import_added > 0 or import_skipped > 0 or import_errors > 0 %}
+            <div style="margin-top: 10px; font-size: 0.8rem; color: #6c757d; padding-left: 5px;">
+                <i class="fa-solid fa-chart-bar"></i> Детали:
+                Добавлено: <strong>{{ import_added }}</strong>,
+                Пропущено: <strong>{{ import_skipped }}</strong>,
+                Ошибок: <strong>{{ import_errors }}</strong>
+            </div>
+        {% endif %}
+    </div>
+{% endif %}
     </form>
 </div>
     </div>
