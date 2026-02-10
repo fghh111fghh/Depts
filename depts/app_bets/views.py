@@ -16,15 +16,19 @@
 - all_teams: QuerySet всех команд для выпадающего списка
 """
 import csv
+import io
 import logging
 import os
+from datetime import datetime
 from decimal import Decimal
 from typing import List, Dict, Optional
 
 from django.conf import settings
 from django.db import transaction
 from django.db.models import F
+from django.http import JsonResponse
 from django.shortcuts import render, redirect
+from django.utils.timezone import make_aware, get_current_timezone
 from django.views import View
 import re
 import math
@@ -33,6 +37,7 @@ from django.views.generic import TemplateView
 
 from app_bets import constants
 from app_bets.constants import Outcome, ParsingConstants, AnalysisConstants, Messages
+from app_bets.models import Team, TeamAlias, Season, Match, League
 
 # Настройка логгера для мониторинга
 logger = logging.getLogger(__name__)
@@ -596,6 +601,7 @@ class AnalyzeView(View):
             'all_teams': Team.objects.all().order_by('name'),
         })
 
+
 class CleanedTemplateView(TemplateView):
     template_name = 'app_bets/cleaned.html'
 
@@ -604,100 +610,269 @@ class CleanedTemplateView(TemplateView):
         context['cleaned_results'] = self.request.session.get('cleaned_results')
         return context
 
-# Импорты моделей (должны быть в конце во избежание циклических импортов)
-from app_bets.models import Team, TeamAlias, Match, League, Season
-
 
 class UploadCSVView(View):
+    template_name = 'app_bets/bets_main.html'
+
     def post(self, request):
-        if 'sync_files' in request.POST:
-            stats = self.sync_local_files()
-            from django.contrib import messages
+        # Получаем контекст из сессии или создаем новый
+        context = {
+            'results': [],
+            'raw_text': '',
+            'unknown_teams': [],
+            'all_teams': Team.objects.all(),
+            'import_status': 'success',
+            'import_message': '',
+            'import_added': 0,
+            'import_skipped': 0,
+            'import_errors': 0
+        }
 
-            # Формируем основное сообщение
-            msg = f"Добавлено: {stats['added']}, Обновлено: {stats['updated']}. "
+        try:
+            # Проверяем, есть ли файл в запросе
+            if 'csv_file' not in request.FILES:
+                # Проверяем, не идет ли синхронизация из папки
+                if 'sync_files' in request.POST:
+                    return self.sync_from_folder(request, context)
 
-            # Если есть неизвестные команды, добавляем их имена прямо в сообщение
-            if stats['unknown_teams']:
-                teams_list = ", ".join(list(stats['unknown_teams']))
-                msg += f"НЕ ОПОЗНАНО ({len(stats['unknown_teams'])}): [{teams_list}]"
+                context['import_status'] = 'error'
+                context['import_message'] = 'Файл не найден. Выберите CSV файл для загрузки.'
+                return render(request, self.template_name, context)
 
-            if stats['unknown_leagues']:
-                leagues_list = ", ".join(list(stats['unknown_leagues']))
-                msg += f" | Неизвестные лиги: {leagues_list}"
+            csv_file = request.FILES['csv_file']
 
-            messages.success(request, msg)
-            return redirect('app_bets:bets_maim')
-        return redirect('app_bets:bets_maim')
+            # Проверяем расширение файла
+            if not csv_file.name.endswith('.csv'):
+                context['import_status'] = 'error'
+                context['import_message'] = 'Файл должен быть в формате CSV'
+                return render(request, self.template_name, context)
 
-    def sync_local_files(self):
-        folder_path = os.path.join(settings.BASE_DIR, 'import_data')
-        stats = {'added': 0, 'updated': 0, 'unknown_teams': set(), 'unknown_leagues': set()}
+            # Импортируем из файла
+            return self.import_from_file(request, csv_file, context)
 
-        # Текущий сезон
-        current_season = Season.objects.filter(is_current=True).first() or Season.objects.last()
-        analyzer = AnalyzeView()
+        except Exception as e:
+            context['import_status'] = 'error'
+            context['import_message'] = f'Ошибка при обработке запроса: {str(e)}'
+            return render(request, self.template_name, context)
 
-        if not os.path.exists(folder_path):
-            return stats
+    def sync_from_folder(self, request, context):
+        """Синхронизация из папки import_data"""
+        import_data_dir = 'import_data'
 
-        for filename in os.listdir(folder_path):
-            if not filename.endswith('.csv'): continue
+        try:
+            if not os.path.exists(import_data_dir):
+                context['import_status'] = 'error'
+                context['import_message'] = f'Папка {import_data_dir} не найдена.'
+                return render(request, self.template_name, context)
 
-            file_path = os.path.join(folder_path, filename)
-            with open(file_path, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
+            csv_files = [f for f in os.listdir(import_data_dir) if f.endswith('.csv')]
+
+            if not csv_files:
+                context['import_status'] = 'warning'
+                context['import_message'] = f'В папке {import_data_dir} не найдено CSV файлов.'
+                return render(request, self.template_name, context)
+
+            total_added = 0
+            total_skipped = 0
+            total_errors = 0
+
+            for csv_file_name in csv_files:
+                file_path = os.path.join(import_data_dir, csv_file_name)
+                result = self.process_csv_file(file_path)
+                total_added += result['added']
+                total_skipped += result['skipped']
+                total_errors += result['errors']
+
+            context['import_added'] = total_added
+            context['import_skipped'] = total_skipped
+            context['import_errors'] = total_errors
+            context['import_message'] = (
+                f'СИНХРОНИЗАЦИЯ ЗАВЕРШЕНА:\n'
+                f'- Обработано файлов: {len(csv_files)}\n'
+                f'- Добавлено матчей: {total_added}\n'
+                f'- Пропущено (не найдены команды): {total_skipped}\n'
+                f'- Ошибок в данных: {total_errors}'
+            )
+
+        except Exception as e:
+            context['import_status'] = 'error'
+            context['import_message'] = f'Ошибка синхронизации: {str(e)}'
+
+        return render(request, self.template_name, context)
+
+    def import_from_file(self, request, csv_file, context):
+        """Импорт из загруженного файла"""
+
+        try:
+            # Читаем файл
+            try:
+                file_content = csv_file.read().decode('utf-8-sig')
+            except UnicodeDecodeError:
+                csv_file.seek(0)
+                file_content = csv_file.read().decode('latin-1')
+
+            # Сохраняем файл временно
+            import tempfile
+
+            with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', suffix='.csv', delete=False) as tmp:
+                tmp.write(file_content)
+                tmp_path = tmp.name
+
+            try:
+                result = self.process_csv_file(tmp_path)
+            finally:
+                # Удаляем временный файл
+                os.unlink(tmp_path)
+
+            context['import_added'] = result['added']
+            context['import_skipped'] = result['skipped']
+            context['import_errors'] = result['errors']
+
+            if result['added'] > 0:
+                context['import_message'] = (
+                    f'ИМПОРТ ЗАВЕРШЕН:\n'
+                    f'- Добавлено матчей: {result["added"]}\n'
+                    f'- Пропущено (не найдены команды): {result["skipped"]}\n'
+                    f'- Ошибок в данных: {result["errors"]}'
+                )
+            else:
+                context['import_status'] = 'warning'
+                context['import_message'] = (
+                    f'Нет новых матчей для добавления.\n'
+                    f'Пропущено (не найдены команды): {result["skipped"]}\n'
+                    f'Ошибок в данных: {result["errors"]}'
+                )
+
+        except Exception as e:
+            context['import_status'] = 'error'
+            context['import_message'] = f'Ошибка при обработке файла: {str(e)}'
+
+        return render(request, self.template_name, context)
+
+    @transaction.atomic
+    def process_csv_file(self, file_path):
+        """Обработка CSV файла (общая функция для файла и папки)"""
+        count = 0
+        skipped_teams = 0
+        errors = 0
+
+        try:
+            with open(file_path, mode='r', encoding='utf-8-sig') as f:
+                reader = csv.DictReader(f, delimiter=',')
+
                 for row in reader:
                     try:
+                        # 1. Поиск лиги по названию
                         div_code = row.get('Div')
-                        h_raw, a_raw = row.get('HomeTeam'), row.get('AwayTeam')
-                        h_score, a_score = row.get('FTHG'), row.get('FTAG')
+                        league_name = ParsingConstants.DIV_TO_LEAGUE_NAME.get(div_code)
 
-                        if not h_raw or h_score is None: continue
+                        if not league_name:
+                            continue
 
-                        # Поиск лиги
-                        league = League.objects.filter(external_id=div_code).first()
+                        # Ищем объект лиги в базе по имени
+                        league = League.objects.filter(name=league_name).first()
                         if not league:
-                            stats['unknown_leagues'].add(div_code)
                             continue
 
-                        # Поиск команд
-                        home = analyzer.get_team_smart(h_raw)
-                        away = analyzer.get_team_smart(a_raw)
-
-                        if not home or not away:
-                            if not home: stats['unknown_teams'].add(h_raw)
-                            if not away: stats['unknown_teams'].add(a_raw)
+                        # 2. Дата и Сезон
+                        date_str = row.get('Date', '').strip()
+                        if not date_str:
                             continue
 
-                        def get_dec(v):
+                        try:
+                            dt = datetime.strptime(date_str, '%d/%m/%Y')
+                        except ValueError:
                             try:
-                                return Decimal(str(v).replace(',', '.')) if v else Decimal(0)
-                            except:
-                                return Decimal(0)
+                                dt = datetime.strptime(date_str, '%d/%m/%y')
+                            except ValueError:
+                                continue
 
-                        # Сохранение (ИСПРАВЛЕНО: добавлены final счета для валидации)
-                        obj, created = Match.objects.update_or_create(
-                            home_team=home,
-                            away_team=away,
-                            date=analyzer.parse_csv_date(row.get('Date')),
-                            defaults={
-                                'home_score_reg': int(h_score),
-                                'away_score_reg': int(a_score),
-                                'home_score_final': int(h_score),
-                                'away_score_final': int(a_score),
-                                'league': league,
-                                'season': current_season,
-                                'odds_home': get_dec(row.get('B365H')),
-                                'odds_draw': get_dec(row.get('B365D')),
-                                'odds_away': get_dec(row.get('B365A')),
-                            }
+                        season = self.get_season_by_date(dt)
+                        if not season:
+                            continue
+
+                        # 3. Поиск команд
+                        home_team = self.get_team_by_alias(row.get('HomeTeam'))
+                        away_team = self.get_team_by_alias(row.get('AwayTeam'))
+
+                        if not home_team or not away_team:
+                            skipped_teams += 1
+                            continue
+
+                        # Проверка на дубликат (по дате и хозяевам)
+                        dt_aware = make_aware(dt, get_current_timezone())
+                        if Match.objects.filter(date=dt_aware, home_team=home_team).exists():
+                            continue
+
+                        # 4. Сбор коэффициентов (Приоритет: Avg -> B365 -> PS)
+                        odd_h = self.parse_odd(row.get('AvgH') or row.get('B365H') or row.get('PSH'))
+                        odd_d = self.parse_odd(row.get('AvgD') or row.get('B365D') or row.get('PSD'))
+                        odd_a = self.parse_odd(row.get('AvgA') or row.get('B365A') or row.get('PSA'))
+
+                        # 5. Сбор голов
+                        h_goal = self.parse_score(row.get('FTHG'))
+                        a_goal = self.parse_score(row.get('FTAG'))
+
+                        # 6. Сохранение в БД
+                        Match.objects.create(
+                            season=season,
+                            league=league,
+                            date=dt_aware,
+                            home_team=home_team,
+                            away_team=away_team,
+                            home_score_reg=h_goal,
+                            away_score_reg=a_goal,
+                            home_score_final=h_goal,
+                            away_score_final=a_goal,
+                            odds_home=odd_h,
+                            odds_draw=odd_d,
+                            odds_away=odd_a,
+                            finish_type='REG'
                         )
-                        if created:
-                            stats['added'] += 1
-                        else:
-                            stats['updated'] += 1
+
+                        count += 1
 
                     except Exception as e:
-                        print(f"Ошибка в {filename}: {e}")
-        return stats
+                        errors += 1
+                        continue
+
+        except Exception as e:
+            errors += 1
+
+        return {
+            'added': count,
+            'skipped': skipped_teams,
+            'errors': errors
+        }
+
+    @staticmethod
+    def get_team_by_alias(name):
+        if not name:
+            return None
+        clean_alias = " ".join(str(name).split()).lower()
+        alias = TeamAlias.objects.filter(name=clean_alias).select_related('team').first()
+        return alias.team if alias else None
+
+    @staticmethod
+    def get_season_by_date(dt):
+        return Season.objects.filter(start_date__lte=dt.date(), end_date__gte=dt.date()).first()
+
+    @staticmethod
+    def parse_score(val):
+        """Превращает '2.0', '2' или '2,0' в целое число 2"""
+        if not val or str(val).strip() == "" or str(val).lower() == 'nan':
+            return 0
+        try:
+            return int(float(str(val).replace(',', '.')))
+        except (ValueError, TypeError):
+            return 0
+
+    @staticmethod
+    def parse_odd(val):
+        """Безопасно парсит коэффициент в Decimal"""
+        if not val or str(val).strip() == "" or str(val).lower() == 'nan':
+            return Decimal('1.01')
+        try:
+            return Decimal(str(val).replace(',', '.')).quantize(Decimal('0.01'))
+        except:
+            return Decimal('1.01')
