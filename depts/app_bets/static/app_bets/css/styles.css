@@ -646,3 +646,143 @@
         padding: 6px;
     }
 }
+
+/* Стили для статистики Пуассона */
+.poisson-stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 15px 0;
+}
+
+.poisson-stat-box {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.stat-box-header {
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.stat-box-values {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.stat-value {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    border-radius: 6px;
+    background: white;
+    border: 1px solid #dee2e6;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #adb5bd;
+    margin-bottom: 3px;
+}
+
+.stat-percent {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.stat-yes .stat-percent {
+    color: #28a745;
+}
+
+.stat-no .stat-percent {
+    color: #dc3545;
+}
+
+/* Компактная версия для cleaned.html */
+.poisson-stats-compact {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.stat-compact-item {
+    flex: 1;
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 8px;
+    text-align: center;
+}
+
+.stat-compact-title {
+    font-size: 0.7rem;
+    color: #6c757d;
+    margin-bottom: 4px;
+    white-space: nowrap;
+}
+
+.stat-compact-values {
+    display: flex;
+    justify-content: space-around;
+}
+
+.stat-compact-yes, .stat-compact-no {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-compact-yes .value {
+    color: #28a745;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.stat-compact-no .value {
+    color: #dc3545;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.stat-compact-label {
+    font-size: 0.65rem;
+    color: #adb5bd;
+    margin-top: 2px;
+}
+
+/* Стили для заголовка паттернов */
+.pattern-big-font {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.pattern-title-big {
+    font-size: 0.8rem;
+    color: #555;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pattern-stats-big {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+}
+
+.pattern-sep-big {
+    color: #ddd;
+    font-weight: 300;
+}

@@ -74,6 +74,41 @@
                     {% endfor %}
                 </div>
             </div>
+        </div> <!-- Закрываем poisson-row -->
+
+        <!-- Статистика BTTS и Тотала - отдельный блок -->
+        <div class="bets-info-row poisson-stats-row">
+            <div class="poisson-stat-box">
+                <div class="stat-box-header">
+                    <i class="fa-solid fa-futbol"></i> Обе забьют
+                </div>
+                <div class="stat-box-values">
+                    <div class="stat-value stat-yes">
+                        <div class="stat-label">Да</div>
+                        <div class="stat-percent">{{ res.poisson_btts.yes|default:"0" }}%</div>
+                    </div>
+                    <div class="stat-value stat-no">
+                        <div class="stat-label">Нет</div>
+                        <div class="stat-percent">{{ res.poisson_btts.no|default:"0" }}%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="poisson-stat-box">
+                <div class="stat-box-header">
+                    <i class="fa-solid fa-chart-line"></i> Тотал > 2.5
+                </div>
+                <div class="stat-box-values">
+                    <div class="stat-value stat-yes">
+                        <div class="stat-label">Да</div>
+                        <div class="stat-percent">{{ res.poisson_over25.yes|default:"0" }}%</div>
+                    </div>
+                    <div class="stat-value stat-no">
+                        <div class="stat-label">Нет</div>
+                        <div class="stat-percent">{{ res.poisson_over25.no|default:"0" }}%</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Twins -->
@@ -142,37 +177,35 @@
         </div>
 
         <!-- Паттерны -->
-        <!-- Паттерны в одну строку -->
-<!-- Паттерны -->
-<div class="bets-info-row pattern-row">
-    <div class="pattern-container">
-        <!-- ТОЧНО ТАКОЙ ЖЕ КРУПНЫЙ ШРИФТ -->
-        <div class="pattern-big-font">
-            <span class="pattern-title-big">Исторический шаблон (последние 4 игры)</span>
-            <span class="pattern-stats-big">
-                совпадений: <strong>{{ res.pattern_data.count|default:"0" }}</strong>
-                <span class="pattern-sep-big">|</span>
-                итог: <strong>{{ res.pattern_data.dist|default:"Н/Д" }}</strong>
-            </span>
-        </div>
+        <div class="bets-info-row pattern-row">
+            <div class="pattern-container">
+                <!-- ТОЧНО ТАКОЙ ЖЕ КРУПНЫЙ ШРИФТ -->
+                <div class="pattern-big-font">
+                    <span class="pattern-title-big">Исторический шаблон (последние 4 игры)</span>
+                    <span class="pattern-stats-big">
+                        совпадений: <strong>{{ res.pattern_data.count|default:"0" }}</strong>
+                        <span class="pattern-sep-big">|</span>
+                        итог: <strong>{{ res.pattern_data.dist|default:"Н/Д" }}</strong>
+                    </span>
+                </div>
 
-        {% if res.pattern_data and res.pattern_data.pattern %}
-        <div class="pattern-badges-row">
-            {% for char in res.pattern_data.pattern %}
-                {% if char == 'В' %}
-                <span class="p-badge v-win">В</span>
-                {% elif char == 'П' %}
-                <span class="p-badge v-loss">П</span>
-                {% elif char == 'Н' %}
-                <span class="p-badge v-draw">Н</span>
-                {% elif char == '-' %}
-                <span class="p-separator">—</span>
+                {% if res.pattern_data and res.pattern_data.pattern %}
+                <div class="pattern-badges-row">
+                    {% for char in res.pattern_data.pattern %}
+                        {% if char == 'В' %}
+                        <span class="p-badge v-win">В</span>
+                        {% elif char == 'П' %}
+                        <span class="p-badge v-loss">П</span>
+                        {% elif char == 'Н' %}
+                        <span class="p-badge v-draw">Н</span>
+                        {% elif char == '-' %}
+                        <span class="p-separator">—</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
                 {% endif %}
-            {% endfor %}
+            </div>
         </div>
-        {% endif %}
-    </div>
-</div>
     </div>
     {% empty %}
     <div class="no-results">
