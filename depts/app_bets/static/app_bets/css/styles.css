@@ -786,3 +786,160 @@
     color: #ddd;
     font-weight: 300;
 }
+
+/* ====== СТИЛИ ДЛЯ BET_MAIN.HTML ====== */
+
+/* Контейнер для Пуассона и Близнецов в одну строку */
+.poisson-twins-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 25px;
+    margin-top: 20px;
+}
+
+/* Блок Пуассона */
+.poisson-main-block {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.poisson-title {
+    margin-top: 0;
+    color: #2c3e50;
+    font-size: 1.1rem;
+}
+
+.poisson-scores-list {
+    padding-left: 18px;
+    margin: 10px 0;
+}
+
+.poisson-scores-list li {
+    margin-bottom: 3px;
+    color: #444;
+}
+
+.poisson-scores-list b {
+    color: #2980b9;
+}
+
+/* Контейнер для BTTS и тотала */
+.poisson-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.poisson-stat-card {
+    text-align: center;
+    padding: 12px;
+    background: #fff;
+    border-radius: 6px;
+    border: 2px solid #e9ecef;
+    transition: transform 0.2s;
+}
+
+.poisson-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.poisson-stat-header {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.poisson-stat-values {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.stat-yes-block, .stat-no-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-yes-label, .stat-no-label {
+    font-size: 0.7rem;
+    color: #adb5bd;
+    margin-bottom: 2px;
+}
+
+.stat-yes-value {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #28a745;
+}
+
+.stat-no-value {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #dc3545;
+}
+
+/* Блок Близнецов */
+.twins-main-block {
+    background: #e8f4fc;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #c5e3fc;
+}
+
+.twins-title {
+    margin-top: 0;
+    color: #2c3e50;
+    font-size: 1.1rem;
+}
+
+.twins-count-container {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.twins-count-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.twins-count-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #2980b9;
+}
+
+.twins-dist-container {
+    background: #fff;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+}
+
+.twins-dist-value {
+    font-size: 0.9rem;
+    color: #2c3e50;
+    text-align: center;
+    font-weight: bold;
+    line-height: 1.4;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .poisson-twins-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .poisson-stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
