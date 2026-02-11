@@ -148,25 +148,29 @@ class AnalyzeView(View):
             return str(name).strip().lower() if name else ""
 
     @staticmethod
-    def get_poisson_probs(l_home: float, l_away: float) -> List[Dict]:
+    def get_poisson_probs(l_home: float, l_away: float) -> Dict:
         """
         Рассчитывает вероятности различных счетов по распределению Пуассона.
-
-        Формула Пуассона: P(k) = (e^(-λ) * λ^k) / k!
-        где λ (лямбда) - среднее ожидаемое количество голов
+        Также вычисляет вероятность BTTS (обе забьют) и тотала > 2.5.
 
         Args:
             l_home (float): Лямбда для домашней команды
             l_away (float): Лямбда для гостевой команды
 
         Returns:
-            List[Dict]: Список из 5 самых вероятных счетов в формате
-                       [{'score': '2:1', 'prob': 12.34}, ...]
-
-        Пример расчета для λ_home=1.5, λ_away=1.0:
-        P(1:0) = P(home=1) * P(away=0) ≈ 0.3347 * 0.3679 ≈ 0.1231 = 12.31%
+            Dict: Словарь с:
+                - top_scores: топ-5 счетов
+                - btts_yes: вероятность обе забьют
+                - btts_no: вероятность не обе забьют
+                - over25_yes: вероятность тотал > 2.5
+                - over25_no: вероятность тотал < 2.5
         """
         probs = []
+        btts_yes = 0.0
+        btts_no = 0.0
+        over25_yes = 0.0
+        over25_no = 0.0
+
         try:
             # Защита от нулевых или отрицательных значений
             l_home = max(float(l_home), AnalysisConstants.POISSON_MIN_LAMBDA)
@@ -176,32 +180,80 @@ class AnalyzeView(View):
             exp_home = math.exp(-l_home)
             exp_away = math.exp(-l_away)
 
-            # Предвычисляем факториалы один раз
+            # Используем константу из настроек
             max_goals = AnalysisConstants.POISSON_MAX_GOALS
-            factorials = [math.factorial(i) for i in range(max_goals)]
+
+            # Предвычисляем факториалы
+            factorials = [math.factorial(i) for i in range(max_goals + 1)]
 
             # Предвычисляем степени для оптимизации
-            home_powers = [l_home ** i for i in range(max_goals)]
-            away_powers = [l_away ** i for i in range(max_goals)]
+            home_powers = [l_home ** i for i in range(max_goals + 1)]
+            away_powers = [l_away ** i for i in range(max_goals + 1)]
 
-            # Рассчитываем вероятности для счетов до POISSON_MAX_GOALS голов
-            for h in range(max_goals):
+            # Рассчитываем вероятности для счетов
+            for h in range(max_goals + 1):
                 p_h = (exp_home * home_powers[h]) / factorials[h]
-                for a in range(max_goals):
+                for a in range(max_goals + 1):
                     p_a = (exp_away * away_powers[a]) / factorials[a]
                     probability = p_h * p_a * 100
 
+                    # Собираем топ-5 вероятных счетов
                     if probability > AnalysisConstants.MIN_PROBABILITY:
                         probs.append({
                             'score': f"{h}:{a}",
                             'prob': round(probability, 2)
                         })
+
+                    # Расчет для "обе забьют" (BTTS)
+                    if h > 0 and a > 0:
+                        btts_yes += probability
+                    else:
+                        btts_no += probability
+
+                    # Расчет для "тотал > 2.5"
+                    if (h + a) > 2.5:
+                        over25_yes += probability
+                    else:
+                        over25_no += probability
+
+            # Сортируем по убыванию вероятности и берем топ-5
+            top_scores = sorted(probs, key=lambda x: x['prob'], reverse=True)[:5]
+
+            # Нормализуем до 100%
+            total_btss = btts_yes + btts_no
+            total_over = over25_yes + over25_no
+
+            if total_btss > 0:
+                btts_yes = (btts_yes / total_btss) * 100
+                btts_no = (btts_no / total_btss) * 100
+
+            if total_over > 0:
+                over25_yes = (over25_yes / total_over) * 100
+                over25_no = (over25_no / total_over) * 100
+
+            # Округляем
+            btts_yes = round(btts_yes, 2)
+            btts_no = round(btts_no, 2)
+            over25_yes = round(over25_yes, 2)
+            over25_no = round(over25_no, 2)
+
         except Exception as e:
             logger.error(f"Ошибка расчета вероятностей Пуассона: {e}")
-            return []
+            return {
+                'top_scores': [],
+                'btts_yes': 0.0,
+                'btts_no': 0.0,
+                'over25_yes': 0.0,
+                'over25_no': 0.0
+            }
 
-        # Сортируем по убыванию вероятности и берем топ-5
-        return sorted(probs, key=lambda x: x['prob'], reverse=True)[:5]
+        return {
+            'top_scores': top_scores,
+            'btts_yes': btts_yes,
+            'btts_no': btts_no,
+            'over25_yes': over25_yes,
+            'over25_no': over25_no
+        }
 
     def get_team_smart(self, name: str) -> Optional['Team']:
         """
@@ -463,7 +515,8 @@ class AnalyzeView(View):
                                 odds_home=h_odd
                             )
                             p_data = m_obj.calculate_poisson_lambda()
-                            top_scores = self.get_poisson_probs(p_data['home_lambda'], p_data['away_lambda'])
+                            poisson_results = self.get_poisson_probs(p_data['home_lambda'], p_data['away_lambda'])
+                            top_scores = poisson_results['top_scores']
 
                             # Поиск "близнецов" - матчей с похожими коэффициентами
                             tol = AnalysisConstants.TWINS_TOLERANCE_SMALL
@@ -557,6 +610,14 @@ class AnalyzeView(View):
                                 'league': league.name if league else "Unknown",
                                 'poisson_l': f"{p_data['home_lambda']} : {p_data['away_lambda']}",
                                 'poisson_top': top_scores,
+                                'poisson_btts': {
+                                    'yes': poisson_results['btts_yes'],
+                                    'no': poisson_results['btts_no']
+                                },
+                                'poisson_over25': {
+                                    'yes': poisson_results['over25_yes'],
+                                    'no': poisson_results['over25_no']
+                                },
                                 'twins_count': t_count,
                                 'twins_dist': t_dist,
                                 'pattern_data': pattern_res,
