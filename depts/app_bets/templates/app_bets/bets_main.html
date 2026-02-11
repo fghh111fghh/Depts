@@ -22,7 +22,6 @@
 2.10
 3.10
 3.80">{{ raw_text }}</textarea>
-
             </form>
         </div>
 
@@ -30,63 +29,69 @@
         <div class="bets-unknown-section">
             <h4 style="margin:0 0 10px 0;"><i class="fa-solid fa-graduation-cap"></i> Обучение системы</h4>
             {% for name in unknown_teams %}
-            <form method="post" action="." style="background:#fff3cd; padding:12px; border-radius:8px; margin-bottom:10px; border:1px solid #ffeeba;">
+            <form method="post" action="."
+                  style="background:#fff3cd; padding:12px; border-radius:8px; margin-bottom:10px; border:1px solid #ffeeba;">
                 {% csrf_token %}
                 <input type="hidden" name="matches_text" value="{{ raw_text }}">
                 <input type="hidden" name="alias_name" value="{{ name }}">
                 <div style="font-size:0.9rem; font-weight:bold; margin-bottom:8px;">{{ name }}</div>
                 <select name="team_id" required style="width:100%; padding:5px; border-radius:4px;">
                     <option value="">-- выбери из базы --</option>
-                    {% for team in all_teams %}<option value="{{ team.id }}">{{ team.name }}</option>{% endfor %}
+                    {% for team in all_teams %}
+                    <option value="{{ team.id }}">{{ team.name }}</option>
+                    {% endfor %}
                 </select>
-                <button type="submit" name="create_alias" class="bets-btn-analyze" style="margin-top:8px; padding:6px; font-size:12px; background:#856404; color:#fff;">
+                <button type="submit" name="create_alias" class="bets-btn-analyze"
+                        style="margin-top:8px; padding:6px; font-size:12px; background:#856404; color:#fff;">
                     Сохранить привязку
                 </button>
             </form>
             {% endfor %}
         </div>
         {% endif %}
+
         <div class="bets-input-pane" style="margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px;">
-    <form method="post" action="{% url 'app_bets:upload_csv' %}">
-        {% csrf_token %}
-        <label style="display:block; margin-bottom:10px; font-weight:600; color: #2c3e50;">
-            <i class="fa-solid fa-folder-open"></i> Локальная папка (import_data):
-        </label>
-        <p style="font-size: 0.75rem; color: #7f8c8d; margin-bottom: 10px;">
-            Положить CSV файлы в папку import_data и нажать кнопку.
-        </p>
-        <button type="submit" name="sync_files" class="bets-btn-analyze" style="background: #16a085;">
-            Синхронизировать базу
-        </button>
-{% if import_message %}
-    <div class="bets-input-pane" style="margin-top: 20px; background:
-        {% if import_status == 'success' %}#d4edda{% endif %}
-        {% if import_status == 'error' %}#f8d7da{% endif %}
-        {% if import_status == 'warning' %}#fff3cd{% endif %};
-        border: 1px solid
-        {% if import_status == 'success' %}#c3e6cb{% endif %}
-        {% if import_status == 'error' %}#f5c6cb{% endif %}
-        {% if import_status == 'warning' %}#ffeeba{% endif %};
-        border-radius: 8px; padding: 15px;">
-        <h4 style="margin-top: 0; margin-bottom: 10px; color:
-            {% if import_status == 'success' %}#155724{% endif %}
-            {% if import_status == 'error' %}#721c24{% endif %}
-            {% if import_status == 'warning' %}#856404{% endif %};">
-            <i class="fa-solid fa-file-import"></i> Результат импорта
-        </h4>
-        <pre style="white-space: pre-line; font-family: monospace; margin: 0; font-size: 0.9rem; background: rgba(255,255,255,0.5); padding: 10px; border-radius: 4px;">{{ import_message }}</pre>
-        {% if import_added > 0 or import_skipped > 0 or import_errors > 0 %}
-            <div style="margin-top: 10px; font-size: 0.8rem; color: #6c757d; padding-left: 5px;">
-                <i class="fa-solid fa-chart-bar"></i> Детали:
-                Добавлено: <strong>{{ import_added }}</strong>,
-                Пропущено: <strong>{{ import_skipped }}</strong>,
-                Ошибок: <strong>{{ import_errors }}</strong>
-            </div>
-        {% endif %}
-    </div>
-{% endif %}
-    </form>
-</div>
+            <form method="post" action="{% url 'app_bets:upload_csv' %}">
+                {% csrf_token %}
+                <label style="display:block; margin-bottom:10px; font-weight:600; color: #2c3e50;">
+                    <i class="fa-solid fa-folder-open"></i> Локальная папка (import_data):
+                </label>
+                <p style="font-size: 0.75rem; color: #7f8c8d; margin-bottom: 10px;">
+                    Положить CSV файлы в папку import_data и нажать кнопку.
+                </p>
+                <button type="submit" name="sync_files" class="bets-btn-analyze" style="background: #16a085;">
+                    Синхронизировать базу
+                </button>
+
+                {% if import_message %}
+                <div class="bets-input-pane" style="margin-top: 20px; background:
+                    {% if import_status == 'success' %}#d4edda{% endif %}
+                    {% if import_status == 'error' %}#f8d7da{% endif %}
+                    {% if import_status == 'warning' %}#fff3cd{% endif %};
+                    border: 1px solid
+                    {% if import_status == 'success' %}#c3e6cb{% endif %}
+                    {% if import_status == 'error' %}#f5c6cb{% endif %}
+                    {% if import_status == 'warning' %}#ffeeba{% endif %};
+                    border-radius: 8px; padding: 15px;">
+                    <h4 style="margin-top: 0; margin-bottom: 10px; color:
+                        {% if import_status == 'success' %}#155724{% endif %}
+                        {% if import_status == 'error' %}#721c24{% endif %}
+                        {% if import_status == 'warning' %}#856404{% endif %};">
+                        <i class="fa-solid fa-file-import"></i> Результат импорта
+                    </h4>
+                    <pre style="white-space: pre-line; font-family: monospace; margin: 0; font-size: 0.9rem; background: rgba(255,255,255,0.5); padding: 10px; border-radius: 4px;">{{ import_message }}</pre>
+                    {% if import_added > 0 or import_skipped > 0 or import_errors > 0 %}
+                    <div style="margin-top: 10px; font-size: 0.8rem; color: #6c757d; padding-left: 5px;">
+                        <i class="fa-solid fa-chart-bar"></i> Детали:
+                        Добавлено: <strong>{{ import_added }}</strong>,
+                        Пропущено: <strong>{{ import_skipped }}</strong>,
+                        Ошибок: <strong>{{ import_errors }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </form>
+        </div>
     </div>
 
     <div class="bets-results-area">
@@ -97,6 +102,7 @@
                         {{ res.match }} <small style="color:#95a5a6; font-weight:normal;">({{ res.league }})</small>
                     </h2>
 
+                    <!-- Итоговый векторный синтез -->
                     <div style="margin-bottom:25px;">
                         <h4 style="margin-bottom:10px;"><i class="fa-solid fa-microchip"></i> Итоговый векторный синтез</h4>
                         <div style="background:#f1f3f5; padding:15px; border-radius:8px; border:1px solid #dee2e6;">
@@ -106,59 +112,68 @@
                         </div>
                     </div>
 
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top:20px;">
-                        <div style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #e9ecef;">
-                            <h4 style="margin-top:0;"><i class="fa-solid fa-calculator"></i> Пуассон: {{ res.poisson_l }}</h4>
+                    <!-- Пуассон и Близнецы в одной строке -->
+                    <div class="poisson-twins-grid">
+                        <!-- Левый блок - Пуассон -->
+                        <div class="poisson-main-block">
+                            <h4 class="poisson-title"><i class="fa-solid fa-calculator"></i> Пуассон: {{ res.poisson_l }}</h4>
                             <strong style="font-size:0.85rem; color:#6c757d;">Вероятные счета:</strong>
-                            <ul style="padding-left:18px; margin:10px 0;">
+                            <ul class="poisson-scores-list">
                                 {% for s in res.poisson_top %}
-                                    <li style="margin-bottom:3px;">{{ s.score }} — <b>{{ s.prob|floatformat:1 }}%</b></li>
+                                    <li>{{ s.score }} — <b>{{ s.prob|floatformat:1 }}%</b></li>
                                 {% endfor %}
                             </ul>
+
+                            <!-- BTTS и Тотал -->
+                            <div class="poisson-stats-grid">
+                                <div class="poisson-stat-card">
+                                    <div class="poisson-stat-header">
+                                        <i class="fa-solid fa-futbol"></i> Обе забьют
+                                    </div>
+                                    <div class="poisson-stat-values">
+                                        <div class="stat-yes-block">
+                                            <div class="stat-yes-label">Да</div>
+                                            <div class="stat-yes-value">{{ res.poisson_btts.yes|floatformat:1 }}%</div>
+                                        </div>
+                                        <div class="stat-no-block">
+                                            <div class="stat-no-label">Нет</div>
+                                            <div class="stat-no-value">{{ res.poisson_btts.no|floatformat:1 }}%</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="poisson-stat-card">
+                                    <div class="poisson-stat-header">
+                                        <i class="fa-solid fa-chart-line"></i> Тотал > 2.5
+                                    </div>
+                                    <div class="poisson-stat-values">
+                                        <div class="stat-yes-block">
+                                            <div class="stat-yes-label">Да</div>
+                                            <div class="stat-yes-value">{{ res.poisson_over25.yes|floatformat:1 }}%</div>
+                                        </div>
+                                        <div class="stat-no-block">
+                                            <div class="stat-no-label">Нет</div>
+                                            <div class="stat-no-value">{{ res.poisson_over25.no|floatformat:1 }}%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <!-- После блока с Пуассоном -->
-<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
-    <div style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #e9ecef;">
-        <h5 style="margin-top:0; margin-bottom:10px; color:#6c757d; font-size:0.9rem;">
-            <i class="fa-solid fa-futbol"></i> Обе забьют (Пуассон)
-        </h5>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <div style="text-align:center; padding:8px; background:#fff; border-radius:6px; border:1px solid #28a745;">
-                <div style="font-size:0.75rem; color:#adb5bd;">Да</div>
-                <div style="font-size:1.1rem; font-weight:bold; color:#28a745;">{{ res.poisson_btts.yes }}%</div>
-            </div>
-            <div style="text-align:center; padding:8px; background:#fff; border-radius:6px; border:1px solid #dc3545;">
-                <div style="font-size:0.75rem; color:#adb5bd;">Нет</div>
-                <div style="font-size:1.1rem; font-weight:bold; color:#dc3545;">{{ res.poisson_btts.no }}%</div>
-            </div>
-        </div>
-    </div>
 
-    <div style="background:#f8f9fa; padding:15px; border-radius:8px; border:1px solid #e9ecef;">
-        <h5 style="margin-top:0; margin-bottom:10px; color:#6c757d; font-size:0.9rem;">
-            <i class="fa-solid fa-chart-line"></i> Тотал > 2.5 (Пуассон)
-        </h5>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <div style="text-align:center; padding:8px; background:#fff; border-radius:6px; border:1px solid #28a745;">
-                <div style="font-size:0.75rem; color:#adb5bd;">Да</div>
-                <div style="font-size:1.1rem; font-weight:bold; color:#28a745;">{{ res.poisson_over25.yes }}%</div>
-            </div>
-            <div style="text-align:center; padding:8px; background:#fff; border-radius:6px; border:1px solid #dc3545;">
-                <div style="font-size:0.75rem; color:#adb5bd;">Нет</div>
-                <div style="font-size:1.1rem; font-weight:bold; color:#dc3545;">{{ res.poisson_over25.no }}%</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-                        <div style="background:#f1f3f5; padding:15px; border-radius:8px; border:1px solid #dee2e6;">
-                            <h4 style="margin-top:0;"><i class="fa-solid fa-copy"></i> Близнецы (совпадений: {{ res.twins_count }})</h4>
-                            <div style="background:#fff; padding:15px; border-radius:6px; text-align:center; border:1px solid #ced4da;">
-                                <span style="font-size:1.2rem; color:#007bff; font-weight:bold;">{{ res.twins_dist }}</span>
+                        <!-- Правый блок - Близнецы -->
+                        <div class="twins-main-block">
+                            <h4 class="twins-title"><i class="fa-solid fa-copy"></i> Близнецы</h4>
+                            <div class="twins-count-container">
+                                <div class="twins-count-label">совпадений:</div>
+                                <div class="twins-count-value">{{ res.twins_count }}</div>
+                            </div>
+                            <div class="twins-dist-container">
+                                <div class="twins-dist-value">{{ res.twins_dist }}</div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Исторический шаблон -->
                     <div style="margin-top:25px; background:#fffcf0; padding:15px; border-radius:8px; border:1px solid #f1e7bc;">
                         <h4 style="margin-top:0; color:#856404; display:flex; justify-content:space-between;">
                             <span><i class="fa-solid fa-clock-rotate-left"></i> Исторический шаблон (серия x4)</span>
@@ -181,6 +196,7 @@
                         {% endif %}
                     </div>
 
+                    <!-- Личные встречи -->
                     <div style="margin-top:25px;">
                         <h4 style="margin-bottom:10px; display:flex; justify-content:space-between;">
                             <span><i class="fa-solid fa-history"></i> Личные встречи (в этом статусе)</span>
@@ -196,12 +212,14 @@
                                 </thead>
                                 <tbody>
                                     {% for h in res.h2h_list %}
-                                    <tr style="border-bottom: 1px solid #f1f3f5;">
-                                        <td style="padding:10px; color:#6c757d;">{{ h.date }}</td>
-                                        <td style="padding:10px; text-align:center; font-weight:bold; color:#e74c3c;">{{ h.score }}</td>
-                                    </tr>
+                                        <tr style="border-bottom: 1px solid #f1f3f5;">
+                                            <td style="padding:10px; color:#6c757d;">{{ h.date }}</td>
+                                            <td style="padding:10px; text-align:center; font-weight:bold; color:#e74c3c;">{{ h.score }}</td>
+                                        </tr>
                                     {% empty %}
-                                    <tr><td colspan="2" style="padding:20px; text-align:center; color:#adb5bd;">Игр в таком статусе не найдено</td></tr>
+                                        <tr>
+                                            <td colspan="2" style="padding:20px; text-align:center; color:#adb5bd;">Игр в таком статусе не найдено</td>
+                                        </tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
