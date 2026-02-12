@@ -14,6 +14,28 @@
             <form method="post" action=".">
                 {% csrf_token %}
                 <button type="submit" class="bets-btn-analyze">Рассчитать вероятность</button>
+
+                <!-- СЧЕТЧИКИ РЕЗУЛЬТАТОВ -->
+                {% if results %}
+                <div style="margin-top: 15px; margin-bottom: 5px; padding: 10px; background: #e8f4fc; border-radius: 6px; border-left: 4px solid #3498db;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-calculator" style="color: #2980b9;"></i>
+                            <span style="font-size: 0.9rem; color: #2c3e50;">Рассчитано матчей:</span>
+                            <span style="font-size: 1.2rem; font-weight: bold; color: #2980b9;">{{ results|length }}</span>
+                        </div>
+
+                        {% if unknown_teams %}
+                        <div style="display: flex; align-items: center; gap: 8px; border-left: 2px solid #bdc3c7; padding-left: 15px;">
+                            <i class="fa-solid fa-graduation-cap" style="color: #856404;"></i>
+                            <span style="font-size: 0.9rem; color: #2c3e50;">Привязать команды:</span>
+                            <span style="font-size: 1.2rem; font-weight: bold; color: #856404;">{{ unknown_teams|length }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
                 <label style="display:block; margin-bottom:10px; font-weight:600;">Ввод данных:</label>
                 <textarea name="matches_text" class="bets-textarea" rows="18"
                           placeholder="Пример формата:
@@ -27,7 +49,12 @@
 
         {% if unknown_teams %}
         <div class="bets-unknown-section">
-            <h4 style="margin:0 0 10px 0;"><i class="fa-solid fa-graduation-cap"></i> Обучение системы</h4>
+            <h4 style="margin:0 0 10px 0;">
+                <i class="fa-solid fa-graduation-cap"></i> Обучение системы
+                <span style="background: #856404; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; margin-left: 8px;">
+                    {{ unknown_teams|length }}
+                </span>
+            </h4>
             {% for name in unknown_teams %}
             <form method="post" action="."
                   style="background:#fff3cd; padding:12px; border-radius:8px; margin-bottom:10px; border:1px solid #ffeeba;">
