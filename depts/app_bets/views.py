@@ -469,11 +469,11 @@ class AnalyzeView(View):
                                             p_aw += 1
 
                                 if p_count > 0:
-                                    # РАСЧЕТ ПРОЦЕНТОВ С КОРРЕКЦИЕЙ ДО 100%
                                     p1_pct = round(p_hw / p_count * 100)
                                     x_pct = round(p_dw / p_count * 100)
                                     p2_pct = round(p_aw / p_count * 100)
 
+                                    # Коррекция до 100%
                                     total_pct = p1_pct + x_pct + p2_pct
                                     if total_pct != 100:
                                         diff = 100 - total_pct
@@ -485,10 +485,12 @@ class AnalyzeView(View):
                                         else:
                                             p2_pct += diff
 
-                                    pattern_res = {
+                                    pattern_data = {
                                         'pattern': f"{curr_h_form} - {curr_a_form}",
                                         'count': p_count,
-                                        'dist': f"П1: {p1_pct}% | X: {x_pct}% | П2: {p2_pct}%"
+                                        'p1': p1_pct,
+                                        'x': x_pct,
+                                        'p2': p2_pct
                                     }
 
                             # --- ПУАССОН И БЛИЗНЕЦЫ ---
@@ -519,8 +521,9 @@ class AnalyzeView(View):
                                     odds_away__range=(a_odd - tol, a_odd + tol)
                                 ).exclude(home_score_reg__isnull=True)
 
+                            # --- БЛИЗНЕЦЫ ---
                             t_count = twins_qs.count()
-                            t_dist = Messages.TWINS_NO_DATA
+                            twins_data = None  # По умолчанию None, в шаблоне проверим
 
                             if t_count > 0:
                                 hw_t = twins_qs.filter(home_score_reg__gt=F('away_score_reg')).count()
@@ -530,11 +533,11 @@ class AnalyzeView(View):
                                 total_with_results = hw_t + dw_t + aw_t
 
                                 if total_with_results > 0:
-                                    # РАСЧЕТ ПРОЦЕНТОВ С КОРРЕКЦИЕЙ ДО 100%
                                     p1_pct = round(hw_t / total_with_results * 100)
                                     x_pct = round(dw_t / total_with_results * 100)
                                     p2_pct = round(aw_t / total_with_results * 100)
 
+                                    # Коррекция до 100%
                                     total_pct = p1_pct + x_pct + p2_pct
                                     if total_pct != 100:
                                         diff = 100 - total_pct
@@ -546,7 +549,13 @@ class AnalyzeView(View):
                                         else:
                                             p2_pct += diff
 
-                                    t_dist = f"П1: {p1_pct}% | X: {x_pct}% | П2: {p2_pct}%"
+                                    # ПЕРЕДАЕМ КОРТЕЖ!
+                                    twins_data = {
+                                        'count': t_count,
+                                        'p1': p1_pct,
+                                        'x': x_pct,
+                                        'p2': p2_pct
+                                    }
 
                             # --- ЛИЧНЫЕ ВСТРЕЧИ ---
                             h2h_qs = Match.objects.filter(
@@ -620,8 +629,8 @@ class AnalyzeView(View):
                                     'no': poisson_results['over25_no']
                                 },
                                 'twins_count': t_count,
-                                'twins_dist': t_dist,
-                                'pattern_data': pattern_res,
+                                'twins_data': twins_data,
+                                'pattern_data': pattern_data,
                                 'h2h_list': h2h_list,
                                 'h2h_total': h2h_qs.count(),
                                 'odds': (
@@ -631,11 +640,6 @@ class AnalyzeView(View):
                                 ),
                                 'verdict': verdict
                             })
-
-                            print(f"===== ОТЛАДКА =====")
-                            print(f"twins_count: {t_count}")
-                            print(f"twins_dist: '{t_dist}'")
-                            print(f"===================")
 
                         else:
                             if not home_team:
