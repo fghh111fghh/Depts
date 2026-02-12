@@ -46,87 +46,61 @@ logger = logging.getLogger(__name__)
 class AnalyzeView(View):
     """
     View для анализа футбольных матчей на основе текстового ввода.
-
-    Обрабатывает:
-    - GET запросы: отображение пустой формы для ввода данных
-    - POST запросы: обработка и анализ введенных данных
-
-    Основные функции:
-    - Парсинг строк с коэффициентами и названиями команд
-    - Распознавание команд через основную базу и алиасы
-    - Анализ исторических данных (паттерны форм, личные встречи)
-    - Расчет вероятностей методом Пуассона
-    - Поиск "близнецов" - исторических матчей с похожими коэффициентами
-    - Формирование итогового вердикта на основе всех методов
-
-    Сохраняет полную совместимость структуры выходных данных:
-    results: [{
-        'match': "Команда1 - Команда2",
-        'league': "Название лиги",
-        'poisson_l': "1.50 : 1.20",
-        'poisson_top': [{'score': '1:0', 'prob': 12.34}, ...],
-        'twins_count': 15,
-        'twins_dist': "П1: 40% | X: 30% | П2: 30%",
-        'pattern_data': "Текст или словарь с паттерном",
-        'h2h_list': [{'date': '25.12.23', 'score': '2:1'}, ...],
-        'h2h_total': 5,
-        'verdict': "СИГНАЛ: П1"
-    }]
     """
 
     template_name = 'app_bets/bets_main.html'
 
     def get(self, request):
         """
-        Обрабатывает GET запрос - отображает пустую форму для ввода данных.
-
-        Args:
-            request: HttpRequest объект
-
-        Returns:
-            HttpResponse: Рендеренный шаблон с пустой формой
+        Обрабатывает GET запрос - отображает данные с сортировкой из сессии.
         """
-        # Получаем все команды для выпадающего списка создания алиасов
+        # Восстанавливаем данные из сессии
+        results = request.session.get('results', [])
+        raw_text = request.session.get('raw_text', '')
+        unknown_teams = request.session.get('unknown_teams', [])
+
+        # Получаем параметр сортировки
+        current_sort = request.GET.get('sort') or request.session.get('current_sort', 'default')
+        request.session['current_sort'] = current_sort
+
+        # СОРТИРУЕМ РЕЗУЛЬТАТЫ
+        if results:
+            if current_sort == 'btts_desc':
+                results.sort(key=lambda x: x['poisson_btts']['yes'], reverse=True)
+            elif current_sort == 'over25_desc':
+                results.sort(key=lambda x: x['poisson_over25']['yes'], reverse=True)
+            elif current_sort == 'twins_p1_desc':
+                results.sort(key=lambda x: x.get('twins_data', {}).get('p1', 0), reverse=True)
+            elif current_sort == 'pattern_p1_desc':
+                # ИСПРАВЛЕНО: проверяем что pattern_data не None
+                results.sort(
+                    key=lambda x: x['pattern_data'].get('p1', 0) if x['pattern_data'] is not None else 0,
+                    reverse=True
+                )
+
         all_teams = Team.objects.all().order_by('name')
 
-        # Рендерим пустую форму
         return render(request, self.template_name, {
-            'results': [],  # Пустой список результатов
-            'raw_text': '',  # Пустой текст
-            'unknown_teams': [],  # Пустой список неизвестных команд
-            'all_teams': all_teams,  # Все команды для выпадающего списка
+            'results': results,
+            'raw_text': raw_text,
+            'unknown_teams': sorted(unknown_teams),
+            'all_teams': all_teams,
+            'current_sort': current_sort,
         })
 
     @staticmethod
     def clean_team_name(name: str) -> str:
         """
         Очищает название команды от лишних символов для сравнения.
-
-        Алгоритм:
-        1. Нормализация Unicode
-        2. Удаление временных меток (15:30, 21.45)
-        3. Удаление спецсимволов и скобок
-        4. Нормализация дефисов/тире
-        5. Удаление лишних пробелов
-        6. Приведение к нижнему регистру
-
-        Args:
-            name (str): Исходное название команды
-
-        Returns:
-            str: Очищенное название в нижнем регистре
-
-        Пример:
-            "Барселона (Испания) - 20:30" → "барселона испания"
         """
         if not name:
             return ""
 
         try:
-            # Нормализация Unicode (объединение диакритических знаков)
+            # Нормализация Unicode
             name = unicodedata.normalize('NFKC', str(name))
 
-            # Удаление временных меток (15:30, 21.45, 20.30 и т.д.)
+            # Удаление временных меток
             name = re.sub(ParsingConstants.TIME_REGEX, '', name)
 
             # Удаление символов в скобках и спецсимволов
@@ -151,19 +125,6 @@ class AnalyzeView(View):
     def get_poisson_probs(l_home: float, l_away: float) -> Dict:
         """
         Рассчитывает вероятности различных счетов по распределению Пуассона.
-        Также вычисляет вероятность BTTS (обе забьют) и тотала > 2.5.
-
-        Args:
-            l_home (float): Лямбда для домашней команды
-            l_away (float): Лямбда для гостевой команды
-
-        Returns:
-            Dict: Словарь с:
-                - top_scores: топ-5 счетов
-                - btts_yes: вероятность обе забьют
-                - btts_no: вероятность не обе забьют
-                - over25_yes: вероятность тотал > 2.5
-                - over25_no: вероятность тотал < 2.5
         """
         probs = []
         btts_yes = 0.0
@@ -172,54 +133,42 @@ class AnalyzeView(View):
         over25_no = 0.0
 
         try:
-            # Защита от нулевых или отрицательных значений
             l_home = max(float(l_home), AnalysisConstants.POISSON_MIN_LAMBDA)
             l_away = max(float(l_away), AnalysisConstants.POISSON_MIN_LAMBDA)
 
-            # Предварительный расчет экспонент для производительности
             exp_home = math.exp(-l_home)
             exp_away = math.exp(-l_away)
 
-            # Используем константу из настроек
             max_goals = AnalysisConstants.POISSON_MAX_GOALS
 
-            # Предвычисляем факториалы
             factorials = [math.factorial(i) for i in range(max_goals + 1)]
-
-            # Предвычисляем степени для оптимизации
             home_powers = [l_home ** i for i in range(max_goals + 1)]
             away_powers = [l_away ** i for i in range(max_goals + 1)]
 
-            # Рассчитываем вероятности для счетов
             for h in range(max_goals + 1):
                 p_h = (exp_home * home_powers[h]) / factorials[h]
                 for a in range(max_goals + 1):
                     p_a = (exp_away * away_powers[a]) / factorials[a]
                     probability = p_h * p_a * 100
 
-                    # Собираем топ-5 вероятных счетов
                     if probability > AnalysisConstants.MIN_PROBABILITY:
                         probs.append({
                             'score': f"{h}:{a}",
                             'prob': round(probability, 2)
                         })
 
-                    # Расчет для "обе забьют" (BTTS)
                     if h > 0 and a > 0:
                         btts_yes += probability
                     else:
                         btts_no += probability
 
-                    # Расчет для "тотал > 2.5"
                     if (h + a) > 2.5:
                         over25_yes += probability
                     else:
                         over25_no += probability
 
-            # Сортируем по убыванию вероятности и берем топ-5
             top_scores = sorted(probs, key=lambda x: x['prob'], reverse=True)[:5]
 
-            # Нормализуем до 100%
             total_btss = btts_yes + btts_no
             total_over = over25_yes + over25_no
 
@@ -231,7 +180,6 @@ class AnalyzeView(View):
                 over25_yes = (over25_yes / total_over) * 100
                 over25_no = (over25_no / total_over) * 100
 
-            # Округляем
             btts_yes = round(btts_yes, 2)
             btts_no = round(btts_no, 2)
             over25_yes = round(over25_yes, 2)
@@ -258,31 +206,15 @@ class AnalyzeView(View):
     def get_team_smart(self, name: str) -> Optional['Team']:
         """
         Интеллектуальный поиск команды по названию.
-
-        Алгоритм поиска:
-        1. Поиск точного совпадения в основной таблице команд
-        2. Поиск в таблице алиасов (альтернативных названий)
-        3. Возврат None если команда не найдена
-
-        Args:
-            name (str): Название команды для поиска
-
-        Returns:
-            Optional[Team]: Объект команды или None
-
-        Важно: Использует очищенное название для поиска, но сохраняет
-               оригинальное название в результатах анализа.
         """
         clean_name = self.clean_team_name(name)
         if not clean_name:
             return None
 
-        # 1. Поиск в основной таблице команд (точное совпадение без учета регистра)
         team = Team.objects.filter(name__iexact=clean_name).first()
         if team:
             return team
 
-        # 2. Поиск в таблице алиасов
         alias = TeamAlias.objects.filter(name__iexact=clean_name).select_related('team').first()
         if alias:
             return alias.team
@@ -292,22 +224,8 @@ class AnalyzeView(View):
     def _extract_team_names(self, lines: List[str], odds_index: int) -> List[str]:
         """
         Извлекает названия команд из строк перед коэффициентами.
-
-        Алгоритм:
-        1. Ищет строки выше коэффициентов
-        2. Пропускает разделители, время, заголовки столбцов
-        3. Проверяет валидность названий команд
-        4. Возвращает список из 2 названий (гостевая, домашняя)
-
-        Args:
-            lines (List[str]): Список всех строк
-            odds_index (int): Индекс строки с первым коэффициентом
-
-        Returns:
-            List[str]: Список из 2 названий команд или пустой список
         """
         names = []
-        # Ищем до MAX_SEARCH_DEPTH строк выше коэффициентов
         search_depth = min(ParsingConstants.MAX_SEARCH_DEPTH, odds_index)
 
         for j in range(odds_index - 1, odds_index - search_depth - 1, -1):
@@ -316,27 +234,17 @@ class AnalyzeView(View):
 
             row = lines[j].strip()
 
-            # Если строка пустая, пропускаем но продолжаем поиск
             if not row:
                 continue
-
-            # Пропускаем разделители
             if row == '-':
                 continue
-
-            # Пропускаем время
             if re.match(ParsingConstants.TIME_REGEX, row):
                 continue
-
-            # Пропускаем заголовки столбцов
             if row.lower() in ParsingConstants.SKIP_KEYWORDS:
                 continue
-
-            # Пропускаем названия лиг и стран
             if any(keyword in row.lower() for keyword in ParsingConstants.LEAGUE_KEYWORDS):
                 continue
 
-            # Проверяем, может ли строка быть названием команды
             clean_name = self.clean_team_name(row)
             if (clean_name and
                     len(clean_name) >= AnalysisConstants.MIN_TEAM_NAME_LENGTH and
@@ -353,6 +261,10 @@ class AnalyzeView(View):
         """
         Основной метод обработки POST-запроса для анализа матчей.
         """
+        # --- ПОЛУЧАЕМ ПАРАМЕТР СОРТИРОВКИ ---
+        current_sort = request.POST.get('sort') or request.GET.get('sort') or request.session.get('current_sort', 'default')
+        request.session['current_sort'] = current_sort
+
         # Сохраняем оригинальный текст
         raw_text = request.POST.get('matches_text', '')
 
@@ -385,11 +297,18 @@ class AnalyzeView(View):
         lines = [l.strip() for l in raw_text.split('\n') if l.strip()]
 
         if not lines:
+            # СОХРАНЯЕМ ПУСТЫЕ ДАННЫЕ В СЕССИЮ
+            request.session['results'] = results
+            request.session['raw_text'] = raw_text
+            request.session['unknown_teams'] = list(unknown_teams)
+            request.session['current_sort'] = current_sort
+
             return render(request, self.template_name, {
                 'results': results,
                 'raw_text': raw_text,
                 'unknown_teams': sorted(list(unknown_teams)),
                 'all_teams': Team.objects.all().order_by('name'),
+                'current_sort': current_sort,
             })
 
         # --- 3. ПАРСИНГ И АНАЛИЗ МАТЧЕЙ ---
@@ -453,7 +372,7 @@ class AnalyzeView(View):
                             curr_a_form = "".join(team_history.get(away_team.id, []))[
                                           -AnalysisConstants.PATTERN_FORM_LENGTH:]
 
-                            pattern_res = Messages.PATTERN_INSUFFICIENT_DATA
+                            pattern_data = None
                             p_hw, p_dw, p_aw, p_count = 0, 0, 0, 0
 
                             if len(curr_h_form) == AnalysisConstants.PATTERN_FORM_LENGTH and len(
@@ -473,7 +392,6 @@ class AnalyzeView(View):
                                     x_pct = round(p_dw / p_count * 100)
                                     p2_pct = round(p_aw / p_count * 100)
 
-                                    # Коррекция до 100%
                                     total_pct = p1_pct + x_pct + p2_pct
                                     if total_pct != 100:
                                         diff = 100 - total_pct
@@ -523,7 +441,7 @@ class AnalyzeView(View):
 
                             # --- БЛИЗНЕЦЫ ---
                             t_count = twins_qs.count()
-                            twins_data = None  # По умолчанию None, в шаблоне проверим
+                            twins_data = None
 
                             if t_count > 0:
                                 hw_t = twins_qs.filter(home_score_reg__gt=F('away_score_reg')).count()
@@ -537,7 +455,6 @@ class AnalyzeView(View):
                                     x_pct = round(dw_t / total_with_results * 100)
                                     p2_pct = round(aw_t / total_with_results * 100)
 
-                                    # Коррекция до 100%
                                     total_pct = p1_pct + x_pct + p2_pct
                                     if total_pct != 100:
                                         diff = 100 - total_pct
@@ -549,7 +466,6 @@ class AnalyzeView(View):
                                         else:
                                             p2_pct += diff
 
-                                    # ПЕРЕДАЕМ КОРТЕЖ!
                                     twins_data = {
                                         'count': t_count,
                                         'p1': p1_pct,
@@ -591,7 +507,7 @@ class AnalyzeView(View):
                                 if aw_t / total_with_results > AnalysisConstants.WIN_THRESHOLD:
                                     v_p2 += AnalysisConstants.TWINS_WEIGHT
 
-                            if isinstance(pattern_res, dict) and 'count' in pattern_res and pattern_res['count'] > 0:
+                            if pattern_data and pattern_data['count'] > 0:
                                 if p_hw / p_count > AnalysisConstants.WIN_THRESHOLD:
                                     v_p1 += AnalysisConstants.PATTERN_WEIGHT
                                 if p_dw / p_count > AnalysisConstants.DRAW_THRESHOLD:
@@ -653,15 +569,33 @@ class AnalyzeView(View):
                     print(error_msg)
                     continue
 
-        # Сохраняем только сигнальные матчи в сессию
+        # --- СОРТИРУЕМ РЕЗУЛЬТАТЫ ---
+        if results:
+            if current_sort == 'btts_desc':
+                results.sort(key=lambda x: x['poisson_btts']['yes'], reverse=True)
+            elif current_sort == 'over25_desc':
+                results.sort(key=lambda x: x['poisson_over25']['yes'], reverse=True)
+            elif current_sort == 'twins_p1_desc':
+                results.sort(key=lambda x: x.get('twins_data', {}).get('p1', 0), reverse=True)
+            elif current_sort == 'pattern_p1_desc':
+                results.sort(key=lambda x: x.get('pattern_data', {}).get('p1', 0), reverse=True)
+
+        # --- СОХРАНЯЕМ ВСЁ В СЕССИЮ (ВСЕГДА) ---
         cleaned_results = []
         for el in results:
-            if el['verdict'] == constants.Messages.VERDICT_SIGNAL_P1 or \
-                    el['verdict'] == constants.Messages.VERDICT_SIGNAL_P2 or \
-                    el['verdict'] == constants.Messages.VERDICT_SIGNAL_DRAW:
+            if el.get('verdict') in [
+                Messages.VERDICT_SIGNAL_P1,
+                Messages.VERDICT_SIGNAL_P2,
+                Messages.VERDICT_SIGNAL_DRAW
+            ]:
                 cleaned_results.append(el)
 
+        # Сохраняем ВСЕ данные в сессию
         request.session['cleaned_results'] = cleaned_results
+        request.session['results'] = results
+        request.session['raw_text'] = raw_text
+        request.session['unknown_teams'] = list(unknown_teams)  # КРИТИЧЕСКИ ВАЖНО!
+        request.session['current_sort'] = current_sort
 
         logger.info(Messages.TOTAL_MATCHES.format(len(results)))
 
@@ -670,6 +604,7 @@ class AnalyzeView(View):
             'raw_text': raw_text,
             'unknown_teams': sorted(list(unknown_teams)),
             'all_teams': Team.objects.all().order_by('name'),
+            'current_sort': current_sort,
         })
 
 
