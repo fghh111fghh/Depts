@@ -968,7 +968,7 @@ class ExportBetsExcelView(View):
         ws.append([f"Сортировка: {sort_name}"])
         ws.append([])  # Пустая строка
 
-        # Заголовки таблицы
+        # Заголовки таблицы - ДОБАВЛЕНА КОЛОНКА "Ист ТБ"
         headers = [
             'Хозяева',
             'Гости',
@@ -980,6 +980,7 @@ class ExportBetsExcelView(View):
             'ОЗ Нет',
             'Тотал >2.5 Да',
             'Тотал >2.5 Нет',
+            'Ист ТБ',  # НОВАЯ КОЛОНКА
             'Близнецы (П1)',
             'Близнецы (X)',
             'Близнецы (П2)',
@@ -1004,6 +1005,10 @@ class ExportBetsExcelView(View):
             # Коэффициенты
             odds = res.get('odds', (None, None, None))
 
+            # Данные исторического тотала - НОВОЕ ПОЛЕ
+            historical_total = res.get('historical_total', {})
+            historical_tb = f"{historical_total.get('over_25', '')}%" if historical_total and historical_total.get('over_25') else ''
+
             # Данные близнецов
             twins = res.get('twins_data', {})
             twins_p1 = twins.get('p1', '') if twins else ''
@@ -1027,6 +1032,7 @@ class ExportBetsExcelView(View):
                 res.get('poisson_btts', {}).get('no', ''),
                 res.get('poisson_over25', {}).get('yes', ''),
                 res.get('poisson_over25', {}).get('no', ''),
+                historical_tb,  # НОВАЯ КОЛОНКА - Ист ТБ
                 f"{twins_p1}%" if twins_p1 != '' else '',
                 f"{twins_x}%" if twins_x != '' else '',
                 f"{twins_p2}%" if twins_p2 != '' else '',
@@ -1047,7 +1053,7 @@ class ExportBetsExcelView(View):
                         max_length = len(str(cell.value))
                 except:
                     pass
-            ws.column_dimensions[column_letter].width = min(max_length + 2, 30)  # Максимум 30
+            ws.column_dimensions[column_letter].width = min(max_length + 2, 30)
 
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
