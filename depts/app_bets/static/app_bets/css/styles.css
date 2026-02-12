@@ -1151,3 +1151,81 @@
         width: 100%;
     }
 }
+
+/* ====== ФИЛЬТРЫ СОРТИРОВКИ ====== */
+.bets-sort-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.bets-sort-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.bets-sort-label {
+    font-size: 0.85rem;
+    color: var(--gray-text);
+    font-weight: 600;
+}
+
+.bets-sort-form {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.bets-sort-btn {
+    padding: 6px 12px;
+    background: var(--gray-bg);
+    border: 1px solid var(--gray-border);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--gray-text);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bets-sort-btn:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.bets-sort-btn.active {
+    background: var(--info-bg);
+    border-color: var(--info-border);
+    color: var(--info-text);
+    font-weight: 700;
+}
+
+.bets-sort-btn i {
+    margin-right: 4px;
+    font-size: 0.75rem;
+}
+
+/* Адаптивность для фильтров */
+@media (max-width: 768px) {
+    .bets-sort-container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .bets-sort-wrapper {
+        width: 100%;
+    }
+
+    .bets-sort-form {
+        width: 100%;
+    }
+}

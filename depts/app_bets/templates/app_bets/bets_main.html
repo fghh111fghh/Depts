@@ -3,9 +3,37 @@
 
 {% block content %}
 <link rel="stylesheet" href="{% static 'app_bets/css/styles.css' %}">
-<a href="{% url 'app_bets:cleaned' %}" class="bets-filter-btn">
-    <i class="fa-solid fa-filter"></i> Только сигналы
-</a>
+<!-- КНОПКА ТОЛЬКО СИГНАЛЫ + ФИЛЬТРЫ В ОДНОЙ СТРОКЕ -->
+<div class="bets-sort-container">
+    <a href="{% url 'app_bets:cleaned' %}" class="bets-filter-btn">
+        <i class="fa-solid fa-filter"></i> Только сигналы
+    </a>
+
+    <!-- ФИЛЬТРЫ СОРТИРОВКИ -->
+    {% if results %}
+    <div class="bets-sort-wrapper">
+        <span class="bets-sort-label">Сортировка:</span>
+
+        <form method="get" action="." class="bets-sort-form">
+            <button type="submit" name="sort" value="default" class="bets-sort-btn {% if current_sort == 'default' or not current_sort %}active{% endif %}">
+                По умолч.
+            </button>
+            <button type="submit" name="sort" value="btts_desc" class="bets-sort-btn {% if current_sort == 'btts_desc' %}active{% endif %}">
+                ОЗ ↓
+            </button>
+            <button type="submit" name="sort" value="over25_desc" class="bets-sort-btn {% if current_sort == 'over25_desc' %}active{% endif %}">
+                б2.5 ↓
+            </button>
+            <button type="submit" name="sort" value="twins_p1_desc" class="bets-sort-btn {% if current_sort == 'twins_p1_desc' %}active{% endif %}">
+                Близнецы ↓
+            </button>
+            <button type="submit" name="sort" value="pattern_p1_desc" class="bets-sort-btn {% if current_sort == 'pattern_p1_desc' %}active{% endif %}">
+                История ↓
+            </button>
+        </form>
+    </div>
+    {% endif %}
+</div>
 
 <div class="ds-header-block">
     <h1><i class="fa-solid fa-microchip"></i> Векторный Анализ</h1>
