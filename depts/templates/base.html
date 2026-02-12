@@ -29,12 +29,12 @@
                 {% if module.status == 'active' %}
                 <li>
                     <a href="{% url module.url_name %}"
-                       class="nav-link {% if request.resolver_match.view_name in module.url_name %}active-link{% endif %}">
+                       class="nav-link {% if request.resolver_match and request.resolver_match.app_name == module.app_namespace %}active-link{% endif %}">
                         <i class="fa-solid {{ module.icon }}"
                            style="font-size: 1.4rem; color: var(--primary-color);"></i>
                         <span class="nav-link-text">
-                    {{ module.title }}
-                </span>
+                            {{ module.title }}
+                        </span>
                     </a>
                 </li>
                 {% endif %}

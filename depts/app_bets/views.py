@@ -58,6 +58,7 @@ class AnalyzeView(View):
         results = request.session.get('results', [])
         raw_text = request.session.get('raw_text', '')
         unknown_teams = request.session.get('unknown_teams', [])
+        original_results = request.session.get('original_results', [])  # СОХРАНЯЕМ ИСХОДНЫЙ ПОРЯДОК
 
         # Получаем параметр сортировки
         current_sort = request.GET.get('sort') or request.session.get('current_sort', 'default')
@@ -65,18 +66,20 @@ class AnalyzeView(View):
 
         # СОРТИРУЕМ РЕЗУЛЬТАТЫ
         if results:
-            if current_sort == 'btts_desc':
+            if current_sort == 'default':
+                # ВОССТАНАВЛИВАЕМ ИСХОДНЫЙ ПОРЯДОК
+                if original_results:
+                    results[:] = original_results[:]
+            elif current_sort == 'btts_desc':
                 results.sort(key=lambda x: x['poisson_btts']['yes'], reverse=True)
             elif current_sort == 'over25_desc':
                 results.sort(key=lambda x: x['poisson_over25']['yes'], reverse=True)
             elif current_sort == 'twins_p1_desc':
-                results.sort(key=lambda x: x.get('twins_data', {}).get('p1', 0), reverse=True)
+                results.sort(key=lambda x: x.get('twins_data', {}).get('p1', 0) if x.get('twins_data') else 0,
+                             reverse=True)
             elif current_sort == 'pattern_p1_desc':
-                # ИСПРАВЛЕНО: проверяем что pattern_data не None
-                results.sort(
-                    key=lambda x: x['pattern_data'].get('p1', 0) if x['pattern_data'] is not None else 0,
-                    reverse=True
-                )
+                results.sort(key=lambda x: x.get('pattern_data', {}).get('p1', 0) if x.get('pattern_data') else 0,
+                             reverse=True)
 
         all_teams = Team.objects.all().order_by('name')
 
@@ -262,7 +265,8 @@ class AnalyzeView(View):
         Основной метод обработки POST-запроса для анализа матчей.
         """
         # --- ПОЛУЧАЕМ ПАРАМЕТР СОРТИРОВКИ ---
-        current_sort = request.POST.get('sort') or request.GET.get('sort') or request.session.get('current_sort', 'default')
+        current_sort = request.POST.get('sort') or request.GET.get('sort') or request.session.get('current_sort',
+                                                                                                  'default')
         request.session['current_sort'] = current_sort
 
         # Сохраняем оригинальный текст
@@ -302,6 +306,7 @@ class AnalyzeView(View):
             request.session['raw_text'] = raw_text
             request.session['unknown_teams'] = list(unknown_teams)
             request.session['current_sort'] = current_sort
+            request.session['original_results'] = []
 
             return render(request, self.template_name, {
                 'results': results,
@@ -569,18 +574,27 @@ class AnalyzeView(View):
                     print(error_msg)
                     continue
 
-        # --- СОРТИРУЕМ РЕЗУЛЬТАТЫ ---
+        # --- СОХРАНЯЕМ ИСХОДНЫЙ ПОРЯДОК ПЕРЕД СОРТИРОВКОЙ ---
+        if results:
+            # Создаем глубокую копию исходного порядка
+            request.session['original_results'] = [dict(r) for r in results]
+        else:
+            request.session['original_results'] = []
+
+        # --- СОРТИРУЕМ РЕЗУЛЬТАТЫ - ТОЛЬКО ЕСЛИ ОНИ ЕСТЬ ---
         if results:
             if current_sort == 'btts_desc':
                 results.sort(key=lambda x: x['poisson_btts']['yes'], reverse=True)
             elif current_sort == 'over25_desc':
                 results.sort(key=lambda x: x['poisson_over25']['yes'], reverse=True)
             elif current_sort == 'twins_p1_desc':
-                results.sort(key=lambda x: x.get('twins_data', {}).get('p1', 0), reverse=True)
+                results.sort(key=lambda x: x.get('twins_data', {}).get('p1', 0) if x.get('twins_data') else 0,
+                             reverse=True)
             elif current_sort == 'pattern_p1_desc':
-                results.sort(key=lambda x: x.get('pattern_data', {}).get('p1', 0), reverse=True)
+                results.sort(key=lambda x: x.get('pattern_data', {}).get('p1', 0) if x.get('pattern_data') else 0,
+                             reverse=True)
 
-        # --- СОХРАНЯЕМ ВСЁ В СЕССИЮ (ВСЕГДА) ---
+        # --- СОХРАНЯЕМ ВСЁ В СЕССИЮ ---
         cleaned_results = []
         for el in results:
             if el.get('verdict') in [
@@ -590,11 +604,10 @@ class AnalyzeView(View):
             ]:
                 cleaned_results.append(el)
 
-        # Сохраняем ВСЕ данные в сессию
         request.session['cleaned_results'] = cleaned_results
         request.session['results'] = results
         request.session['raw_text'] = raw_text
-        request.session['unknown_teams'] = list(unknown_teams)  # КРИТИЧЕСКИ ВАЖНО!
+        request.session['unknown_teams'] = list(unknown_teams)
         request.session['current_sort'] = current_sort
 
         logger.info(Messages.TOTAL_MATCHES.format(len(results)))
