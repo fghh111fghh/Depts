@@ -34,17 +34,16 @@
             {% endif %}
 
             <div class="verdict-line
-    {% if res.verdict == 'СИГНАЛ: П1' %}verdict-p1
-    {% elif res.verdict == 'СИГНАЛ: П2' %}verdict-p2
-    {% elif res.verdict == 'СИГНАЛ: НИЧЬЯ' %}verdict-draw
-    {% endif %}">
-
-    {% if res.verdict == 'СИГНАЛ: П1' %}П1
-    {% elif res.verdict == 'СИГНАЛ: П2' %}П2
-    {% elif res.verdict == 'СИГНАЛ: НИЧЬЯ' %}НИЧЬЯ
-    {% else %}{{ res.verdict }}
-    {% endif %}
-</div>
+                {% if res.verdict == 'СИГНАЛ: П1' %}verdict-p1
+                {% elif res.verdict == 'СИГНАЛ: П2' %}verdict-p2
+                {% elif res.verdict == 'СИГНАЛ: НИЧЬЯ' %}verdict-draw
+                {% endif %}">
+                {% if res.verdict == 'СИГНАЛ: П1' %}П1
+                {% elif res.verdict == 'СИГНАЛ: П2' %}П2
+                {% elif res.verdict == 'СИГНАЛ: НИЧЬЯ' %}НИЧЬЯ
+                {% else %}{{ res.verdict }}
+                {% endif %}
+            </div>
         </div>
 
         <!-- Пуассон -->
@@ -74,9 +73,9 @@
                     {% endfor %}
                 </div>
             </div>
-        </div> <!-- Закрываем poisson-row -->
+        </div>
 
-        <!-- Статистика BTTS и Тотала - отдельный блок -->
+        <!-- Статистика BTTS и Тотала -->
         <div class="bets-info-row poisson-stats-row">
             <div class="poisson-stat-box">
                 <div class="stat-box-header">
@@ -111,7 +110,7 @@
             </div>
         </div>
 
-        <!-- Twins -->
+        <!-- Twins - ИСПРАВЛЕНО -->
         <div class="bets-info-row twins-row">
             <div class="twins-count">
                 <span class="bets-stat-label">Игр-близнецов (кэфы)</span>
@@ -119,7 +118,24 @@
             </div>
             <div class="twins-distribution">
                 <span class="bets-stat-label">Вероятность по близнецам</span>
-                <span class="bets-stat-value dist-value">{{ res.twins_dist }}</span>
+                <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 5px;">
+                    {% if res.twins_data %}
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #28a745; font-weight: 600;">П1</span>
+                            <span style="color: #155724; font-weight: 700;">{{ res.twins_data.p1 }}%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #856404; font-weight: 600;">X</span>
+                            <span style="color: #856404; font-weight: 700;">{{ res.twins_data.x }}%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #dc3545; font-weight: 600;">П2</span>
+                            <span style="color: #721c24; font-weight: 700;">{{ res.twins_data.p2 }}%</span>
+                        </div>
+                    {% else %}
+                        <span class="bets-stat-value dist-value">Нет данных</span>
+                    {% endif %}
+                </div>
             </div>
         </div>
 
@@ -140,14 +156,11 @@
                     {% if res.h2h_list %}
                         {% for match in res.h2h_list|slice:":5" %}
                         <div class="h2h-item-compact">
-                            <!-- Верхняя строка: дата -->
                             <div class="h2h-date-compact">
                                 {{ match.date|default:"-" }}
                             </div>
-                            <!-- Нижняя строка: счет с цветом -->
                             <div class="h2h-score-container">
                                 {% if match.score %}
-                                    <!-- Простой способ определения цвета без фильтра split -->
                                     {% if ":" in match.score %}
                                         {% with score_str=match.score|stringformat:"s" %}
                                             {% with home_goals=score_str|slice:":1" away_goals=score_str|slice:"2:" %}
@@ -176,32 +189,46 @@
             </div>
         </div>
 
-        <!-- Паттерны -->
+        <!-- Паттерны - ИСПРАВЛЕНО -->
         <div class="bets-info-row pattern-row">
             <div class="pattern-container">
-                <!-- ТОЧНО ТАКОЙ ЖЕ КРУПНЫЙ ШРИФТ -->
                 <div class="pattern-big-font">
                     <span class="pattern-title-big">Исторический шаблон (последние 4 игры)</span>
                     <span class="pattern-stats-big">
                         совпадений: <strong>{{ res.pattern_data.count|default:"0" }}</strong>
                         <span class="pattern-sep-big">|</span>
-                        итог: <strong>{{ res.pattern_data.dist|default:"Н/Д" }}</strong>
                     </span>
                 </div>
 
                 {% if res.pattern_data and res.pattern_data.pattern %}
-                <div class="pattern-badges-row">
-                    {% for char in res.pattern_data.pattern %}
-                        {% if char == 'В' %}
-                        <span class="p-badge v-win">В</span>
-                        {% elif char == 'П' %}
-                        <span class="p-badge v-loss">П</span>
-                        {% elif char == 'Н' %}
-                        <span class="p-badge v-draw">Н</span>
-                        {% elif char == '-' %}
-                        <span class="p-separator">—</span>
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-top: 10px;">
+                    <!-- Квадратики -->
+                    <div class="pattern-badges-row">
+                        {% for char in res.pattern_data.pattern %}
+                            {% if char == 'В' %}
+                            <span class="p-badge v-win">В</span>
+                            {% elif char == 'П' %}
+                            <span class="p-badge v-loss">П</span>
+                            {% elif char == 'Н' %}
+                            <span class="p-badge v-draw">Н</span>
+                            {% elif char == '-' %}
+                            <span class="p-separator">—</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <!-- Проценты цветные -->
+                    <div style="display: flex; align-items: center; gap: 15px; font-size: 0.95rem; font-weight: 700;">
+                        {% if res.pattern_data.p1 is not None %}
+                        <span style="color: #28a745;">П1 {{ res.pattern_data.p1 }}%</span>
                         {% endif %}
-                    {% endfor %}
+                        {% if res.pattern_data.x is not None %}
+                        <span style="color: #856404;">X {{ res.pattern_data.x }}%</span>
+                        {% endif %}
+                        {% if res.pattern_data.p2 is not None %}
+                        <span style="color: #dc3545;">П2 {{ res.pattern_data.p2 }}%</span>
+                        {% endif %}
+                    </div>
                 </div>
                 {% endif %}
             </div>
@@ -229,7 +256,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Цвета для истории встреч через JavaScript
     document.querySelectorAll('.h2h-score').forEach(function(scoreElement) {
         var scoreText = scoreElement.textContent.trim();
         if (scoreText.includes(':')) {
@@ -237,11 +263,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (parts.length === 2) {
                 var home = parseInt(parts[0]) || 0;
                 var away = parseInt(parts[1]) || 0;
-
-                // Убираем все классы цветов
                 scoreElement.classList.remove('h2h-win', 'h2h-loss', 'h2h-draw');
-
-                // Добавляем нужный класс
                 if (home > away) {
                     scoreElement.classList.add('h2h-win');
                 } else if (home < away) {
