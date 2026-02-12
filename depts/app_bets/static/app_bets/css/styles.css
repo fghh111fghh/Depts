@@ -23,12 +23,19 @@
     --poisson-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
+/* ====== КОНТЕЙНЕР ДЛЯ ЛЕВЫХ КНОПОК ====== */
+.bets-actions-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
 /* ====== КНОПКА ФИЛЬТРА ====== */
 .bets-filter-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 15px;
     padding: 8px 16px;
     background: #3498db;
     color: white;
@@ -36,9 +43,33 @@
     border-radius: 4px;
     font-size: 0.9rem;
     transition: opacity 0.2s;
+    height: 40px;
+    box-sizing: border-box;
+    margin-bottom: 0;
 }
 
 .bets-filter-btn:hover {
+    opacity: 0.9;
+}
+
+/* ====== КНОПКА ЭКСПОРТА ====== */
+.bets-export-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    background: #27ae60;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: opacity 0.2s;
+    gap: 8px;
+    height: 40px;
+    box-sizing: border-box;
+}
+
+.bets-export-btn:hover {
     opacity: 0.9;
 }
 
@@ -1042,6 +1073,68 @@
     width: 100%;
 }
 
+/* ====== ФИЛЬТРЫ СОРТИРОВКИ ====== */
+.bets-sort-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.bets-sort-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.bets-sort-label {
+    font-size: 0.85rem;
+    color: var(--gray-text);
+    font-weight: 600;
+}
+
+.bets-sort-form {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.bets-sort-btn {
+    padding: 6px 12px;
+    background: var(--gray-bg);
+    border: 1px solid var(--gray-border);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--gray-text);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bets-sort-btn:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.bets-sort-btn.active {
+    background: var(--info-bg);
+    border-color: var(--info-border);
+    color: var(--info-text);
+    font-weight: 700;
+}
+
+.bets-sort-btn i {
+    margin-right: 4px;
+    font-size: 0.75rem;
+}
+
 /* ====== АДАПТИВНОСТЬ ====== */
 @media (max-width: 1024px) {
     .bets-main-grid {
@@ -1108,6 +1201,19 @@
         flex-direction: column;
         align-items: flex-start;
     }
+
+    .bets-sort-container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .bets-sort-wrapper {
+        width: 100%;
+    }
+
+    .bets-sort-form {
+        width: 100%;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1150,101 +1256,4 @@
         margin-top: 5px;
         width: 100%;
     }
-}
-
-/* ====== ФИЛЬТРЫ СОРТИРОВКИ ====== */
-.bets-sort-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.bets-sort-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.bets-sort-label {
-    font-size: 0.85rem;
-    color: var(--gray-text);
-    font-weight: 600;
-}
-
-.bets-sort-form {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    flex-wrap: wrap;
-}
-
-.bets-sort-btn {
-    padding: 6px 12px;
-    background: var(--gray-bg);
-    border: 1px solid var(--gray-border);
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--gray-text);
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.bets-sort-btn:hover {
-    background: #e9ecef;
-    border-color: #adb5bd;
-}
-
-.bets-sort-btn.active {
-    background: var(--info-bg);
-    border-color: var(--info-border);
-    color: var(--info-text);
-    font-weight: 700;
-}
-
-.bets-sort-btn i {
-    margin-right: 4px;
-    font-size: 0.75rem;
-}
-
-/* Адаптивность для фильтров */
-@media (max-width: 768px) {
-    .bets-sort-container {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .bets-sort-wrapper {
-        width: 100%;
-    }
-
-    .bets-sort-form {
-        width: 100%;
-    }
-}
-
-/* ====== КНОПКА ЭКСПОРТА ====== */
-.bets-export-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 16px;
-    background: #27ae60;
-    color: white;
-    text-decoration: none;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    transition: opacity 0.2s;
-    gap: 8px;
-}
-
-.bets-export-btn:hover {
-    opacity: 0.9;
 }

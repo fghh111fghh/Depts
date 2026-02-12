@@ -3,9 +3,9 @@
 
 {% block content %}
 <link rel="stylesheet" href="{% static 'app_bets/css/styles.css' %}">
-<!-- КНОПКА ТОЛЬКО СИГНАЛЫ + ФИЛЬТРЫ В ОДНОЙ СТРОКЕ -->
+<!-- КНОПКА ТОЛЬКО СИГНАЛЫ + ФИЛЬТРЫ + ЭКСПОРТ В ОДНОЙ СТРОКЕ -->
 <div class="bets-sort-container">
-    <div style="display: flex; align-items: center; gap: 10px;">
+    <div class="bets-actions-wrapper">
         <a href="{% url 'app_bets:cleaned' %}" class="bets-filter-btn">
             <i class="fa-solid fa-filter"></i> Только сигналы
         </a>
@@ -20,7 +20,6 @@
     {% if results %}
     <div class="bets-sort-wrapper">
         <span class="bets-sort-label">Сортировка:</span>
-
         <form method="get" action="." class="bets-sort-form">
             <button type="submit" name="sort" value="default" class="bets-sort-btn {% if current_sort == 'default' or not current_sort %}active{% endif %}">
                 По умолч.
