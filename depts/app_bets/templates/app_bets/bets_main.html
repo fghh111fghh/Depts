@@ -3,7 +3,8 @@
 
 {% block content %}
 <link rel="stylesheet" href="{% static 'app_bets/css/styles.css' %}">
-<a href="{% url 'app_bets:cleaned' %}" style="display: inline-block; margin-bottom: 15px; padding: 8px 16px; background: #3498db; color: white; text-decoration: none; border-radius: 4px;">
+<a href="{% url 'app_bets:cleaned' %}"
+   style="display: inline-block; margin-bottom: 15px; padding: 8px 16px; background: #3498db; color: white; text-decoration: none; border-radius: 4px;">
     <i class="fa-solid fa-filter"></i> Только сигналы
 </a>
 
@@ -126,165 +127,214 @@
 
     <div class="bets-results-area">
         {% if results %}
-            {% for res in results %}
-            <div class="bets-result-card" style="margin-bottom: 20px; padding: 20px;">
-                <!-- Верхняя строка -->
-                <div class="match-header-line">
-                    <div class="match-title-line">
-                        <strong class="match-name-large">{{ res.match }}</strong>
-                        <div class="league-line">{{ res.league }}</div>
-                    </div>
+        {% for res in results %}
+        <div class="bets-result-card" style="margin-bottom: 20px; padding: 20px;">
+            <!-- Верхняя строка -->
+            <div class="match-header-line">
+                <div class="match-title-line">
+                    <strong class="match-name-large">{{ res.match }}</strong>
+                    <div class="league-line">{{ res.league }}</div>
+                </div>
 
-                    {% if res.odds %}
-                    <div class="odds-line">
-                        <div class="odd-box-line">
-                            <div class="odd-label-line">P1</div>
-                            <div class="odd-value-line">{{ res.odds.0|default:"-"|floatformat:2 }}</div>
-                        </div>
-                        <div class="odd-sep-line">|</div>
-                        <div class="odd-box-line">
-                            <div class="odd-label-line">X</div>
-                            <div class="odd-value-line">{{ res.odds.1|default:"-"|floatformat:2 }}</div>
-                        </div>
-                        <div class="odd-sep-line">|</div>
-                        <div class="odd-box-line">
-                            <div class="odd-label-line">P2</div>
-                            <div class="odd-value-line">{{ res.odds.2|default:"-"|floatformat:2 }}</div>
-                        </div>
+                {% if res.odds %}
+                <div class="odds-line">
+                    <div class="odd-box-line">
+                        <div class="odd-label-line">P1</div>
+                        <div class="odd-value-line">{{ res.odds.0|default:"-"|floatformat:2 }}</div>
                     </div>
-                    {% endif %}
+                    <div class="odd-sep-line">|</div>
+                    <div class="odd-box-line">
+                        <div class="odd-label-line">X</div>
+                        <div class="odd-value-line">{{ res.odds.1|default:"-"|floatformat:2 }}</div>
+                    </div>
+                    <div class="odd-sep-line">|</div>
+                    <div class="odd-box-line">
+                        <div class="odd-label-line">P2</div>
+                        <div class="odd-value-line">{{ res.odds.2|default:"-"|floatformat:2 }}</div>
+                    </div>
+                </div>
+                {% endif %}
 
-                    <!-- ЦВЕТНОЙ КВАДРАТИК ВЕРДИКТА -->
-                    <div class="verdict-line
+                <!-- ЦВЕТНОЙ КВАДРАТИК ВЕРДИКТА -->
+                <div class="verdict-line
                         {% if res.verdict == 'СИГНАЛ: П1' %}verdict-p1
                         {% elif res.verdict == 'СИГНАЛ: П2' %}verdict-p2
                         {% elif res.verdict == 'СИГНАЛ: НИЧЬЯ' %}verdict-draw
                         {% endif %}">
-                        {% if res.verdict == 'СИГНАЛ: П1' %}П1
-                        {% elif res.verdict == 'СИГНАЛ: П2' %}П2
-                        {% elif res.verdict == 'СИГНАЛ: НИЧЬЯ' %}НИЧЬЯ
-                        {% else %}{{ res.verdict }}
-                        {% endif %}
-                    </div>
+                    {% if res.verdict == 'СИГНАЛ: П1' %}П1
+                    {% elif res.verdict == 'СИГНАЛ: П2' %}П2
+                    {% elif res.verdict == 'СИГНАЛ: НИЧЬЯ' %}НИЧЬЯ
+                    {% else %}{{ res.verdict }}
+                    {% endif %}
                 </div>
+            </div>
 
-                <!-- Пуассон и Близнецы в одной строке -->
-                <div class="poisson-twins-grid" style="margin-top: 15px;">
-                    <!-- Левый блок - Пуассон -->
-                    <div class="poisson-main-block" style="padding: 15px;">
-                        <h4 class="poisson-title" style="margin-top: 0; margin-bottom: 10px; font-size: 1rem;">
-                            <i class="fa-solid fa-calculator"></i> Пуассон: {{ res.poisson_l }}
-                        </h4>
+            <!-- Пуассон и Близнецы в одной строке -->
+            <div class="poisson-twins-grid" style="margin-top: 15px;">
+                <!-- Левый блок - Пуассон -->
+                <div class="poisson-main-block" style="padding: 15px;">
+                    <h4 class="poisson-title" style="margin-top: 0; margin-bottom: 10px; font-size: 1rem;">
+                        <i class="fa-solid fa-calculator"></i> Пуассон: {{ res.poisson_l }}
+                    </h4>
 
-                        <!-- ТОП-5 СЧЕТОВ В ЦВЕТНЫХ КВАДРАТИКАХ -->
-                        <strong style="font-size:0.75rem; color:#6c757d;">Вероятные счета:</strong>
-                        <div class="scores-list" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
-                            {% for s in res.poisson_top|slice:":5" %}
-                            <div class="score-rectangle" style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 8px 12px; border-radius: 6px; min-width: 70px; height: 50px; box-shadow: 0 3px 6px rgba(50, 50, 93, 0.11); text-align: center;">
-                                <span class="score-value" style="font-size: 1.1rem; font-weight: 800; margin-bottom: 2px; line-height: 1;">{{ s.score }}</span>
-                                <span class="prob-value" style="font-size: 0.8rem; opacity: 0.9;">{{ s.prob|floatformat:1 }}%</span>
-                            </div>
-                            {% endfor %}
+                    <!-- ТОП-5 СЧЕТОВ В ЦВЕТНЫХ КВАДРАТИКАХ -->
+                    <strong style="font-size:0.75rem; color:#6c757d;">Вероятные счета:</strong>
+                    <div class="scores-list" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                        {% for s in res.poisson_top|slice:":5" %}
+                        <div class="score-rectangle"
+                             style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 8px 12px; border-radius: 6px; min-width: 70px; height: 50px; box-shadow: 0 3px 6px rgba(50, 50, 93, 0.11); text-align: center;">
+                            <span class="score-value"
+                                  style="font-size: 1.1rem; font-weight: 800; margin-bottom: 2px; line-height: 1;">{{ s.score }}</span>
+                            <span class="prob-value" style="font-size: 0.8rem; opacity: 0.9;">{{ s.prob|floatformat:1 }}%</span>
                         </div>
-
-                        <!-- BTTS и Тотал компактно -->
-                        <div style="display: flex; gap: 20px; margin-top: 15px;">
-                            <div style="text-align: center; min-width: 100px;">
-                                <div style="font-size:0.7rem; color:#6c757d;">Обе забьют</div>
-                                <div style="display: flex; justify-content: center; gap: 12px; margin-top: 3px;">
-                                    <div><span style="color:#28a745; font-weight: bold;">{{ res.poisson_btts.yes|floatformat:1 }}%</span></div>
-                                    <div><span style="color:#dc3545; font-weight: bold;">{{ res.poisson_btts.no|floatformat:1 }}%</span></div>
-                                </div>
-                            </div>
-                            <div style="text-align: center; min-width: 100px;">
-                                <div style="font-size:0.7rem; color:#6c757d;">Тотал > 2.5</div>
-                                <div style="display: flex; justify-content: center; gap: 12px; margin-top: 3px;">
-                                    <div><span style="color:#28a745; font-weight: bold;">{{ res.poisson_over25.yes|floatformat:1 }}%</span></div>
-                                    <div><span style="color:#dc3545; font-weight: bold;">{{ res.poisson_over25.no|floatformat:1 }}%</span></div>
-                                </div>
-                            </div>
-                        </div>
+                        {% endfor %}
                     </div>
 
-                    <!-- Правый блок - Близнецы -->
-                    <div class="twins-main-block" style="padding: 15px;">
-                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <h4 class="twins-title" style="margin: 0; font-size: 1rem;">
-                                <i class="fa-solid fa-copy"></i> Близнецы
-                            </h4>
-                            <div class="twins-count-value" style="font-size: 1.5rem; font-weight: bold; color: #2980b9;">{{ res.twins_count }}</div>
+                    <!-- BTTS и Тотал компактно -->
+                    <div style="display: flex; gap: 20px; margin-top: 15px;">
+                        <div style="text-align: center; min-width: 100px;">
+                            <div style="font-size:0.7rem; color:#6c757d;">Обе забьют</div>
+                            <div style="display: flex; justify-content: center; gap: 12px; margin-top: 3px;">
+                                <div><span style="color:#28a745; font-weight: bold;">{{ res.poisson_btts.yes|floatformat:1 }}%</span>
+                                </div>
+                                <div><span style="color:#dc3545; font-weight: bold;">{{ res.poisson_btts.no|floatformat:1 }}%</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="twins-dist-container" style="margin-top: 10px; padding: 10px; background: #fff; border-radius: 6px; border: 1px solid #ced4da;">
-                            <div class="twins-dist-value" style="font-size: 0.85rem; color: #2c3e50; text-align: center; font-weight: bold; line-height: 1.4;">{{ res.twins_dist }}</div>
+                        <div style="text-align: center; min-width: 100px;">
+                            <div style="font-size:0.7rem; color:#6c757d;">Тотал > 2.5</div>
+                            <div style="display: flex; justify-content: center; gap: 12px; margin-top: 3px;">
+                                <div><span style="color:#28a745; font-weight: bold;">{{ res.poisson_over25.yes|floatformat:1 }}%</span>
+                                </div>
+                                <div><span style="color:#dc3545; font-weight: bold;">{{ res.poisson_over25.no|floatformat:1 }}%</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Исторический шаблон - компактно -->
-                <div style="margin-top: 15px; background:#fffcf0; padding: 12px; border-radius: 6px; border:1px solid #f1e7bc;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size:0.8rem; color:#856404; font-weight:600;">
+                <!-- Правый блок - Близнецы (кэфы) -->
+<div class="twins-main-block" style="padding: 15px; display: flex; flex-direction: column;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <h4 class="twins-title" style="margin: 0; font-size: 1rem;">
+            <i class="fa-solid fa-copy"></i> Близнецы (кэфы)
+        </h4>
+        <div class="twins-count-value" style="font-size: 1.5rem; font-weight: bold; color: #2980b9;">{{ res.twins_count }}</div>
+    </div>
+
+    <!-- РАСПРЕДЕЛЕНИЕ В СТОЛБИК С ЦВЕТАМИ И ПРОЦЕНТАМИ -->
+    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
+        {% if res.twins_dist and res.twins_dist != "Нет данных" %}
+            <!-- П1 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #d4edda; border-radius: 6px; border-left: 6px solid #28a745;">
+                <span style="font-weight: 700; color: #155724; font-size: 0.95rem;">П1</span>
+                <span style="font-weight: 800; color: #155724; font-size: 1.1rem;">
+                    {{ res.twins_dist|slice:"4:7"|cut:" " }}%
+                </span>
+            </div>
+
+            <!-- X -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #fff3cd; border-radius: 6px; border-left: 6px solid #ffc107;">
+                <span style="font-weight: 700; color: #856404; font-size: 0.95rem;">X</span>
+                <span style="font-weight: 800; color: #856404; font-size: 1.1rem;">
+                    {{ res.twins_dist|slice:"13:16"|cut:" " }}%
+                </span>
+            </div>
+
+            <!-- П2 -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f8d7da; border-radius: 6px; border-left: 6px solid #dc3545;">
+                <span style="font-weight: 700; color: #721c24; font-size: 0.95rem;">П2</span>
+                <span style="font-weight: 800; color: #721c24; font-size: 1.1rem;">
+                    {{ res.twins_dist|slice:"22:25"|cut:" " }}%
+                </span>
+            </div>
+        {% else %}
+            <div style="color:#6c757d; font-style:italic; font-size:0.9rem; padding: 10px; text-align: center;">{{ res.twins_dist }}</div>
+        {% endif %}
+    </div>
+</div>
+            </div>
+
+            <!-- Исторический шаблон - как в cleaned.html -->
+            <div style="margin-top: 15px; background:#fffcf0; padding: 15px; border-radius: 8px; border:1px solid #f1e7bc;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size:0.85rem; color:#856404; font-weight:700;">
                             <i class="fa-solid fa-clock-rotate-left"></i> Исторический шаблон (серия x4)
                         </span>
-                        {% if res.pattern_data.count %}
-                            <span style="font-size:0.75rem; background:#fff; padding:2px 8px; border-radius:12px; border:1px solid #f1e7bc;">
+                    {% if res.pattern_data.count %}
+                    <span style="font-size:1rem; font-weight:800; color:#856404; background:#fff; padding:4px 12px; border-radius:20px; border:2px solid #f1e7bc;">
                                 Найдено: {{ res.pattern_data.count }}
                             </span>
-                        {% endif %}
-                    </div>
-
-                    {% if res.pattern_data.pattern %}
-                        <div style="display:flex; align-items:center; gap:15px; margin-top:8px;">
-                            <div style="background:#fff; padding:4px 12px; border-radius:4px; border:1px solid #f1e7bc; font-family:monospace; font-size:1rem; font-weight:bold;">
-                                {{ res.pattern_data.pattern }}
-                            </div>
-                            <div style="font-size:0.85rem; color:#2c3e50; font-weight:500;">
-                                {{ res.pattern_data.dist }}
-                            </div>
-                        </div>
-                    {% else %}
-                        <div style="color:#6c757d; font-style:italic; font-size:0.8rem; margin-top:5px;">{{ res.pattern_data }}</div>
                     {% endif %}
                 </div>
 
-                <!-- Личные встречи - компактно -->
-                <div style="margin-top: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="font-size:0.8rem; color:#2c3e50; font-weight:600;">
-                            <i class="fa-solid fa-history"></i> Личные встречи (в этом статусе)
-                        </span>
-                        <span style="font-size:0.75rem; color:#6c757d; background:#f8f9fa; padding:2px 8px; border-radius:12px;">
-                            Найдено: {{ res.h2h_total }}
-                        </span>
-                    </div>
-
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap; max-height: 85px; overflow-y: auto; padding: 2px;">
-                        {% for h in res.h2h_list|slice:":5" %}
-                            <div style="display: flex; flex-direction: column; align-items: center; background: #f8f9fa; border-radius: 6px; padding: 6px 8px; min-width: 65px; border: 1px solid #e9ecef;">
-                                <span style="font-size:0.65rem; color:#6c757d; margin-bottom: 2px;">{{ h.date }}</span>
-                                <span style="font-size:0.95rem; font-weight:bold;
-                                    {% with score_parts=h.score|stringformat:"s" %}
-                                        {% with home=score_parts|slice:":1" away=score_parts|slice:"2:" %}
-                                            {% if home|add:"0" > away|add:"0" %}color:#28a745;
-                                            {% elif home|add:"0" < away|add:"0" %}color:#dc3545;
-                                            {% else %}color:#6c757d;{% endif %}
-                                        {% endwith %}
-                                    {% endwith %}">
-                                    {{ h.score }}
-                                </span>
-                            </div>
-                        {% empty %}
-                            <span style="font-size:0.8rem; color:#adb5bd; padding: 8px;">Игр в таком статусе не найдено</span>
+                {% if res.pattern_data.pattern %}
+                <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+                    <!-- ЦВЕТНЫЕ КВАДРАТИКИ ПАТТЕРНОВ -->
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        {% for char in res.pattern_data.pattern %}
+                        {% if char == 'В' %}
+                        <span style="display: inline-block; width: 32px; height: 32px; background-color: #2ecc71; color: white; font-weight: 900; border-radius: 6px; text-align: center; line-height: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">В</span>
+                        {% elif char == 'П' %}
+                        <span style="display: inline-block; width: 32px; height: 32px; background-color: #e74c3c; color: white; font-weight: 900; border-radius: 6px; text-align: center; line-height: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">П</span>
+                        {% elif char == 'Н' %}
+                        <span style="display: inline-block; width: 32px; height: 32px; background-color: #95a5a6; color: white; font-weight: 900; border-radius: 6px; text-align: center; line-height: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Н</span>
+                        {% elif char == '-' %}
+                        <span style="margin: 0 4px; color: #ccc; font-weight: bold; font-size: 1.2rem;">—</span>
+                        {% endif %}
                         {% endfor %}
                     </div>
+
+                    <!-- ПРОЦЕНТЫ В СТРОКУ -->
+                    <div style="font-size:0.9rem; color:#2c3e50; font-weight:600; background:#fff; padding:6px 15px; border-radius:20px; border:1px solid #f1e7bc;">
+                        {{ res.pattern_data.dist }}
+                    </div>
+                </div>
+                {% else %}
+                <div style="color:#6c757d; font-style:italic; font-size:0.9rem; padding: 5px 0;">{{ res.pattern_data
+                    }}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Личные встречи - компактно -->
+            <div style="margin-top: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size:0.85rem; color:#2c3e50; font-weight:700;">
+                            <i class="fa-solid fa-history"></i> Личные встречи (в этом статусе)
+                        </span>
+                    <span style="font-size:0.9rem; font-weight:700; color:#6c757d; background:#f8f9fa; padding:4px 12px; border-radius:20px; border:1px solid #dee2e6;">
+                            Найдено: {{ res.h2h_total }}
+                        </span>
+                </div>
+
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; max-height: 90px; overflow-y: auto; padding: 2px;">
+                    {% for h in res.h2h_list|slice:":5" %}
+                    <div style="display: flex; flex-direction: column; align-items: center; background: #f8f9fa; border-radius: 8px; padding: 6px 10px; min-width: 70px; border: 1px solid #e9ecef; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                        <span style="font-size:0.7rem; color:#6c757d; margin-bottom: 3px; font-weight:500;">{{ h.date }}</span>
+                        <span style="font-size:1rem; font-weight:800;
+                                    {% with score_parts=h.score|stringformat:" s" %}
+                        {% with home=score_parts|slice:":1" away=score_parts|slice:"2:" %}
+                        {% if home|add:"0" > away|add:"0" %}color:#28a745;
+                        {% elif home|add:"0" < away|add:"0" %}color:#dc3545;
+                        {% else %}color:#6c757d;{% endif %}
+                        {% endwith %}
+                        {% endwith %}">
+                        {{ h.score }}
+                        </span>
+                    </div>
+                    {% empty %}
+                    <span style="font-size:0.9rem; color:#adb5bd; padding: 10px;">Игр в таком статусе не найдено</span>
+                    {% endfor %}
                 </div>
             </div>
-            {% endfor %}
+        </div>
+        {% endfor %}
         {% else %}
-            <div style="text-align: center; padding: 100px; color: #dee2e6;">
-                <i class="fa-solid fa-futbol" style="font-size: 5rem; opacity:0.2;"></i>
-                <p>Введите данные матча для начала анализа</p>
-            </div>
+        <div style="text-align: center; padding: 100px; color: #dee2e6;">
+            <i class="fa-solid fa-futbol" style="font-size: 5rem; opacity:0.2;"></i>
+            <p>Введите данные матча для начала анализа</p>
+        </div>
         {% endif %}
     </div>
 </div>
