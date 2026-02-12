@@ -44,6 +44,8 @@
         <div class="bets-input-pane">
             <form method="post" action=".">
                 {% csrf_token %}
+                <!-- Сохраняем сортировку в POST -->
+                <input type="hidden" name="sort" value="{{ current_sort }}">
                 <button type="submit" class="bets-btn-analyze">Рассчитать вероятность</button>
 
                 <!-- СЧЕТЧИКИ РЕЗУЛЬТАТОВ -->
@@ -90,6 +92,7 @@
                 {% csrf_token %}
                 <input type="hidden" name="matches_text" value="{{ raw_text }}">
                 <input type="hidden" name="alias_name" value="{{ name }}">
+                <input type="hidden" name="sort" value="{{ current_sort }}">
                 <div class="bets-alias-name">{{ name }}</div>
                 <select name="team_id" required class="bets-alias-select">
                     <option value="">-- выбери из базы --</option>
