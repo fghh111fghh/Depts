@@ -183,8 +183,7 @@
                         {% for s in res.poisson_top|slice:":5" %}
                         <div class="score-rectangle"
                              style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 8px 12px; border-radius: 6px; min-width: 70px; height: 50px; box-shadow: 0 3px 6px rgba(50, 50, 93, 0.11); text-align: center;">
-                            <span class="score-value"
-                                  style="font-size: 1.1rem; font-weight: 800; margin-bottom: 2px; line-height: 1;">{{ s.score }}</span>
+                            <span class="score-value" style="font-size: 1.1rem; font-weight: 800; margin-bottom: 2px; line-height: 1;">{{ s.score }}</span>
                             <span class="prob-value" style="font-size: 0.8rem; opacity: 0.9;">{{ s.prob|floatformat:1 }}%</span>
                         </div>
                         {% endfor %}
@@ -195,25 +194,21 @@
                         <div style="text-align: center; min-width: 100px;">
                             <div style="font-size:0.7rem; color:#6c757d;">Обе забьют</div>
                             <div style="display: flex; justify-content: center; gap: 12px; margin-top: 3px;">
-                                <div><span style="color:#28a745; font-weight: bold;">{{ res.poisson_btts.yes|floatformat:1 }}%</span>
-                                </div>
-                                <div><span style="color:#dc3545; font-weight: bold;">{{ res.poisson_btts.no|floatformat:1 }}%</span>
-                                </div>
+                                <div><span style="color:#28a745; font-weight: bold;">{{ res.poisson_btts.yes|floatformat:1 }}%</span></div>
+                                <div><span style="color:#dc3545; font-weight: bold;">{{ res.poisson_btts.no|floatformat:1 }}%</span></div>
                             </div>
                         </div>
                         <div style="text-align: center; min-width: 100px;">
                             <div style="font-size:0.7rem; color:#6c757d;">Тотал > 2.5</div>
                             <div style="display: flex; justify-content: center; gap: 12px; margin-top: 3px;">
-                                <div><span style="color:#28a745; font-weight: bold;">{{ res.poisson_over25.yes|floatformat:1 }}%</span>
-                                </div>
-                                <div><span style="color:#dc3545; font-weight: bold;">{{ res.poisson_over25.no|floatformat:1 }}%</span>
-                                </div>
+                                <div><span style="color:#28a745; font-weight: bold;">{{ res.poisson_over25.yes|floatformat:1 }}%</span></div>
+                                <div><span style="color:#dc3545; font-weight: bold;">{{ res.poisson_over25.no|floatformat:1 }}%</span></div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Правый блок - Близнецы (кэфы) -->
+                <!-- Правый блок - Близнецы (кэфы) - УПРОЩЕНО -->
 <div class="twins-main-block" style="padding: 15px; display: flex; flex-direction: column;">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
         <h4 class="twins-title" style="margin: 0; font-size: 1rem;">
@@ -222,90 +217,70 @@
         <div class="twins-count-value" style="font-size: 1.5rem; font-weight: bold; color: #2980b9;">{{ res.twins_count }}</div>
     </div>
 
-    <!-- РАСПРЕДЕЛЕНИЕ В СТОЛБИК С ЦВЕТАМИ И ПРОЦЕНТАМИ -->
     <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
         {% if res.twins_dist and res.twins_dist != "Нет данных" %}
-            <!-- П1 -->
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #d4edda; border-radius: 6px; border-left: 6px solid #28a745;">
-                <span style="font-weight: 700; color: #155724; font-size: 0.95rem;">П1</span>
-                <span style="font-weight: 800; color: #155724; font-size: 1.1rem;">
-                    {{ res.twins_dist|slice:"4:7"|cut:" " }}%
-                </span>
-            </div>
-
-            <!-- X -->
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #fff3cd; border-radius: 6px; border-left: 6px solid #ffc107;">
-                <span style="font-weight: 700; color: #856404; font-size: 0.95rem;">X</span>
-                <span style="font-weight: 800; color: #856404; font-size: 1.1rem;">
-                    {{ res.twins_dist|slice:"13:16"|cut:" " }}%
-                </span>
-            </div>
-
-            <!-- П2 -->
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f8d7da; border-radius: 6px; border-left: 6px solid #dc3545;">
-                <span style="font-weight: 700; color: #721c24; font-size: 0.95rem;">П2</span>
-                <span style="font-weight: 800; color: #721c24; font-size: 1.1rem;">
-                    {{ res.twins_dist|slice:"22:25"|cut:" " }}%
-                </span>
+            <!-- ПРОСТО ВЫВОДИМ ГОТОВУЮ СТРОКУ -->
+            <div style="background: #d4edda; padding: 8px 12px; border-radius: 6px; border-left: 6px solid #28a745;">
+                {{ res.twins_dist }}
             </div>
         {% else %}
-            <div style="color:#6c757d; font-style:italic; font-size:0.9rem; padding: 10px; text-align: center;">{{ res.twins_dist }}</div>
+            <div style="color:#6c757d; font-style:italic; font-size:0.9rem; padding: 10px; text-align: center;">
+                {{ res.twins_dist }}
+            </div>
         {% endif %}
     </div>
 </div>
             </div>
 
-            <!-- Исторический шаблон - как в cleaned.html -->
-            <div style="margin-top: 15px; background:#fffcf0; padding: 15px; border-radius: 8px; border:1px solid #f1e7bc;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <span style="font-size:0.85rem; color:#856404; font-weight:700;">
-                            <i class="fa-solid fa-clock-rotate-left"></i> Исторический шаблон (серия x4)
-                        </span>
-                    {% if res.pattern_data.count %}
-                    <span style="font-size:1rem; font-weight:800; color:#856404; background:#fff; padding:4px 12px; border-radius:20px; border:2px solid #f1e7bc;">
-                                Найдено: {{ res.pattern_data.count }}
-                            </span>
-                    {% endif %}
-                </div>
+            <!-- Исторический шаблон - УПРОЩЕНО -->
+<div style="margin-top: 15px; background:#fffcf0; padding: 15px; border-radius: 8px; border:1px solid #f1e7bc;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <span style="font-size:0.85rem; color:#856404; font-weight:700;">
+            <i class="fa-solid fa-clock-rotate-left"></i> Исторический шаблон (серия x4)
+        </span>
+        {% if res.pattern_data.count %}
+        <span style="font-size:1rem; font-weight:800; color:#856404; background:#fff; padding:4px 12px; border-radius:20px; border:2px solid #f1e7bc;">
+            Найдено: {{ res.pattern_data.count }}
+        </span>
+        {% endif %}
+    </div>
 
-                {% if res.pattern_data.pattern %}
-                <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
-                    <!-- ЦВЕТНЫЕ КВАДРАТИКИ ПАТТЕРНОВ -->
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        {% for char in res.pattern_data.pattern %}
-                        {% if char == 'В' %}
-                        <span style="display: inline-block; width: 32px; height: 32px; background-color: #2ecc71; color: white; font-weight: 900; border-radius: 6px; text-align: center; line-height: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">В</span>
-                        {% elif char == 'П' %}
-                        <span style="display: inline-block; width: 32px; height: 32px; background-color: #e74c3c; color: white; font-weight: 900; border-radius: 6px; text-align: center; line-height: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">П</span>
-                        {% elif char == 'Н' %}
-                        <span style="display: inline-block; width: 32px; height: 32px; background-color: #95a5a6; color: white; font-weight: 900; border-radius: 6px; text-align: center; line-height: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Н</span>
-                        {% elif char == '-' %}
-                        <span style="margin: 0 4px; color: #ccc; font-weight: bold; font-size: 1.2rem;">—</span>
-                        {% endif %}
-                        {% endfor %}
-                    </div>
-
-                    <!-- ПРОЦЕНТЫ В СТРОКУ -->
-                    <div style="font-size:0.9rem; color:#2c3e50; font-weight:600; background:#fff; padding:6px 15px; border-radius:20px; border:1px solid #f1e7bc;">
-                        {{ res.pattern_data.dist }}
-                    </div>
-                </div>
-                {% else %}
-                <div style="color:#6c757d; font-style:italic; font-size:0.9rem; padding: 5px 0;">{{ res.pattern_data
-                    }}
-                </div>
+    {% if res.pattern_data.pattern %}
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:15px;">
+        <!-- Квадратики -->
+        <div style="display: flex; align-items: center; gap: 6px;">
+            {% for char in res.pattern_data.pattern %}
+                {% if char == 'В' %}
+                <span style="display: inline-block; width: 32px; height: 32px; background-color: #2ecc71; color: white; font-weight: 900; border-radius: 6px; text-align: center; line-height: 32px;">В</span>
+                {% elif char == 'П' %}
+                <span style="display: inline-block; width: 32px; height: 32px; background-color: #e74c3c; color: white; font-weight: 900; border-radius: 6px; text-align: center; line-height: 32px;">П</span>
+                {% elif char == 'Н' %}
+                <span style="display: inline-block; width: 32px; height: 32px; background-color: #95a5a6; color: white; font-weight: 900; border-radius: 6px; text-align: center; line-height: 32px;">Н</span>
+                {% elif char == '-' %}
+                <span style="margin: 0 4px; color: #ccc; font-weight: bold; font-size: 1.2rem;">—</span>
                 {% endif %}
-            </div>
+            {% endfor %}
+        </div>
+
+        <!-- ПРОСТО ВЫВОДИМ ГОТОВУЮ СТРОКУ -->
+        <div style="font-size: 1.1rem; font-weight: 700; background:#fff; padding:8px 20px; border-radius:30px; border:1px solid #f1e7bc;">
+            {{ res.pattern_data.dist }}
+        </div>
+    </div>
+    {% else %}
+    <div style="color:#6c757d; font-style:italic; font-size:0.9rem;">{{ res.pattern_data }}</div>
+    {% endif %}
+</div>
 
             <!-- Личные встречи - компактно -->
             <div style="margin-top: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <span style="font-size:0.85rem; color:#2c3e50; font-weight:700;">
-                            <i class="fa-solid fa-history"></i> Личные встречи (в этом статусе)
-                        </span>
+                    <span style="font-size:0.85rem; color:#2c3e50; font-weight:700;">
+                        <i class="fa-solid fa-history"></i> Личные встречи (в этом статусе)
+                    </span>
                     <span style="font-size:0.9rem; font-weight:700; color:#6c757d; background:#f8f9fa; padding:4px 12px; border-radius:20px; border:1px solid #dee2e6;">
-                            Найдено: {{ res.h2h_total }}
-                        </span>
+                        Найдено: {{ res.h2h_total }}
+                    </span>
                 </div>
 
                 <div style="display: flex; gap: 10px; flex-wrap: wrap; max-height: 90px; overflow-y: auto; padding: 2px;">
@@ -313,14 +288,14 @@
                     <div style="display: flex; flex-direction: column; align-items: center; background: #f8f9fa; border-radius: 8px; padding: 6px 10px; min-width: 70px; border: 1px solid #e9ecef; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
                         <span style="font-size:0.7rem; color:#6c757d; margin-bottom: 3px; font-weight:500;">{{ h.date }}</span>
                         <span style="font-size:1rem; font-weight:800;
-                                    {% with score_parts=h.score|stringformat:" s" %}
-                        {% with home=score_parts|slice:":1" away=score_parts|slice:"2:" %}
-                        {% if home|add:"0" > away|add:"0" %}color:#28a745;
-                        {% elif home|add:"0" < away|add:"0" %}color:#dc3545;
-                        {% else %}color:#6c757d;{% endif %}
-                        {% endwith %}
-                        {% endwith %}">
-                        {{ h.score }}
+                            {% with score_parts=h.score|stringformat:"s" %}
+                                {% with home=score_parts|slice:":1" away=score_parts|slice:"2:" %}
+                                    {% if home|add:"0" > away|add:"0" %}color:#28a745;
+                                    {% elif home|add:"0" < away|add:"0" %}color:#dc3545;
+                                    {% else %}color:#6c757d;{% endif %}
+                                {% endwith %}
+                            {% endwith %}">
+                            {{ h.score }}
                         </span>
                     </div>
                     {% empty %}
