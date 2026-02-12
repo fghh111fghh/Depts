@@ -7,6 +7,8 @@ from decimal import Decimal
 
 from django.utils.timezone import is_naive, make_aware, get_current_timezone
 
+from app_bets.constants import AnalysisConstants
+
 
 class Sport(models.Model):
     """
@@ -365,31 +367,44 @@ class Match(models.Model):
         """
         from decimal import Decimal
 
-        # Гарантируем точность Decimal
-        h_odd = Decimal(str(self.odds_home))
-        a_odd = Decimal(str(self.odds_away))
+        # --- КРИТИЧЕСКАЯ ЗАЩИТА ---
+        if not self.league_id:
+            return Match.objects.none()
+        if not self.league or not self.league.country_id:
+            return Match.objects.none()
+        if not self.odds_home or not self.odds_away:
+            return Match.objects.none()
 
-        def perform_search(tol):
-            # Ищем только по П1 и П2 в пределах допуска
-            qs = Match.objects.filter(
-                league__country=self.league.country,
-                odds_home__range=(h_odd - tol, h_odd + tol),
-                odds_away__range=(a_odd - tol, a_odd + tol)
-            )
+        try:
+            # Гарантируем точность Decimal
+            h_odd = Decimal(str(self.odds_home))
+            a_odd = Decimal(str(self.odds_away))
 
-            if self.id:
-                qs = qs.exclude(id=self.id)
+            def perform_search(tol):
+                # Ищем только по П1 и П2 в пределах допуска
+                qs = Match.objects.filter(
+                    league__country_id=self.league.country_id,
+                    odds_home__range=(h_odd - tol, h_odd + tol),
+                    odds_away__range=(a_odd - tol, a_odd + tol)
+                )
 
-            return qs.select_related('home_team', 'away_team', 'league').order_by('-date')
+                if self.id:
+                    qs = qs.exclude(id=self.id)
 
-        # 1. Сначала ищем по стандартному допуску 0.05
-        results = perform_search(tolerance)
+                return qs.select_related('home_team', 'away_team', 'league').order_by('-date')
 
-        # 2. Если совсем ничего нет, расширяем до 0.10 (опционально, для большего охвата)
-        if not results.exists():
-            results = perform_search(Decimal('0.10'))
+            # 1. Сначала ищем по стандартному допуску 0.05
+            results = perform_search(tolerance)
 
-        return results
+            # 2. Если совсем ничего нет, расширяем до 0.10
+            if not results.exists():
+                results = perform_search(Decimal('0.10'))
+
+            return results
+
+        except Exception as e:
+            print(f"Error in get_twins: {e}")
+            return Match.objects.none()
 
     def get_h2h(self, limit=10):
         """История личных встреч (Head-to-Head)."""
@@ -714,3 +729,307 @@ class Match(models.Model):
             return "Недостаточно данных для уверенного прогноза."
 
         return " | ".join(signals)
+
+    def get_historical_total_insight(self):
+        """
+        ИСТОРИЧЕСКИЙ АНАЛИЗ ТОТАЛА С БАЙЕСОВСКОЙ ВЕРОЯТНОСТЬЮ.
+        """
+        result = {
+            'bayesian': None,
+            'h2h': None,
+            'twins_context': None,
+            'trend': None,
+            'synthetic': None
+        }
+
+        # --- ТОЛЬКИ САМЫЕ НЕОБХОДИМЫЕ ПРОВЕРКИ ---
+        if not self.league_id or not self.season_id:
+            return result
+        if not self.home_team_id or not self.away_team_id:
+            return result
+
+        try:
+            # --- АПРИОРНАЯ ВЕРОЯТНОСТЬ: ВСЯ ИСТОРИЯ ЛИГИ ---
+            all_matches = Match.objects.filter(
+                league_id=self.league_id,
+                home_score_reg__isnull=False,
+                away_score_reg__isnull=False
+            )
+
+            # Фильтр по HISTORICAL_YEARS через Season
+            if self.season and self.season.start_date:
+                start_year = self.season.start_date.year
+                cutoff_year = start_year - AnalysisConstants.HISTORICAL_YEARS
+
+                seasons_history = Season.objects.filter(
+                    start_date__year__gte=cutoff_year,
+                    start_date__year__lte=start_year
+                ).values_list('id', flat=True)
+
+                if seasons_history:
+                    all_matches = all_matches.filter(season_id__in=list(seasons_history))
+
+            total_matches = all_matches.count()
+            if total_matches < AnalysisConstants.HISTORICAL_MIN_MATCHES:
+                return result
+
+            over_25_total = 0
+            goals_sum = 0
+
+            for match in all_matches.iterator(chunk_size=1000):
+                total = match.home_score_reg + match.away_score_reg
+                goals_sum += total
+                if total > AnalysisConstants.TOTAL_THRESHOLD:
+                    over_25_total += 1
+
+            prior_prob = over_25_total / total_matches
+            league_avg = goals_sum / total_matches
+
+            # --- 1. БАЙЕСОВСКИЙ АНАЛИЗ ---
+            recent_base = Match.objects.filter(
+                league_id=self.league_id,
+                home_score_reg__isnull=False,
+                away_score_reg__isnull=False
+            )
+
+            if seasons_history:
+                recent_base = recent_base.filter(season_id__in=list(seasons_history))
+
+            recent_matches = list(recent_base.order_by('-date')[:AnalysisConstants.HISTORICAL_MAX_SAMPLE])
+
+            weighted_over = 0.0
+            weighted_total = 0.0
+
+            for match in recent_matches:
+                similarity = 0
+
+                # ТЕ ЖЕ КОМАНДЫ (50 баллов)
+                if match.home_team_id == self.home_team_id and match.away_team_id == self.away_team_id:
+                    similarity += 50
+                elif match.home_team_id == self.away_team_id and match.away_team_id == self.home_team_id:
+                    similarity += 45
+
+                # ПОХОЖИЕ КОЭФФИЦИЕНТЫ (30 баллов)
+                if self.odds_home and match.odds_home:
+                    try:
+                        diff_home = abs(float(match.odds_home) - float(self.odds_home))
+                        if diff_home < 0.1:
+                            similarity += 15
+                        elif diff_home < 0.2:
+                            similarity += 10
+                        elif diff_home < 0.3:
+                            similarity += 5
+                    except (TypeError, ValueError):
+                        pass
+
+                if self.odds_away and match.odds_away:
+                    try:
+                        diff_away = abs(float(match.odds_away) - float(self.odds_away))
+                        if diff_away < 0.1:
+                            similarity += 15
+                        elif diff_away < 0.2:
+                            similarity += 10
+                        elif diff_away < 0.3:
+                            similarity += 5
+                    except (TypeError, ValueError):
+                        pass
+
+                # ТОТ ЖЕ ХОЗЯИН (10 баллов)
+                if match.home_team_id == self.home_team_id:
+                    similarity += 10
+
+                # ТОТ ЖЕ ГОСТЬ (10 баллов)
+                if match.away_team_id == self.away_team_id:
+                    similarity += 10
+
+                # ПОХОЖИЙ ТУР (10 баллов)
+                if match.round_number and self.round_number:
+                    round_diff = abs(match.round_number - self.round_number)
+                    if round_diff <= 2:
+                        similarity += 10
+                    elif round_diff <= 5:
+                        similarity += 5
+
+                # СВЕЖЕСТЬ ДАННЫХ (10 баллов) - пропускаем если нет даты
+                if self.date and match.date:
+                    days_diff = (self.date - match.date).days
+                    if days_diff < 365:
+                        similarity += 10
+                    elif days_diff < 730:
+                        similarity += 5
+                    elif days_diff < 1095:
+                        similarity += 2
+
+                if similarity >= AnalysisConstants.HISTORICAL_SIMILARITY_THRESHOLD:
+                    weight = similarity / 100.0
+                    weighted_total += weight
+                    match_total = match.home_score_reg + match.away_score_reg
+                    if match_total > AnalysisConstants.TOTAL_THRESHOLD:
+                        weighted_over += weight
+
+            if weighted_total >= 1.0:
+                empirical_prob = weighted_over / weighted_total
+                strength = min(weighted_total / AnalysisConstants.HISTORICAL_WEIGHT_CAP, 1.0)
+                bayesian_prob = prior_prob * (1 - strength) + empirical_prob * strength
+
+                result['bayesian'] = {
+                    'over_25': round(bayesian_prob * 100, 1),
+                    'under_25': round((1 - bayesian_prob) * 100, 1),
+                    'weight': round(weighted_total, 1),
+                    'analogs': sum(1 for m in recent_matches
+                                   if m.home_team_id == self.home_team_id and m.away_team_id == self.away_team_id),
+                    'method': f'Байес (история {AnalysisConstants.HISTORICAL_YEARS} лет)'
+                }
+
+            # --- 2. ЛИЧНЫЕ ВСТРЕЧИ (H2H) ---
+            try:
+                h2h = self.get_h2h(limit=10)
+                if h2h and h2h.exists():
+                    count = h2h.count()
+                    if count >= 2:
+                        over_25 = 0
+                        total_goals = 0
+
+                        for match in h2h:
+                            match_total = match.home_score_reg + match.away_score_reg
+                            total_goals += match_total
+                            if match_total > AnalysisConstants.TOTAL_THRESHOLD:
+                                over_25 += 1
+
+                        result['h2h'] = {
+                            'over_25': round(over_25 / count * 100, 1),
+                            'under_25': round((count - over_25) / count * 100, 1),
+                            'avg_goals': round(total_goals / count, 2),
+                            'count': count,
+                            'method': 'Личные встречи (H2H)'
+                        }
+            except Exception:
+                pass
+
+            # --- 3. БЛИЗНЕЦЫ В КОНТЕКСТЕ ---
+            try:
+                twins = self.get_twins(tolerance=Decimal('0.10'))
+                if twins and twins.exists():
+                    count = twins.count()
+                    if count >= 3:
+                        over_25 = 0
+                        total_goals = 0
+
+                        for match in twins:
+                            match_total = match.home_score_reg + match.away_score_reg
+                            total_goals += match_total
+                            if match_total > AnalysisConstants.TOTAL_THRESHOLD:
+                                over_25 += 1
+
+                        result['twins_context'] = {
+                            'over_25': round(over_25 / count * 100, 1),
+                            'under_25': round((count - over_25) / count * 100, 1),
+                            'avg_goals': round(total_goals / count, 2),
+                            'count': count,
+                            'method': 'Близнецы (похожие коэффициенты)'
+                        }
+            except Exception:
+                pass
+
+            # --- 4. ТРЕНДЫ ФОРМЫ ---
+            try:
+                home_recent = Match.objects.filter(
+                    league_id=self.league_id,
+                    home_team_id=self.home_team_id,
+                    home_score_reg__isnull=False,
+                    date__lt=self.date
+                ).order_by('-date')[:5] if self.date else Match.objects.none()
+
+                away_recent = Match.objects.filter(
+                    league_id=self.league_id,
+                    away_team_id=self.away_team_id,
+                    away_score_reg__isnull=False,
+                    date__lt=self.date
+                ).order_by('-date')[:5] if self.date else Match.objects.none()
+
+                if home_recent.count() >= 3 and away_recent.count() >= 3:
+                    home_over = 0
+                    home_total_goals = 0
+                    for m in home_recent:
+                        mt = m.home_score_reg + m.away_score_reg
+                        home_total_goals += mt
+                        if mt > AnalysisConstants.TOTAL_THRESHOLD:
+                            home_over += 1
+
+                    away_over = 0
+                    away_total_goals = 0
+                    for m in away_recent:
+                        mt = m.home_score_reg + m.away_score_reg
+                        away_total_goals += mt
+                        if mt > AnalysisConstants.TOTAL_THRESHOLD:
+                            away_over += 1
+
+                    result['trend'] = {
+                        'home_over_25': round(home_over / home_recent.count() * 100, 1),
+                        'home_avg_goals': round(home_total_goals / home_recent.count(), 2),
+                        'away_over_25': round(away_over / away_recent.count() * 100, 1),
+                        'away_avg_goals': round(away_total_goals / away_recent.count(), 2),
+                        'method': 'Тренды формы (последние 5 матчей)'
+                    }
+            except Exception:
+                pass
+
+            # --- 5. СИНТЕЗ ---
+            probs = []
+            weights = []
+
+            if result.get('bayesian'):
+                probs.append(result['bayesian']['over_25'])
+                weights.append(0.45)
+
+            if result.get('h2h'):
+                probs.append(result['h2h']['over_25'])
+                weights.append(0.25)
+
+            if result.get('twins_context'):
+                probs.append(result['twins_context']['over_25'])
+                weights.append(0.20)
+
+            if result.get('trend'):
+                trend_avg = (result['trend']['home_over_25'] + result['trend']['away_over_25']) / 2
+                probs.append(trend_avg)
+                weights.append(0.10)
+
+            if probs:
+                final_prob = sum(p * w for p, w in zip(probs, weights)) / sum(weights)
+
+                # ИСПРАВЛЕННАЯ ЛОГИКА С КОНСТАНТАМИ
+                if final_prob <= 35:
+                    confidence = AnalysisConstants.CONFIDENCE_HIGH
+                    prediction = AnalysisConstants.PREDICTION_UNDER
+                elif final_prob <= 40:
+                    confidence = AnalysisConstants.CONFIDENCE_MEDIUM
+                    prediction = AnalysisConstants.PREDICTION_UNDER
+                elif final_prob <= 45:
+                    confidence = AnalysisConstants.CONFIDENCE_LOW
+                    prediction = AnalysisConstants.PREDICTION_UNDER
+                elif final_prob <= 55:
+                    confidence = AnalysisConstants.CONFIDENCE_RANDOM
+                    prediction = AnalysisConstants.PREDICTION_FIFTY
+                elif final_prob <= 60:
+                    confidence = AnalysisConstants.CONFIDENCE_LOW
+                    prediction = AnalysisConstants.PREDICTION_OVER
+                elif final_prob <= 65:
+                    confidence = AnalysisConstants.CONFIDENCE_MEDIUM
+                    prediction = AnalysisConstants.PREDICTION_OVER
+                else:
+                    confidence = AnalysisConstants.CONFIDENCE_HIGH
+                    prediction = AnalysisConstants.PREDICTION_OVER
+
+                result['synthetic'] = {
+                    'over_25': round(final_prob, 1),
+                    'under_25': round(100 - final_prob, 1),
+                    'prediction': f"{prediction} {AnalysisConstants.TOTAL_THRESHOLD}" if prediction != AnalysisConstants.PREDICTION_FIFTY else prediction,
+                    'confidence': confidence,
+                    'methods': len(probs)
+                }
+
+        except Exception as e:
+            print(f"Error in get_historical_total_insight: {e}")
+
+        return result

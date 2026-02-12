@@ -58,6 +58,25 @@ class AnalysisConstants:
     MIN_PROBABILITY = 0.01  # Минимальная вероятность для учета (%)
     MIN_TEAM_NAME_LENGTH = 2  # Минимальная длина названия команды
 
+    HISTORICAL_YEARS = 20  # Глубина исторического анализа в годах
+    HISTORICAL_MIN_MATCHES = 50  # Минимальное количество матчей для выборки
+    HISTORICAL_MAX_SAMPLE = 2000  # Максимальный размер выборки для производительности
+    HISTORICAL_SIMILARITY_THRESHOLD = 20  # Минимальный порог похожести
+    HISTORICAL_WEIGHT_CAP = 5.0  # Максимальный вес для байесовской коррекции
+    TOTAL_THRESHOLD = 2.5  # Порог для тотала больше/меньше
+    TOTAL_OVER = 'БОЛЬШЕ'
+    TOTAL_UNDER = 'МЕНЬШЕ'
+    # Уровни уверенности
+    CONFIDENCE_HIGH = 'ВЫСОКАЯ'
+    CONFIDENCE_MEDIUM = 'СРЕДНЯЯ'
+    CONFIDENCE_LOW = 'НИЗКАЯ'
+    CONFIDENCE_RANDOM = 'СЛУЧАЙНАЯ'
+
+    # Прогнозы
+    PREDICTION_OVER = 'БОЛЬШЕ'
+    PREDICTION_UNDER = 'МЕНЬШЕ'
+    PREDICTION_FIFTY = '50/50'
+
 
 class ParsingConstants:
     """
