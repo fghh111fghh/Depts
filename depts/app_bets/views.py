@@ -58,7 +58,7 @@ class AnalyzeView(View):
         results = request.session.get('results', [])
         raw_text = request.session.get('raw_text', '')
         unknown_teams = request.session.get('unknown_teams', [])
-        original_results = request.session.get('original_results', [])  # СОХРАНЯЕМ ИСХОДНЫЙ ПОРЯДОК
+        original_results = request.session.get('original_results', [])
 
         # Получаем параметр сортировки
         current_sort = request.GET.get('sort') or request.session.get('current_sort', 'default')
@@ -67,19 +67,30 @@ class AnalyzeView(View):
         # СОРТИРУЕМ РЕЗУЛЬТАТЫ
         if results:
             if current_sort == 'default':
-                # ВОССТАНАВЛИВАЕМ ИСХОДНЫЙ ПОРЯДОК
                 if original_results:
-                    results[:] = original_results[:]
+                    results[:] = [dict(r) for r in original_results]
             elif current_sort == 'btts_desc':
                 results.sort(key=lambda x: x['poisson_btts']['yes'], reverse=True)
             elif current_sort == 'over25_desc':
                 results.sort(key=lambda x: x['poisson_over25']['yes'], reverse=True)
             elif current_sort == 'twins_p1_desc':
-                results.sort(key=lambda x: x.get('twins_data', {}).get('p1', 0) if x.get('twins_data') else 0,
-                             reverse=True)
+                # СОРТИРОВКА ПО МАКСИМАЛЬНОЙ ВЕРОЯТНОСТИ (П1 или П2)
+                results.sort(
+                    key=lambda x: max(
+                        x.get('twins_data', {}).get('p1', 0) if x.get('twins_data') else 0,
+                        x.get('twins_data', {}).get('p2', 0) if x.get('twins_data') else 0
+                    ),
+                    reverse=True
+                )
             elif current_sort == 'pattern_p1_desc':
-                results.sort(key=lambda x: x.get('pattern_data', {}).get('p1', 0) if x.get('pattern_data') else 0,
-                             reverse=True)
+                # СОРТИРОВКА ПО МАКСИМАЛЬНОЙ ВЕРОЯТНОСТИ (П1 или П2)
+                results.sort(
+                    key=lambda x: max(
+                        x.get('pattern_data', {}).get('p1', 0) if x.get('pattern_data') else 0,
+                        x.get('pattern_data', {}).get('p2', 0) if x.get('pattern_data') else 0
+                    ),
+                    reverse=True
+                )
 
         all_teams = Team.objects.all().order_by('name')
 
@@ -588,11 +599,23 @@ class AnalyzeView(View):
             elif current_sort == 'over25_desc':
                 results.sort(key=lambda x: x['poisson_over25']['yes'], reverse=True)
             elif current_sort == 'twins_p1_desc':
-                results.sort(key=lambda x: x.get('twins_data', {}).get('p1', 0) if x.get('twins_data') else 0,
-                             reverse=True)
+                # СОРТИРОВКА ПО МАКСИМАЛЬНОЙ ВЕРОЯТНОСТИ (П1 или П2)
+                results.sort(
+                    key=lambda x: max(
+                        x.get('twins_data', {}).get('p1', 0) if x.get('twins_data') else 0,
+                        x.get('twins_data', {}).get('p2', 0) if x.get('twins_data') else 0
+                    ),
+                    reverse=True
+                )
             elif current_sort == 'pattern_p1_desc':
-                results.sort(key=lambda x: x.get('pattern_data', {}).get('p1', 0) if x.get('pattern_data') else 0,
-                             reverse=True)
+                # СОРТИРОВКА ПО МАКСИМАЛЬНОЙ ВЕРОЯТНОСТИ (П1 или П2)
+                results.sort(
+                    key=lambda x: max(
+                        x.get('pattern_data', {}).get('p1', 0) if x.get('pattern_data') else 0,
+                        x.get('pattern_data', {}).get('p2', 0) if x.get('pattern_data') else 0
+                    ),
+                    reverse=True
+                )
 
         # --- СОХРАНЯЕМ ВСЁ В СЕССИЮ ---
         cleaned_results = []
