@@ -2143,21 +2143,50 @@ body {
     }
 }
 
-/* Эффекты при наведении и активном состоянии */
-.nav-link:hover .nav-link-text,
-.nav-link.active-link .nav-link-text {
-    opacity: 1;
-    color: var(--primary-color);
+/* ====== ИСПРАВЛЕННЫЕ СТИЛИ НАВИГАЦИИ ====== */
+.nav-menu {
+    display: flex !important;
+    list-style: none !important;
+    gap: 15px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
 }
 
+.nav-link {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    text-decoration: none !important;
+    color: white !important;
+    transition: 0.3s !important;
+    opacity: 0.8 !important;
+}
+
+.nav-link:hover {
+    opacity: 1 !important;
+    color: var(--primary-color, #3498db) !important;
+}
+
+/* ====== ЕДИНСТВЕННЫЙ ПРАВИЛЬНЫЙ БЛОК ДЛЯ АКТИВНОЙ ССЫЛКИ ====== */
 .nav-link.active-link {
-    border-bottom: 2px solid var(--primary-color);
-    padding-bottom: 5px;
-    cursor: default;       /* Меняет "руку" на обычную стрелку */
-    pointer-events: none;  /* Делает ссылку некликабельной (опционально) */
+    opacity: 1 !important;
+    color: white !important;
+    border-bottom: 2px solid var(--primary-color, #3498db) !important;
+    padding-bottom: 5px !important;
+    cursor: default !important;
+    pointer-events: none !important;
 }
 
+.nav-link.active-link i {
+    color: white !important;
+}
 
+.nav-link.active-link .nav-link-text {
+    opacity: 1 !important;
+    color: white !important;
+}
 
 
 
