@@ -355,8 +355,22 @@ class AnalyzeView(View):
                             ))
 
                             # --- АНАЛИЗ МАТЧА ---
+                            # Поиск лиги с защитой от None
                             ref = Match.objects.filter(home_team=home_team).select_related('league__country').first()
-                            league = ref.league if ref else League.objects.filter(country=home_team.country).first()
+                            league = None
+                            if ref and ref.league:
+                                league = ref.league
+                            else:
+                                league = League.objects.filter(country=home_team.country).first()
+
+                            # Если лига не найдена - пропускаем матч
+                            if not league:
+                                logger.warning(f"Не найдена лига для команды {home_team.name}, матч пропущен")
+                                if not home_team:
+                                    unknown_teams.add(home_raw.strip())
+                                if not away_team:
+                                    unknown_teams.add(away_raw.strip())
+                                continue
 
                             # --- ШАБЛОНЫ ---
                             all_league_matches = list(
@@ -440,21 +454,27 @@ class AnalyzeView(View):
                             poisson_results = self.get_poisson_probs(p_data['home_lambda'], p_data['away_lambda'])
                             top_scores = poisson_results['top_scores']
 
-                            # Поиск "близнецов"
-                            tol = AnalysisConstants.TWINS_TOLERANCE_SMALL
-                            twins_qs = Match.objects.filter(
-                                league__country=league.country,
-                                odds_home__range=(h_odd - tol, h_odd + tol),
-                                odds_away__range=(a_odd - tol, a_odd + tol)
-                            ).exclude(home_score_reg__isnull=True)
+                            # --- ИСТОРИЧЕСКИЙ АНАЛИЗ ТОТАЛА (БАЙЕС) ---
+                            historical_total_insight = m_obj.get_historical_total_insight()
 
-                            if twins_qs.count() == 0:
-                                tol = AnalysisConstants.TWINS_TOLERANCE_LARGE
+                            # Поиск "близнецов" с защитой от None
+                            tol = AnalysisConstants.TWINS_TOLERANCE_SMALL
+                            twins_qs = Match.objects.none()
+
+                            if league and league.country:
                                 twins_qs = Match.objects.filter(
                                     league__country=league.country,
                                     odds_home__range=(h_odd - tol, h_odd + tol),
                                     odds_away__range=(a_odd - tol, a_odd + tol)
                                 ).exclude(home_score_reg__isnull=True)
+
+                                if twins_qs.count() == 0:
+                                    tol = AnalysisConstants.TWINS_TOLERANCE_LARGE
+                                    twins_qs = Match.objects.filter(
+                                        league__country=league.country,
+                                        odds_home__range=(h_odd - tol, h_odd + tol),
+                                        odds_away__range=(a_odd - tol, a_odd + tol)
+                                    ).exclude(home_score_reg__isnull=True)
 
                             # --- БЛИЗНЕЦЫ ---
                             t_count = twins_qs.count()
@@ -571,6 +591,7 @@ class AnalyzeView(View):
                                     float(d_odd) if d_odd is not None else None,
                                     float(a_odd) if a_odd is not None else None
                                 ),
+                                'historical_total': historical_total_insight.get('synthetic'),
                                 'verdict': verdict
                             })
 
@@ -600,7 +621,6 @@ class AnalyzeView(View):
             elif current_sort == 'over25_desc':
                 results.sort(key=lambda x: x['poisson_over25']['yes'], reverse=True)
             elif current_sort == 'twins_p1_desc':
-                # СОРТИРОВКА ПО МАКСИМАЛЬНОЙ ВЕРОЯТНОСТИ (П1 или П2)
                 results.sort(
                     key=lambda x: max(
                         x.get('twins_data', {}).get('p1', 0) if x.get('twins_data') else 0,
@@ -609,7 +629,6 @@ class AnalyzeView(View):
                     reverse=True
                 )
             elif current_sort == 'pattern_p1_desc':
-                # СОРТИРОВКА ПО МАКСИМАЛЬНОЙ ВЕРОЯТНОСТИ (П1 или П2)
                 results.sort(
                     key=lambda x: max(
                         x.get('pattern_data', {}).get('p1', 0) if x.get('pattern_data') else 0,

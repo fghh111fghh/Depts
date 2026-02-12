@@ -21,19 +21,24 @@
     <div class="bets-sort-wrapper">
         <span class="bets-sort-label">Сортировка:</span>
         <form method="get" action="." class="bets-sort-form">
-            <button type="submit" name="sort" value="default" class="bets-sort-btn {% if current_sort == 'default' or not current_sort %}active{% endif %}">
+            <button type="submit" name="sort" value="default"
+                    class="bets-sort-btn {% if current_sort == 'default' or not current_sort %}active{% endif %}">
                 По умолч.
             </button>
-            <button type="submit" name="sort" value="btts_desc" class="bets-sort-btn {% if current_sort == 'btts_desc' %}active{% endif %}">
+            <button type="submit" name="sort" value="btts_desc"
+                    class="bets-sort-btn {% if current_sort == 'btts_desc' %}active{% endif %}">
                 ОЗ ↓
             </button>
-            <button type="submit" name="sort" value="over25_desc" class="bets-sort-btn {% if current_sort == 'over25_desc' %}active{% endif %}">
+            <button type="submit" name="sort" value="over25_desc"
+                    class="bets-sort-btn {% if current_sort == 'over25_desc' %}active{% endif %}">
                 б2.5 ↓
             </button>
-            <button type="submit" name="sort" value="twins_p1_desc" class="bets-sort-btn {% if current_sort == 'twins_p1_desc' %}active{% endif %}">
+            <button type="submit" name="sort" value="twins_p1_desc"
+                    class="bets-sort-btn {% if current_sort == 'twins_p1_desc' %}active{% endif %}">
                 Близнецы ↓
             </button>
-            <button type="submit" name="sort" value="pattern_p1_desc" class="bets-sort-btn {% if current_sort == 'pattern_p1_desc' %}active{% endif %}">
+            <button type="submit" name="sort" value="pattern_p1_desc"
+                    class="bets-sort-btn {% if current_sort == 'pattern_p1_desc' %}active{% endif %}">
                 История ↓
             </button>
         </form>
@@ -240,26 +245,51 @@
 
                     <div class="twins-probabilities">
                         {% if res.twins_data %}
-                            <div class="twins-prob-item p1">
-                                <span class="twins-prob-label p1">П1</span>
-                                <span class="twins-prob-value p1">{{ res.twins_data.p1 }}%</span>
-                            </div>
-                            <div class="twins-prob-item x">
-                                <span class="twins-prob-label x">X</span>
-                                <span class="twins-prob-value x">{{ res.twins_data.x }}%</span>
-                            </div>
-                            <div class="twins-prob-item p2">
-                                <span class="twins-prob-label p2">П2</span>
-                                <span class="twins-prob-value p2">{{ res.twins_data.p2 }}%</span>
-                            </div>
+                        <div class="twins-prob-item p1">
+                            <span class="twins-prob-label p1">П1</span>
+                            <span class="twins-prob-value p1">{{ res.twins_data.p1 }}%</span>
+                        </div>
+                        <div class="twins-prob-item x">
+                            <span class="twins-prob-label x">X</span>
+                            <span class="twins-prob-value x">{{ res.twins_data.x }}%</span>
+                        </div>
+                        <div class="twins-prob-item p2">
+                            <span class="twins-prob-label p2">П2</span>
+                            <span class="twins-prob-value p2">{{ res.twins_data.p2 }}%</span>
+                        </div>
                         {% else %}
-                            <div class="twins-no-data">
-                                Нет данных по близнецам
-                            </div>
+                        <div class="twins-no-data">
+                            Нет данных по близнецам
+                        </div>
                         {% endif %}
                     </div>
                 </div>
             </div>
+
+            <!-- Исторический анализ тотала (Байес) -->
+<!-- Исторический анализ тотала (Байес) -->
+{% if res.historical_total %}
+<div class="historical-total-block">
+    <div class="historical-total-header">
+        <span class="historical-total-title">
+            <i class="fa-solid fa-chart-simple"></i> Исторический анализ
+        </span>
+        <!-- ЦВЕТНАЯ КНОПКА УДАЛЕНА -->
+    </div>
+
+    <div class="historical-total-content">
+        <div class="historical-total-probability">
+            <div class="probability-bar-label">
+                <span class="probability-title">Тотал больше 2.5</span>
+                <span class="probability-value">{{ res.historical_total.over_25 }}%</span>
+            </div>
+            <div class="probability-bar-bg">
+                <div class="probability-bar-fill" style="width: {{ res.historical_total.over_25 }}%;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
             <!-- Исторический шаблон -->
             <div class="pattern-block">
@@ -279,15 +309,15 @@
                     <!-- Квадратики -->
                     <div class="pattern-badges-row">
                         {% for char in res.pattern_data.pattern %}
-                            {% if char == 'В' %}
-                            <span class="p-badge v-win">В</span>
-                            {% elif char == 'П' %}
-                            <span class="p-badge v-loss">П</span>
-                            {% elif char == 'Н' %}
-                            <span class="p-badge v-draw">Н</span>
-                            {% elif char == '-' %}
-                            <span class="p-separator">—</span>
-                            {% endif %}
+                        {% if char == 'В' %}
+                        <span class="p-badge v-win">В</span>
+                        {% elif char == 'П' %}
+                        <span class="p-badge v-loss">П</span>
+                        {% elif char == 'Н' %}
+                        <span class="p-badge v-draw">Н</span>
+                        {% elif char == '-' %}
+                        <span class="p-separator">—</span>
+                        {% endif %}
                         {% endfor %}
                     </div>
 
@@ -325,15 +355,15 @@
                     <div class="h2h-item">
                         <span class="h2h-date">{{ h.date }}</span>
                         <span class="h2h-score
-                            {% with score_parts=h.score|stringformat:"s" %}
-                                {% with home=score_parts|slice:":1" away=score_parts|slice:"2:" %}
-                                    {% if home|add:"0" > away|add:"0" %}win
-                                    {% elif home|add:"0" < away|add:"0" %}loss
-                                    {% else %}draw
-                                    {% endif %}
-                                {% endwith %}
-                            {% endwith %}">
-                            {{ h.score }}
+                            {% with score_parts=h.score|stringformat:" s" %}
+                        {% with home=score_parts|slice:":1" away=score_parts|slice:"2:" %}
+                        {% if home|add:"0" > away|add:"0" %}win
+                        {% elif home|add:"0" < away|add:"0" %}loss
+                        {% else %}draw
+                        {% endif %}
+                        {% endwith %}
+                        {% endwith %}">
+                        {{ h.score }}
                         </span>
                     </div>
                     {% empty %}
