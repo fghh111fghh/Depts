@@ -352,25 +352,6 @@ class AnalyzeView(View):
     def post(self, request):
         """
         Основной метод обработки POST-запроса для анализа матчей.
-
-        Алгоритм:
-        1. Обработка создания алиаса (если запрошено)
-        2. Парсинг текста с матчами
-        3. Определение текущего сезона
-        4. Анализ каждого матча по отдельности
-        5. Сбор нераспознанных команд
-        6. Формирование контекста для шаблона
-
-        Входные данные:
-        - matches_text: многострочный текст с данными матчей
-        - create_alias (опционально): флаг создания алиаса
-        - alias_name, team_id: данные для создания алиаса
-
-        Выходные данные (контекст для шаблона):
-        - results: список результатов анализа (сохраняет оригинальную структуру)
-        - raw_text: оригинальный текст пользователя
-        - unknown_teams: список нераспознанных команд
-        - all_teams: QuerySet всех команд для выпадающего списка
         """
         # Сохраняем оригинальный текст
         raw_text = request.POST.get('matches_text', '')
@@ -404,7 +385,6 @@ class AnalyzeView(View):
         lines = [l.strip() for l in raw_text.split('\n') if l.strip()]
 
         if not lines:
-            # Если нет данных, возвращаем пустой результат
             return render(request, self.template_name, {
                 'results': results,
                 'raw_text': raw_text,
@@ -415,42 +395,34 @@ class AnalyzeView(View):
         # --- 3. ПАРСИНГ И АНАЛИЗ МАТЧЕЙ ---
         skip_to = -1
         for i, line in enumerate(lines):
-            # Пропускаем уже обработанные строки
             if i <= skip_to:
                 continue
 
-            # Проверяем, является ли строка коэффициентом
             if re.match(ParsingConstants.ODDS_REGEX, line):
                 try:
-                    # Парсим коэффициенты
                     h_odd = Decimal(line.replace(',', '.')).quantize(Decimal(Messages.DECIMAL_FORMAT))
                     d_odd = Decimal(lines[i + 1].replace(',', '.')).quantize(Decimal(Messages.DECIMAL_FORMAT))
                     a_odd = Decimal(lines[i + 2].replace(',', '.')).quantize(Decimal(Messages.DECIMAL_FORMAT))
                     skip_to = i + 2
 
-                    # Извлекаем названия команд
                     names = self._extract_team_names(lines, i)
 
                     if len(names) == 2:
                         away_raw, home_raw = names[0], names[1]
 
-                        # Ищем команды
                         home_team = self.get_team_smart(home_raw)
                         away_team = self.get_team_smart(away_raw)
 
                         if home_team and away_team:
-                            # Логирование найденного матча
                             logger.info(Messages.MATCH_FOUND.format(
                                 home_team.name, away_team.name, h_odd, d_odd, a_odd
                             ))
 
                             # --- АНАЛИЗ МАТЧА ---
-
-                            # Определяем лигу
                             ref = Match.objects.filter(home_team=home_team).select_related('league__country').first()
                             league = ref.league if ref else League.objects.filter(country=home_team.country).first()
 
-                            # --- ШАБЛОНЫ (ОПТИМИЗИРОВАНО) ---
+                            # --- ШАБЛОНЫ ---
                             all_league_matches = list(
                                 Match.objects.filter(league=league, home_score_reg__isnull=False).order_by('date'))
                             team_history = {}
@@ -463,7 +435,6 @@ class AnalyzeView(View):
                                         a_f) == AnalysisConstants.PATTERN_FORM_LENGTH:
                                     match_patterns[m.id] = (h_f, a_f)
 
-                                # Определяем результат для каждой команды
                                 if m.home_score_reg == m.away_score_reg:
                                     res_h = Outcome.DRAW
                                     res_a = Outcome.DRAW
@@ -477,13 +448,11 @@ class AnalyzeView(View):
                                 team_history.setdefault(h_id, []).append(res_h)
                                 team_history.setdefault(a_id, []).append(res_a)
 
-                            # Получаем текущие формы команд
                             curr_h_form = "".join(team_history.get(home_team.id, []))[
                                           -AnalysisConstants.PATTERN_FORM_LENGTH:]
                             curr_a_form = "".join(team_history.get(away_team.id, []))[
                                           -AnalysisConstants.PATTERN_FORM_LENGTH:]
 
-                            # Анализируем паттерны
                             pattern_res = Messages.PATTERN_INSUFFICIENT_DATA
                             p_hw, p_dw, p_aw, p_count = 0, 0, 0, 0
 
@@ -500,10 +469,26 @@ class AnalyzeView(View):
                                             p_aw += 1
 
                                 if p_count > 0:
+                                    # РАСЧЕТ ПРОЦЕНТОВ С КОРРЕКЦИЕЙ ДО 100%
+                                    p1_pct = round(p_hw / p_count * 100)
+                                    x_pct = round(p_dw / p_count * 100)
+                                    p2_pct = round(p_aw / p_count * 100)
+
+                                    total_pct = p1_pct + x_pct + p2_pct
+                                    if total_pct != 100:
+                                        diff = 100 - total_pct
+                                        max_val = max(p1_pct, x_pct, p2_pct)
+                                        if p1_pct == max_val:
+                                            p1_pct += diff
+                                        elif x_pct == max_val:
+                                            x_pct += diff
+                                        else:
+                                            p2_pct += diff
+
                                     pattern_res = {
                                         'pattern': f"{curr_h_form} - {curr_a_form}",
                                         'count': p_count,
-                                        'dist': f"П1: {round(p_hw / p_count * 100)}% | X: {round(p_dw / p_count * 100)}% | П2: {round(p_aw / p_count * 100)}%"
+                                        'dist': f"П1: {p1_pct}% | X: {x_pct}% | П2: {p2_pct}%"
                                     }
 
                             # --- ПУАССОН И БЛИЗНЕЦЫ ---
@@ -518,7 +503,7 @@ class AnalyzeView(View):
                             poisson_results = self.get_poisson_probs(p_data['home_lambda'], p_data['away_lambda'])
                             top_scores = poisson_results['top_scores']
 
-                            # Поиск "близнецов" - матчей с похожими коэффициентами
+                            # Поиск "близнецов"
                             tol = AnalysisConstants.TWINS_TOLERANCE_SMALL
                             twins_qs = Match.objects.filter(
                                 league__country=league.country,
@@ -535,12 +520,33 @@ class AnalyzeView(View):
                                 ).exclude(home_score_reg__isnull=True)
 
                             t_count = twins_qs.count()
-                            t_dist, hw_t, dw_t, aw_t = Messages.TWINS_NO_DATA, 0, 0, 0
+                            t_dist = Messages.TWINS_NO_DATA
+
                             if t_count > 0:
                                 hw_t = twins_qs.filter(home_score_reg__gt=F('away_score_reg')).count()
                                 dw_t = twins_qs.filter(home_score_reg=F('away_score_reg')).count()
                                 aw_t = twins_qs.filter(home_score_reg__lt=F('away_score_reg')).count()
-                                t_dist = f"П1: {round(hw_t / t_count * 100)}% | X: {round(dw_t / t_count * 100)}% | П2: {round(aw_t / t_count * 100)}%"
+
+                                total_with_results = hw_t + dw_t + aw_t
+
+                                if total_with_results > 0:
+                                    # РАСЧЕТ ПРОЦЕНТОВ С КОРРЕКЦИЕЙ ДО 100%
+                                    p1_pct = round(hw_t / total_with_results * 100)
+                                    x_pct = round(dw_t / total_with_results * 100)
+                                    p2_pct = round(aw_t / total_with_results * 100)
+
+                                    total_pct = p1_pct + x_pct + p2_pct
+                                    if total_pct != 100:
+                                        diff = 100 - total_pct
+                                        max_val = max(p1_pct, x_pct, p2_pct)
+                                        if p1_pct == max_val:
+                                            p1_pct += diff
+                                        elif x_pct == max_val:
+                                            x_pct += diff
+                                        else:
+                                            p2_pct += diff
+
+                                    t_dist = f"П1: {p1_pct}% | X: {x_pct}% | П2: {p2_pct}%"
 
                             # --- ЛИЧНЫЕ ВСТРЕЧИ ---
                             h2h_qs = Match.objects.filter(
@@ -556,10 +562,9 @@ class AnalyzeView(View):
                                 for m in h2h_qs
                             ]
 
-                            # --- ВЕКТОРНЫЙ СИНТЕЗ (ВЕСА) ---
+                            # --- ВЕКТОРНЫЙ СИНТЕЗ ---
                             v_p1, v_x, v_p2 = 0, 0, 0
 
-                            # 1. Учитываем Пуассон
                             if top_scores:
                                 ms = top_scores[0]['score'].split(':')
                                 if int(ms[0]) > int(ms[1]):
@@ -569,16 +574,14 @@ class AnalyzeView(View):
                                 else:
                                     v_p2 += AnalysisConstants.POISSON_WEIGHT
 
-                            # 2. Учитываем близнецов
-                            if t_count > 0:
-                                if hw_t / t_count > AnalysisConstants.WIN_THRESHOLD:
+                            if t_count > 0 and total_with_results > 0:
+                                if hw_t / total_with_results > AnalysisConstants.WIN_THRESHOLD:
                                     v_p1 += AnalysisConstants.TWINS_WEIGHT
-                                if dw_t / t_count > AnalysisConstants.DRAW_THRESHOLD:
+                                if dw_t / total_with_results > AnalysisConstants.DRAW_THRESHOLD:
                                     v_x += AnalysisConstants.TWINS_WEIGHT
-                                if aw_t / t_count > AnalysisConstants.WIN_THRESHOLD:
+                                if aw_t / total_with_results > AnalysisConstants.WIN_THRESHOLD:
                                     v_p2 += AnalysisConstants.TWINS_WEIGHT
 
-                            # 3. Учитываем паттерны
                             if isinstance(pattern_res, dict) and 'count' in pattern_res and pattern_res['count'] > 0:
                                 if p_hw / p_count > AnalysisConstants.WIN_THRESHOLD:
                                     v_p1 += AnalysisConstants.PATTERN_WEIGHT
@@ -588,7 +591,6 @@ class AnalyzeView(View):
                                     v_p2 += AnalysisConstants.PATTERN_WEIGHT
 
                             # --- ФОРМИРОВАНИЕ ВЕРДИКТА ---
-                            # Определяем правила в порядке приоритета
                             verdict_rules = [
                                 (v_p1 >= AnalysisConstants.VERDICT_STRONG_THRESHOLD, Messages.VERDICT_SIGNAL_P1),
                                 (v_p2 >= AnalysisConstants.VERDICT_STRONG_THRESHOLD, Messages.VERDICT_SIGNAL_P2),
@@ -597,14 +599,13 @@ class AnalyzeView(View):
                                 (v_p2 >= AnalysisConstants.VERDICT_WEAK_THRESHOLD, Messages.VERDICT_ACCENT_X2),
                             ]
 
-                            # Ищем первое выполняющееся условие
-                            verdict = Messages.VERDICT_NO_CLEAR_VECTOR  # Значение по умолчанию
+                            verdict = Messages.VERDICT_NO_CLEAR_VECTOR
                             for condition, verdict_text in verdict_rules:
                                 if condition:
                                     verdict = verdict_text
                                     break
 
-                            # --- СОХРАНЕНИЕ РЕЗУЛЬТАТА (ОРИГИНАЛЬНАЯ СТРУКТУРА) ---
+                            # --- СОХРАНЕНИЕ РЕЗУЛЬТАТА ---
                             results.append({
                                 'match': f"{home_team.name} - {away_team.name}",
                                 'league': league.name if league else "Unknown",
@@ -630,8 +631,13 @@ class AnalyzeView(View):
                                 ),
                                 'verdict': verdict
                             })
+
+                            print(f"===== ОТЛАДКА =====")
+                            print(f"twins_count: {t_count}")
+                            print(f"twins_dist: '{t_dist}'")
+                            print(f"===================")
+
                         else:
-                            # Сохраняем нераспознанные команды
                             if not home_team:
                                 unknown_teams.add(home_raw.strip())
                             if not away_team:
@@ -643,6 +649,7 @@ class AnalyzeView(View):
                     print(error_msg)
                     continue
 
+        # Сохраняем только сигнальные матчи в сессию
         cleaned_results = []
         for el in results:
             if el['verdict'] == constants.Messages.VERDICT_SIGNAL_P1 or \
@@ -652,10 +659,8 @@ class AnalyzeView(View):
 
         request.session['cleaned_results'] = cleaned_results
 
-        # Логирование общего количества найденных матчей
         logger.info(Messages.TOTAL_MATCHES.format(len(results)))
 
-        # --- 4. ВОЗВРАТ РЕЗУЛЬТАТОВ (СОХРАНЯЕМ ОРИГИНАЛЬНУЮ СТРУКТУРУ) ---
         return render(request, self.template_name, {
             'results': results,
             'raw_text': raw_text,
