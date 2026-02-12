@@ -5,9 +5,16 @@
 <link rel="stylesheet" href="{% static 'app_bets/css/styles.css' %}">
 <!-- КНОПКА ТОЛЬКО СИГНАЛЫ + ФИЛЬТРЫ В ОДНОЙ СТРОКЕ -->
 <div class="bets-sort-container">
-    <a href="{% url 'app_bets:cleaned' %}" class="bets-filter-btn">
-        <i class="fa-solid fa-filter"></i> Только сигналы
-    </a>
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <a href="{% url 'app_bets:cleaned' %}" class="bets-filter-btn">
+            <i class="fa-solid fa-filter"></i> Только сигналы
+        </a>
+        {% if results %}
+        <a href="{% url 'app_bets:export_excel' %}" class="bets-export-btn">
+            <i class="fa-solid fa-file-excel"></i> В Excel
+        </a>
+        {% endif %}
+    </div>
 
     <!-- ФИЛЬТРЫ СОРТИРОВКИ -->
     {% if results %}

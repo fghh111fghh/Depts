@@ -1229,3 +1229,22 @@
         width: 100%;
     }
 }
+
+/* ====== КНОПКА ЭКСПОРТА ====== */
+.bets-export-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    background: #27ae60;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: opacity 0.2s;
+    gap: 8px;
+}
+
+.bets-export-btn:hover {
+    opacity: 0.9;
+}

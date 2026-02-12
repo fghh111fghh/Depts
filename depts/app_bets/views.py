@@ -23,10 +23,11 @@ from datetime import datetime
 from decimal import Decimal
 from typing import List, Dict, Optional
 
+import openpyxl
 from django.conf import settings
 from django.db import transaction
 from django.db.models import F
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 from django.utils.timezone import make_aware, get_current_timezone
 from django.views import View
@@ -918,3 +919,121 @@ class UploadCSVView(View):
             return Decimal(str(val).replace(',', '.')).quantize(Decimal('0.01'))
         except:
             return Decimal('1.01')
+
+
+class ExportBetsExcelView(View):
+    """
+    Экспорт отфильтрованных и отсортированных результатов в Excel.
+    """
+
+    def get(self, request, *args, **kwargs):
+        # Получаем результаты из сессии (уже отсортированные)
+        results = request.session.get('results', [])
+        current_sort = request.session.get('current_sort', 'default')
+
+        # Определяем название сортировки
+        sort_names = {
+            'default': 'По умолчанию',
+            'btts_desc': 'ОЗ (убывание)',
+            'over25_desc': 'б2.5 (убывание)',
+            'twins_p1_desc': 'Близнецы (макс. П1/П2)',
+            'pattern_p1_desc': 'История (макс. П1/П2)'
+        }
+        sort_name = sort_names.get(current_sort, 'По умолчанию')
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Анализ матчей"
+
+        # Заголовок с информацией о сортировке
+        ws.append([f"Сортировка: {sort_name}"])
+        ws.append([])  # Пустая строка
+
+        # Заголовки таблицы
+        headers = [
+            'Хозяева',
+            'Гости',
+            'Лига',
+            'П1',
+            'X',
+            'П2',
+            'ОЗ Да',
+            'ОЗ Нет',
+            'Тотал >2.5 Да',
+            'Тотал >2.5 Нет',
+            'Близнецы (П1)',
+            'Близнецы (X)',
+            'Близнецы (П2)',
+            'История (П1)',
+            'История (X)',
+            'История (П2)',
+            'Вердикт'
+        ]
+        ws.append(headers)
+
+        # Жирный шрифт для заголовков
+        for cell in ws[2]:  # Заголовки на 2-й строке (после строки с сортировкой)
+            cell.font = openpyxl.styles.Font(bold=True)
+
+        # Заполняем данными
+        for res in results:
+            # Разбиваем match на хозяева и гости
+            match_parts = res['match'].split(' - ', 1)
+            home_team = match_parts[0] if len(match_parts) > 0 else ''
+            away_team = match_parts[1] if len(match_parts) > 1 else ''
+
+            # Коэффициенты
+            odds = res.get('odds', (None, None, None))
+
+            # Данные близнецов
+            twins = res.get('twins_data', {})
+            twins_p1 = twins.get('p1', '') if twins else ''
+            twins_x = twins.get('x', '') if twins else ''
+            twins_p2 = twins.get('p2', '') if twins else ''
+
+            # Данные паттернов
+            pattern = res.get('pattern_data', {})
+            pattern_p1 = pattern.get('p1', '') if pattern else ''
+            pattern_x = pattern.get('x', '') if pattern else ''
+            pattern_p2 = pattern.get('p2', '') if pattern else ''
+
+            row = [
+                home_team,
+                away_team,
+                res.get('league', ''),
+                odds[0] if odds[0] is not None else '',
+                odds[1] if odds[1] is not None else '',
+                odds[2] if odds[2] is not None else '',
+                res.get('poisson_btts', {}).get('yes', ''),
+                res.get('poisson_btts', {}).get('no', ''),
+                res.get('poisson_over25', {}).get('yes', ''),
+                res.get('poisson_over25', {}).get('no', ''),
+                f"{twins_p1}%" if twins_p1 != '' else '',
+                f"{twins_x}%" if twins_x != '' else '',
+                f"{twins_p2}%" if twins_p2 != '' else '',
+                f"{pattern_p1}%" if pattern_p1 != '' else '',
+                f"{pattern_x}%" if pattern_x != '' else '',
+                f"{pattern_p2}%" if pattern_p2 != '' else '',
+                res.get('verdict', '')
+            ]
+            ws.append(row)
+
+        # Настройка ширины колонок
+        for col in ws.columns:
+            max_length = 0
+            column_letter = col[0].column_letter
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            ws.column_dimensions[column_letter].width = min(max_length + 2, 30)  # Максимум 30
+
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response[
+            'Content-Disposition'] = f'attachment; filename=bets_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+        wb.save(response)
+        return response
