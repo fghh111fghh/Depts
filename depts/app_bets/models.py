@@ -469,88 +469,136 @@ class Match(models.Model):
     def calculate_poisson_lambda(self):
         """
         Рассчитывает ожидаемое кол-во голов (лямбда) для хозяев и гостей.
-        Условие: расчет только если у каждой команды >= 5 игр в сезоне.
+        Условие: расчет только если у каждой команды >= 3 игр в сезоне.
         """
-        # 1. Получаем данные лиги за сезон
-        league_stats = self.league.get_season_averages(self.season)
-        if not league_stats or league_stats['total_matches'] == 0:
-            return None
+        try:
+            # 1. Получаем данные лиги за сезон
+            league_stats = self.league.get_season_averages(self.season)
+            if not league_stats or league_stats['total_matches'] == 0:
+                return {
+                    'home_lambda': 1.2,
+                    'away_lambda': 1.0,
+                    'error': 'Нет статистики лиги'
+                }
 
-        # Средние показатели лиги (B4, B5, B6, B7 из твоего примера)
-        # Защита от деления на 0 если голов в лиге еще нет
-        l_avg_home_goals = Decimal(str(league_stats['avg_home_goals'] or 1))
-        l_avg_away_goals = Decimal(str(league_stats['avg_away_goals'] or 1))
-        l_avg_home_conceded = l_avg_away_goals  # B6
-        l_avg_away_conceded = l_avg_home_goals  # B7
+            # Средние показатели лиги
+            l_avg_home_goals = Decimal(str(league_stats['avg_home_goals'] or 1.2))
+            l_avg_away_goals = Decimal(str(league_stats['avg_away_goals'] or 1.0))
+            l_avg_home_conceded = l_avg_away_goals
+            l_avg_away_conceded = l_avg_home_goals
 
-        # 2. Собираем статистику Хозяев (только их домашние игры в этом сезоне)
-        home_team_matches = Match.objects.filter(
-            league=self.league, season=self.season,
-            home_team=self.home_team, home_score_reg__isnull=False
-        )
+            # 2. Собираем статистику Хозяев
+            home_team_matches = Match.objects.filter(
+                league=self.league,
+                season=self.season,
+                home_team=self.home_team,
+                home_score_reg__isnull=False
+            )
 
-        # 3. Собираем статистику Гостей (только их гостевые игры в этом сезоне)
-        away_team_matches = Match.objects.filter(
-            league=self.league, season=self.season,
-            away_team=self.away_team, away_score_reg__isnull=False
-        )
+            # 3. Собираем статистику Гостей
+            away_team_matches = Match.objects.filter(
+                league=self.league,
+                season=self.season,
+                away_team=self.away_team,
+                away_score_reg__isnull=False
+            )
 
-        # Проверка на твоё условие: не менее 5 игр
-        if home_team_matches.count() < 3 or away_team_matches.count() < 3:
-            return "Недостаточно данных (нужно >= 3 игр)"
+            # Проверка на минимальное количество игр
+            if home_team_matches.count() < 3 or away_team_matches.count() < 3:
+                # Возвращаем дефолтные значения вместо строки!
+                return {
+                    'home_lambda': 1.2,
+                    'away_lambda': 1.0,
+                    'error': f'Недостаточно данных: хозяева {home_team_matches.count()}, гости {away_team_matches.count()}'
+                }
 
-        # Агрегация с защитой от None (or 0)
-        h_agg = home_team_matches.aggregate(s=Sum('home_score_reg'), c=Sum('away_score_reg'))
-        a_agg = away_team_matches.aggregate(s=Sum('away_score_reg'), c=Sum('home_score_reg'))
+            # Агрегация
+            h_agg = home_team_matches.aggregate(s=Sum('home_score_reg'), c=Sum('away_score_reg'))
+            a_agg = away_team_matches.aggregate(s=Sum('away_score_reg'), c=Sum('home_score_reg'))
 
-        # Статистика Хозяев дома (B8, B9, B20)
-        h_avg_scored = Decimal(str(h_agg['s'] or 0)) / home_team_matches.count()
-        h_avg_conceded = Decimal(str(h_agg['c'] or 0)) / home_team_matches.count()
+            # Статистика Хозяев дома
+            h_avg_scored = Decimal(str(h_agg['s'] or 0)) / home_team_matches.count()
+            h_avg_conceded = Decimal(str(h_agg['c'] or 0)) / home_team_matches.count()
 
-        # Статистика Гостей в гостях (B11, B17, B12)
-        a_avg_scored = Decimal(str(a_agg['s'] or 0)) / away_team_matches.count()
-        a_avg_conceded = Decimal(str(a_agg['c'] or 0)) / away_team_matches.count()
+            # Статистика Гостей в гостях
+            a_avg_scored = Decimal(str(a_agg['s'] or 0)) / away_team_matches.count()
+            a_avg_conceded = Decimal(str(a_agg['c'] or 0)) / away_team_matches.count()
 
-        # 4. РАСЧЕТ СИЛЫ (АТАКА / ОБОРОНА)
-        h_attack_strength = h_avg_scored / l_avg_home_goals  # B14
-        a_defense_strength = a_avg_conceded / l_avg_away_conceded  # B15
-        a_attack_strength = a_avg_scored / l_avg_away_goals  # B19
-        h_defense_strength = h_avg_conceded / l_avg_home_conceded  # B22
+            # Защита от нулевых значений
+            h_avg_scored = max(h_avg_scored, Decimal('0.5'))
+            h_avg_conceded = max(h_avg_conceded, Decimal('0.5'))
+            a_avg_scored = max(a_avg_scored, Decimal('0.5'))
+            a_avg_conceded = max(a_avg_conceded, Decimal('0.5'))
+            l_avg_home_goals = max(l_avg_home_goals, Decimal('1.0'))
+            l_avg_away_goals = max(l_avg_away_goals, Decimal('0.8'))
+            l_avg_home_conceded = max(l_avg_home_conceded, Decimal('1.0'))
+            l_avg_away_conceded = max(l_avg_away_conceded, Decimal('0.8'))
 
-        # 5. ИТОГОВАЯ ВЕРОЯТНОСТЬ ГОЛОВ (LYAMBDA)
-        lambda_home = h_attack_strength * a_defense_strength * l_avg_home_goals  # B16
-        lambda_away = a_attack_strength * h_defense_strength * l_avg_away_goals  # B23
+            # 4. РАСЧЕТ СИЛЫ (АТАКА / ОБОРОНА)
+            h_attack_strength = h_avg_scored / l_avg_home_goals
+            a_defense_strength = a_avg_conceded / l_avg_away_conceded
+            a_attack_strength = a_avg_scored / l_avg_away_goals
+            h_defense_strength = h_avg_conceded / l_avg_home_conceded
 
-        return {
-            'home_lambda': float(round(lambda_home, 2)),
-            'away_lambda': float(round(lambda_away, 2))
-        }
+            # 5. ИТОГОВАЯ ВЕРОЯТНОСТЬ ГОЛОВ (LYAMBDA)
+            lambda_home = h_attack_strength * a_defense_strength * l_avg_home_goals
+            lambda_away = a_attack_strength * h_defense_strength * l_avg_away_goals
+
+            # Нормализация (не даем уйти в крайности)
+            lambda_home = max(min(float(lambda_home), 3.5), 0.5)
+            lambda_away = max(min(float(lambda_away), 3.0), 0.3)
+
+            return {
+                'home_lambda': round(lambda_home, 2),
+                'away_lambda': round(lambda_away, 2)
+            }
+
+        except Exception as e:
+            # logger.error(f"Ошибка расчета лямбда Пуассона: {e}")
+            # Всегда возвращаем словарь, никогда строку!
+            return {
+                'home_lambda': 1.2,
+                'away_lambda': 1.0,
+                'error': str(e)
+            }
 
     def get_poisson_probabilities(self, max_goals=5):
         """
         Рассчитывает сетку вероятностей счета на основе лямбд.
         """
         lambdas = self.calculate_poisson_lambda()
-        if isinstance(lambdas, str) or not lambdas: return lambdas
+
+        # Всегда проверяем, что это словарь и содержит нужные ключи
+        if not isinstance(lambdas, dict) or 'home_lambda' not in lambdas or 'away_lambda' not in lambdas:
+            return {}  # Возвращаем пустой словарь вместо строки
 
         l_home = lambdas['home_lambda']
         l_away = lambdas['away_lambda']
 
-        # Функция распределения Пуассона: P(x; λ) = (e^-λ * λ^x) / x!
         def poisson_prob(l, x):
-            return (math.exp(-l) * (l ** x)) / math.factorial(x)
+            if x > 10:  # Защита от больших факториалов
+                return 0
+            try:
+                return (math.exp(-l) * (l ** x)) / math.factorial(x)
+            except (OverflowError, ValueError):
+                return 0
 
         prob_matrix = {}
+        total_prob = 0
+
         for h in range(max_goals + 1):
             for a in range(max_goals + 1):
                 prob = poisson_prob(l_home, h) * poisson_prob(l_away, a)
                 prob_matrix[f"{h}:{a}"] = round(prob * 100, 2)
+                total_prob += prob
+
+        # Нормализация до 100%
+        if total_prob > 0:
+            for score in prob_matrix:
+                prob_matrix[score] = round((prob_matrix[score] / total_prob) * 100, 2)
 
         return prob_matrix
 
-    # def __str__(self):
-    #     res = f"{self.home_score_final}:{self.away_score_final}" if self.home_score_final is not None else "VS"
-    #     return f"{self.date.strftime('%d.%m')} {self.home_team.name} {res} {self.away_team.name}"
 
     def get_historical_pattern_report(self, window=4):
         """
@@ -628,35 +676,40 @@ class Match(models.Model):
         """
         Синтез всех методов: Пуассон, Близнецы, Шаблоны, H2H.
         """
-        score_poisson = self.get_poisson_probabilities()  # Твой метод
+        score_poisson = self.get_poisson_probabilities()
         twins = self.get_twins()
         pattern = self.get_historical_pattern_report()
 
         signals = []
 
-        # 1. Анализ Пуассона
-        top_score = max(score_poisson, key=score_poisson.get) if isinstance(score_poisson, dict) else None
-        if top_score:
-            signals.append(f"Пуассон: {top_score}")
+        # 1. Анализ Пуассона - проверяем что это словарь и не пустой
+        if isinstance(score_poisson, dict) and score_poisson:
+            top_score = max(score_poisson, key=score_poisson.get)
+            if top_score:
+                signals.append(f"Пуассон: {top_score} ({score_poisson[top_score]}%)")
 
         # 2. Анализ Близнецов
         if twins.exists():
             t_count = twins.count()
             h_wins = twins.filter(home_score_reg__gt=F('away_score_reg')).count()
+            draws = twins.filter(home_score_reg=F('away_score_reg')).count()
+            a_wins = twins.filter(home_score_reg__lt=F('away_score_reg')).count()
+
             if (h_wins / t_count) > 0.6:
-                signals.append("Близнецы: Сильный сигнал на П1")
-            elif (h_wins / t_count) < 0.3:
-                signals.append("Близнецы: Сильный сигнал на X2")
+                signals.append(f"Близнецы: П1 {round(h_wins / t_count * 100)}%")
+            elif (a_wins / t_count) > 0.6:
+                signals.append(f"Близнецы: П2 {round(a_wins / t_count * 100)}%")
+            elif (draws / t_count) > 0.4:
+                signals.append(f"Близнецы: X {round(draws / t_count * 100)}%")
 
         # 3. Анализ Шаблона
         if isinstance(pattern, dict):
-            if pattern['outcomes']['P1'] >= 70:
-                signals.append(f"Шаблон ({pattern['pattern']}): 100% П1 в истории" if pattern['outcomes'][
-                                                                                          'P1'] == 100 else "Шаблон: Высокая вероятность П1")
-            elif pattern['outcomes']['P2'] >= 70:
-                signals.append("Шаблон: Высокая вероятность П2")
+            if pattern.get('outcomes', {}).get('P1', 0) >= 70:
+                signals.append(f"Шаблон: П1 {pattern['outcomes']['P1']}%")
+            elif pattern.get('outcomes', {}).get('P2', 0) >= 70:
+                signals.append(f"Шаблон: П2 {pattern['outcomes']['P2']}%")
 
-        # Итоговый вердикт (упрощенная логика)
+        # Итоговый вердикт
         if not signals:
             return "Недостаточно данных для уверенного прогноза."
 

@@ -643,13 +643,14 @@ class AnalyzeView(View):
                     print(error_msg)
                     continue
 
-        self.request.session['cleaned_results'] = []
+        cleaned_results = []
         for el in results:
             if el['verdict'] == constants.Messages.VERDICT_SIGNAL_P1 or \
                     el['verdict'] == constants.Messages.VERDICT_SIGNAL_P2 or \
                     el['verdict'] == constants.Messages.VERDICT_SIGNAL_DRAW:
-                self.request.session['cleaned_results'].append(el)
-        # self.request.session['cleaned_results'] = results
+                cleaned_results.append(el)
+
+        request.session['cleaned_results'] = cleaned_results
 
         # Логирование общего количества найденных матчей
         logger.info(Messages.TOTAL_MATCHES.format(len(results)))
