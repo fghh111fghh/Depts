@@ -4,9 +4,7 @@ from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
 from django.db.models import Q, Avg, Sum, F
 from decimal import Decimal
-
 from django.utils.timezone import is_naive, make_aware, get_current_timezone
-
 from app_bets.constants import AnalysisConstants
 
 
