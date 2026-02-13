@@ -966,9 +966,9 @@ class ExportBetsExcelView(View):
 
         # Заголовок с информацией о сортировке
         ws.append([f"Сортировка: {sort_name}"])
-        ws.append([])  # Пустая строка
+        ws.append([])
 
-        # Заголовки таблицы - ДОБАВЛЕНА КОЛОНКА "Ист ТБ"
+        # Заголовки таблицы - оптимизированные, без дублей
         headers = [
             'Хозяева',
             'Гости',
@@ -977,22 +977,21 @@ class ExportBetsExcelView(View):
             'X',
             'П2',
             'ОЗ Да',
-            'ОЗ Нет',
-            'Тотал >2.5 Да',
-            'Тотал >2.5 Нет',
-            'Ист ТБ',  # НОВАЯ КОЛОНКА
-            'Близнецы (П1)',
-            'Близнецы (X)',
-            'Близнецы (П2)',
-            'История (П1)',
-            'История (X)',
-            'История (П2)',
-            'Вердикт'
+            'Тот2.5 Да',
+            'Ист ТБ',
+            'Синтез ТБ',
+            'Оценка',
+            'Близ П1',
+            'Близ X',
+            'Близ П2',
+            'Ист П1',
+            'Ист X',
+            'Ист П2',
         ]
         ws.append(headers)
 
         # Жирный шрифт для заголовков
-        for cell in ws[2]:  # Заголовки на 2-й строке (после строки с сортировкой)
+        for cell in ws[2]:
             cell.font = openpyxl.styles.Font(bold=True)
 
         # Заполняем данными
@@ -1005,9 +1004,61 @@ class ExportBetsExcelView(View):
             # Коэффициенты
             odds = res.get('odds', (None, None, None))
 
-            # Данные исторического тотала - НОВОЕ ПОЛЕ
+            # Данные исторического тотала
             historical_total = res.get('historical_total', {})
-            historical_tb = f"{historical_total.get('over_25', '')}%" if historical_total and historical_total.get('over_25') else ''
+            historical_tb = f"{historical_total.get('over_25', '')}%" if historical_total and historical_total.get(
+                'over_25') else ''
+
+            # Данные Пуассона по тоталу
+            poisson_over25 = res.get('poisson_over25', {})
+            poisson_tb = poisson_over25.get('yes', 0)
+
+            # ------------------------------------------------------------
+            # СИНТЕТИЧЕСКИЙ ПОКАЗАТЕЛЬ
+            # ------------------------------------------------------------
+            synthesis_tb = ''
+            confidence = ''
+
+            if historical_total and poisson_tb:
+                hist_prob = historical_total.get('over_25', 0)
+
+                if hist_prob:
+                    # 1. БАЗОВЫЙ СИГНАЛ (приоритет Пуассона 60% / История 40%)
+                    base = poisson_tb * 0.6 + hist_prob * 0.4
+
+                    # 2. БОНУС ЗА СОГЛАСОВАННОСТЬ
+                    if poisson_tb > 50 and hist_prob > 50:
+                        p1 = poisson_tb / 100
+                        p2 = hist_prob / 100
+                        boost = 1.0 + (p1 * p2 * 0.3)
+                        final = base * boost
+                    else:
+                        final = base
+
+                    # 3. ШТРАФ ЗА ПРОТИВОРЕЧИЕ
+                    if (poisson_tb > 70 and hist_prob < 40) or (hist_prob > 70 and poisson_tb < 40):
+                        gap = abs(poisson_tb - hist_prob) / 100
+                        penalty = 1.0 - (gap * 0.3)
+                        final = final * penalty
+
+                    # Ограничиваем шкалу 0-100
+                    final = max(0, min(100, final))
+
+                    synthesis_tb = f"{round(final, 1)}%"
+
+                    # 4. УРОВЕНЬ УВЕРЕННОСТИ
+                    if final >= 85:
+                        confidence = "ВЫСОЧАЙШАЯ"
+                    elif final >= 75:
+                        confidence = "ВЫСОКАЯ"
+                    elif final >= 65:
+                        confidence = "ВЫШЕ СРЕДНЕГО"
+                    elif final >= 55:
+                        confidence = "СРЕДНЯЯ"
+                    elif final >= 45:
+                        confidence = "НИЗКАЯ"
+                    else:
+                        confidence = "СЛУЧАЙНАЯ"
 
             # Данные близнецов
             twins = res.get('twins_data', {})
@@ -1028,18 +1079,17 @@ class ExportBetsExcelView(View):
                 odds[0] if odds[0] is not None else '',
                 odds[1] if odds[1] is not None else '',
                 odds[2] if odds[2] is not None else '',
-                res.get('poisson_btts', {}).get('yes', ''),
-                res.get('poisson_btts', {}).get('no', ''),
-                res.get('poisson_over25', {}).get('yes', ''),
-                res.get('poisson_over25', {}).get('no', ''),
-                historical_tb,  # НОВАЯ КОЛОНКА - Ист ТБ
-                f"{twins_p1}%" if twins_p1 != '' else '',
-                f"{twins_x}%" if twins_x != '' else '',
-                f"{twins_p2}%" if twins_p2 != '' else '',
-                f"{pattern_p1}%" if pattern_p1 != '' else '',
-                f"{pattern_x}%" if pattern_x != '' else '',
-                f"{pattern_p2}%" if pattern_p2 != '' else '',
-                res.get('verdict', '')
+                res.get('poisson_btts', {}).get('yes', ''),  # ОЗ Да
+                poisson_over25.get('yes', ''),  # Тотал >2.5 Да
+                historical_tb,  # Ист ТБ
+                synthesis_tb,  # Синтез ТБ
+                confidence,  # Оценка
+                f"{twins_p1}%" if twins_p1 != '' else '',  # Близнецы (П1)
+                f"{twins_x}%" if twins_x != '' else '',  # Близнецы (X)
+                f"{twins_p2}%" if twins_p2 != '' else '',  # Близнецы (П2)
+                f"{pattern_p1}%" if pattern_p1 != '' else '',  # История (П1)
+                f"{pattern_x}%" if pattern_x != '' else '',  # История (X)
+                f"{pattern_p2}%" if pattern_p2 != '' else '',  # История (П2)
             ]
             ws.append(row)
 
@@ -1049,7 +1099,7 @@ class ExportBetsExcelView(View):
             column_letter = col[0].column_letter
             for cell in col:
                 try:
-                    if len(str(cell.value)) > max_length:
+                    if cell.value and len(str(cell.value)) > max_length:
                         max_length = len(str(cell.value))
                 except:
                     pass
