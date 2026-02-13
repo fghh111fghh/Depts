@@ -16,27 +16,22 @@
 - all_teams: QuerySet всех команд для выпадающего списка
 """
 import csv
-import io
 import logging
 import os
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Dict, Optional
-
 import openpyxl
-from django.conf import settings
 from django.db import transaction
 from django.db.models import F
-from django.http import JsonResponse, HttpResponse
-from django.shortcuts import render, redirect
+from django.http import HttpResponse
+from django.shortcuts import render
 from django.utils.timezone import make_aware, get_current_timezone
 from django.views import View
 import re
 import math
 import unicodedata
 from django.views.generic import TemplateView
-
-from app_bets import constants
 from app_bets.constants import Outcome, ParsingConstants, AnalysisConstants, Messages
 from app_bets.models import Team, TeamAlias, Season, Match, League
 
