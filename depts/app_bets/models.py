@@ -605,7 +605,7 @@ class Match(models.Model):
                 prob_matrix[f"{h}:{a}"] = round(prob * 100, 2)
                 total_prob += prob
 
-        # Нормализация до 100%
+        total_prob = sum(prob_matrix.values())
         if total_prob > 0:
             for score in prob_matrix:
                 prob_matrix[score] = round((prob_matrix[score] / total_prob) * 100, 2)

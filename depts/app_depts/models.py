@@ -136,7 +136,7 @@ class Record(BaseEntity):
     class Meta:
         verbose_name = 'Запись долга'
         verbose_name_plural = 'Записи долгов'
-        unique_together = ('name', 'creditor')
+        # unique_together = ('name', 'creditor')
 
     def get_absolute_url(self):
         return reverse_lazy('app_depts:records_detail', kwargs={'slug': self.slug})
