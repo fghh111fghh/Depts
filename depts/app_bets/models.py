@@ -1146,14 +1146,14 @@ class Bet(models.Model):
     odds_over = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="Коэф. ТБ 2.5")
     odds_under = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="Коэф. ТМ 2.5")
 
-    recommended_target = models.CharField(max_length=5, choices=TargetChoices.choices, verbose_name="Рекомендуемый исход")
-    recommended_odds = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="Коэф. на исход")
+    recommended_target = models.CharField(max_length=5, choices=TargetChoices.choices, verbose_name="Исход")
+    recommended_odds = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="Кэф")
 
-    poisson_prob = models.FloatField(verbose_name="Прогноз Пуассона, %")
-    actual_prob = models.FloatField(verbose_name="Фактическая вероятность (калибровка), %")
-    ev = models.FloatField(verbose_name="Ожидаемая доходность (EV), %")
+    poisson_prob = models.FloatField(verbose_name="По Пуассону, %")
+    actual_prob = models.FloatField(verbose_name="Факт. вероятность, %")
+    ev = models.FloatField(verbose_name="Доходность (EV), %")
     n_last_matches = models.PositiveSmallIntegerField(verbose_name="Использовано последних матчей (n)")
-    interval = models.CharField(max_length=10, verbose_name="Интервал калибровки")
+    interval = models.CharField(max_length=10, verbose_name="Интервал, %")
 
     stake = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Сумма ставки")
     bank_before = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Банк до ставки")
@@ -1161,7 +1161,7 @@ class Bet(models.Model):
 
     result = models.CharField(max_length=6, choices=ResultChoices.choices, verbose_name="Результат")
     profit = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name="Прибыль")
-    settled_at = models.DateTimeField(blank=True, null=True, verbose_name="Дата расчёта")
+    settled_at = models.DateTimeField(blank=True, null=True, verbose_name="Дата")
 
     date_placed = models.DateTimeField(auto_now_add=True, verbose_name="Дата ставки")
     notes = models.TextField(blank=True, verbose_name="Заметки")

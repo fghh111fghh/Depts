@@ -1584,3 +1584,132 @@
         width: 100%;
     }
 }
+
+/* ====== СТИЛИ ДЛЯ ФОРМЫ ДОБАВЛЕНИЯ СТАВКИ ====== */
+.bet-form-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.bet-form-container label.form-label {
+    font-weight: 700 !important;
+    color: #2c3e50;
+    margin-bottom: 2px;
+    font-size: 0.9rem;
+}
+
+.bet-form-container .form-control,
+.bet-form-container .form-select {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.95rem;
+    height: auto;
+    border: 1px solid #ced4da;
+    font-weight: 500;
+}
+
+.bet-form-container .form-control:focus,
+.bet-form-container .form-select:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+.bet-form-container .mb-3 {
+    margin-bottom: 0.7rem !important;
+}
+
+.bet-form-container h4 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #2c3e50;
+    margin-bottom: 0.8rem;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 0.3rem;
+}
+
+.bet-form-container .bank-display {
+    background-color: #e9ecef;
+    font-weight: 700;
+    color: #2c3e50;
+    border: 1px solid #ced4da;
+}
+
+.bet-form-container .btn {
+    padding: 0.4rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.bet-form-container .alert {
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.bet-form-container .text-danger {
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+.bet-form-container .input-group .form-control {
+    position: relative;
+    flex: 1 1 auto;
+    width: 1%;
+}
+
+/* ====== СТИЛИ ДЛЯ ФОРМЫ ДОБАВЛЕНИЯ СТАВКИ ====== */
+.bet-form-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 10px;
+}
+
+.bet-form-container .bg-light {
+    background-color: #f8f9fa !important;
+}
+
+.bet-form-container .form-control,
+.bet-form-container .form-select {
+    padding: 0.15rem 0.3rem;
+    font-size: 0.85rem;
+    height: 28px;
+}
+
+.bet-form-container label {
+    font-weight: 700 !important;
+    color: #2c3e50;
+    font-size: 0.8rem;
+    margin-bottom: 0;
+}
+
+.bet-form-container .bank-display {
+    background-color: #e9ecef;
+    font-weight: 700;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+}
+
+.bet-form-container .btn-sm {
+    padding: 0.15rem 0.8rem;
+    font-size: 0.85rem;
+    height: 28px;
+}
+
+.bet-form-container .text-muted {
+    color: #6c757d !important;
+    font-size: 0.8rem;
+}
+
+.bet-form-container .gap-3 {
+    gap: 1rem;
+}
+
+.bet-form-container .gap-4 {
+    gap: 1.5rem;
+}
+
+.bet-form-container .ms-3 {
+    margin-left: 1rem;
+}
