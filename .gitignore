@@ -4,3 +4,4 @@
 "db.sqlite3" 
 ".env" 
 ".idea/" 
+depts/combined_data.pkl
