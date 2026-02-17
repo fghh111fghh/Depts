@@ -162,7 +162,7 @@ class Team(models.Model):
         verbose_name_plural = "Команды и Игроки"
 
     def __str__(self):
-        return f"{self.name} ({self.sport.name})"
+        return self.name
 
 
 class TeamAlias(models.Model):
@@ -1098,3 +1098,98 @@ class Match(models.Model):
         except Exception as e:
             print(f"Ошибка в calculate_poisson_lambda_last_n: {e}")
             return {'home_lambda': 1.2, 'away_lambda': 1.0, 'error': str(e)}
+
+
+class Bank(models.Model):
+    """Текущий баланс игрового банка."""
+    balance = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('1000.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name="Текущий баланс"
+    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Последнее обновление")
+
+    class Meta:
+        verbose_name = "Банк"
+        verbose_name_plural = "Банк"
+
+    def __str__(self):
+        return f"Банк: {self.balance}"
+
+    @classmethod
+    def get_balance(cls):
+        """Возвращает текущий баланс (создаёт запись, если её нет)."""
+        bank, _ = cls.objects.get_or_create(pk=1, defaults={'balance': Decimal('1000.00')})
+        return bank.balance
+
+    @classmethod
+    def update_balance(cls, amount):
+        """Обновляет баланс на указанную сумму (может быть отрицательной)."""
+        bank, _ = cls.objects.get_or_create(pk=1, defaults={'balance': Decimal('1000.00')})
+        bank.balance += Decimal(str(amount))
+        bank.save()
+        return bank.balance
+
+
+class Bet(models.Model):
+    class ResultChoices(models.TextChoices):
+        WIN = 'WIN', 'Выигрыш'
+        LOSS = 'LOSS', 'Проигрыш'
+        REFUND = 'REFUND', 'Возврат'
+
+    class TargetChoices(models.TextChoices):
+        OVER = 'over', 'Тотал больше 2.5'
+        UNDER = 'under', 'Тотал меньше 2.5'
+
+    match_time = models.CharField(max_length=5, verbose_name="Время матча")
+    home_team = models.ForeignKey('Team', on_delete=models.PROTECT, related_name='bets_home', verbose_name="Хозяева")
+    away_team = models.ForeignKey('Team', on_delete=models.PROTECT, related_name='bets_away', verbose_name="Гости")
+    league = models.ForeignKey('League', on_delete=models.PROTECT, verbose_name="Лига")
+
+    odds_over = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="Коэф. ТБ 2.5")
+    odds_under = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="Коэф. ТМ 2.5")
+
+    recommended_target = models.CharField(max_length=5, choices=TargetChoices.choices, verbose_name="Рекомендуемый исход")
+    recommended_odds = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="Коэф. на исход")
+
+    poisson_prob = models.FloatField(verbose_name="Прогноз Пуассона, %")
+    actual_prob = models.FloatField(verbose_name="Фактическая вероятность (калибровка), %")
+    ev = models.FloatField(verbose_name="Ожидаемая доходность (EV), %")
+    n_last_matches = models.PositiveSmallIntegerField(verbose_name="Использовано последних матчей (n)")
+    interval = models.CharField(max_length=10, verbose_name="Интервал калибровки")
+
+    stake = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Сумма ставки")
+    bank_before = models.DecimalField(max_digits=10, decimal_places=2,
+                                      blank=True, null=True,
+    verbose_name="Банк до ставки")
+    bank_after = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Банк после ставки", blank=True, null=True)
+
+    result = models.CharField(max_length=6, choices=ResultChoices.choices, blank=True, null=True, verbose_name="Результат")
+    profit = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name="Прибыль")
+    settled_at = models.DateTimeField(blank=True, null=True, verbose_name="Дата расчёта")
+
+    date_placed = models.DateTimeField(auto_now_add=True, verbose_name="Дата ставки")
+    notes = models.TextField(blank=True, verbose_name="Заметки")
+
+    fractional_kelly = models.FloatField(blank=True, null=True, verbose_name="Доля Келли")
+
+    class Meta:
+        ordering = ['-date_placed']
+        verbose_name = "Ставка"
+        verbose_name_plural = "Ставки"
+
+    def __str__(self):
+        return f"{self.home_team.name} - {self.away_team.name} ({self.date_placed.strftime('%d.%m.%Y %H:%M')})"
+
+    def save(self, *args, **kwargs):
+        if self.result and self.bank_before is not None and self.stake is not None:
+            if self.result == self.ResultChoices.WIN:
+                self.profit = self.stake * (self.recommended_odds - 1)
+            elif self.result == self.ResultChoices.LOSS:
+                self.profit = -self.stake
+            elif self.result == self.ResultChoices.REFUND:
+                self.profit = 0
+            self.bank_after = self.bank_before + self.profit
+        super().save(*args, **kwargs)

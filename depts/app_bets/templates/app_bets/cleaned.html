@@ -8,7 +8,7 @@
     <h1><i class="fa-solid fa-chart-line"></i> Анализ матчей по калибровке</h1>
 </div>
 
-<!-- Кнопка экспорта (стили как на главной) -->
+<!-- Кнопка экспорта -->
 <div class="bets-sort-container" style="justify-content: flex-end;">
     <div class="bets-actions-wrapper">
         {% if analysis_results %}
@@ -27,7 +27,7 @@
         <div class="bets-result-card">
             <div class="match-header-line">
                 <div class="match-title-line">
-                    <div style="display: flex; align-items: baseline; gap: 10px;">
+                    <div class="match-time-title">
                         <span class="match-time">{{ res.time }}</span>
                         <strong class="match-name-large">{{ res.match }}</strong>
                     </div>
@@ -44,15 +44,20 @@
                         <div class="odd-value-line">{{ res.odds_under|floatformat:2 }}</div>
                     </div>
                 </div>
-                <div class="verdict-line verdict-p1" style="background:#d4edda; color:#155724; border-color:#b1dfbb;">
+                <div class="verdict-line verdict-p1">
                     {{ res.target }} (EV +{{ res.ev }}%)
                 </div>
             </div>
 
-            <div class="match-details-row">
-                <span><strong>Прогноз Пуассона:</strong> {{ res.poisson_prob }}%</span>
-                <span><strong>Фактическая вероятность:</strong> {{ res.actual_prob }}% (интервал {{ res.interval }})</span>
-                <span><strong>n =</strong> {{ res.n }}</span>
+            <!-- Строка с вероятностями и кнопкой "Учесть" (без n) -->
+            <div class="match-prob-row">
+                <div class="prob-values">
+                    <span><strong>Прогноз Пуассона:</strong> {{ res.poisson_prob }}%</span>
+                    <span><strong>Фактическая вероятность:</strong> {{ res.actual_prob }}% (интервал {{ res.interval }})</span>
+                </div>
+                <a href="{% url 'app_bets:bet_create' %}?home_team_id={{ res.home_team_id }}&away_team_id={{ res.away_team_id }}&league_id={{ res.league_id }}&match_time={{ res.time }}&odds_over={{ res.odds_over }}&odds_under={{ res.odds_under }}&recommended_target={{ res.target_code }}&recommended_odds={{ res.recommended_odds }}&poisson_prob={{ res.poisson_prob }}&actual_prob={{ res.actual_prob }}&ev={{ res.ev }}&n_last_matches={{ res.n }}&interval={{ res.interval }}" class="bets-account-btn">
+                    <i class="fa-solid fa-book"></i> Учесть
+                </a>
             </div>
         </div>
         {% endfor %}
@@ -63,30 +68,4 @@
         </div>
     {% endif %}
 </div>
-
-<style>
-.match-time {
-    font-size: 1rem;
-    color: #6c757d;
-    background: #e9ecef;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-weight: 500;
-}
-.match-details-row {
-    display: flex;
-    gap: 30px;
-    margin-top: 10px;
-    padding-top: 8px;
-    border-top: 1px dashed #dee2e6;
-    font-size: 0.95rem;
-    flex-wrap: wrap;
-}
-@media (max-width: 768px) {
-    .match-details-row {
-        flex-direction: column;
-        gap: 5px;
-    }
-}
-</style>
 {% endblock %}

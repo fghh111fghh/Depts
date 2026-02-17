@@ -29,14 +29,17 @@ from django.db import transaction
 from django.db.models import F, Q
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.urls import reverse_lazy
+from django.utils import timezone
 from django.utils.timezone import make_aware, get_current_timezone
 from django.views import View
 import re
 import math
 import unicodedata
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, CreateView
 from app_bets.constants import Outcome, ParsingConstants, AnalysisConstants, Messages
-from app_bets.models import Team, TeamAlias, Season, Match, League
+from app_bets.forms import BetForm
+from app_bets.models import Team, TeamAlias, Season, Match, League, Bet, Sport, Country, Bank
 
 # Настройка логгера для мониторинга
 logger = logging.getLogger(__name__)
@@ -851,6 +854,10 @@ class CleanedTemplateView(TemplateView):
                     'actual_prob': best_actual,
                     'interval': best_interval,
                     'recommended_odds': best_odds,
+                    'home_team_id': home_team.id,
+                    'away_team_id': away_team.id,
+                    'league_id': league.id,
+                    'target_code': best_target,  # 'over' или 'under' (вместо 'ТБ 2.5' для ссылки)
                 })
 
         # Сортировка по времени
@@ -1358,3 +1365,144 @@ class ExportCleanedExcelView(View):
         response['Content-Disposition'] = f'attachment; filename={filename}'
         wb.save(response)
         return response
+
+
+from dal import autocomplete
+
+class TeamAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = Team.objects.all()
+        if self.q:
+            # Поиск только по основному имени команды (без алиасов)
+            qs = qs.filter(name__istartswith=self.q)
+        return qs
+
+class LeagueAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = League.objects.all()
+        if self.q:
+            qs = qs.filter(name__istartswith=self.q)
+        return qs
+
+class SportAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = Sport.objects.all()
+        if self.q:
+            qs = qs.filter(name__istartswith=self.q)
+        return qs
+
+class CountryAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = Country.objects.all()
+        if self.q:
+            qs = qs.filter(name__istartswith=self.q)
+        return qs
+
+class BetRecordsView(TemplateView):
+    template_name = 'app_bets/bet_records.html'
+
+
+class BetCreateView(CreateView):
+    model = Bet
+    form_class = BetForm
+    template_name = 'app_bets/bet_form.html'
+    success_url = reverse_lazy('app_bets:cleaned')
+
+    def get_initial(self):
+        initial = super().get_initial()
+
+        def safe_float(val):
+            if val is None:
+                return None
+            val = str(val).replace(',', '.')
+            try:
+                return float(val)
+            except (TypeError, ValueError):
+                return None
+
+        def safe_int(val):
+            if val is None:
+                return None
+            try:
+                return int(val)
+            except (TypeError, ValueError):
+                return None
+
+        # ID команд и лиги
+        home_id = self.request.GET.get('home_team_id')
+        if home_id:
+            initial['home_team'] = safe_int(home_id)
+
+        away_id = self.request.GET.get('away_team_id')
+        if away_id:
+            initial['away_team'] = safe_int(away_id)
+
+        league_id = self.request.GET.get('league_id')
+        if league_id:
+            initial['league'] = safe_int(league_id)
+
+        # Время матча
+        match_time = self.request.GET.get('match_time')
+        if match_time:
+            initial['match_time'] = match_time
+
+        # Коэффициенты (скрытые)
+        odds_over = self.request.GET.get('odds_over')
+        if odds_over:
+            initial['odds_over'] = safe_float(odds_over)
+
+        odds_under = self.request.GET.get('odds_under')
+        if odds_under:
+            initial['odds_under'] = safe_float(odds_under)
+
+        # Рекомендуемый исход и коэффициент
+        recommended_target = self.request.GET.get('recommended_target')
+        if recommended_target:
+            initial['recommended_target'] = recommended_target
+
+        recommended_odds = self.request.GET.get('recommended_odds')
+        if recommended_odds:
+            initial['recommended_odds'] = safe_float(recommended_odds)
+
+        # Вероятности и EV
+        poisson_prob = self.request.GET.get('poisson_prob')
+        if poisson_prob:
+            initial['poisson_prob'] = safe_float(poisson_prob)
+
+        actual_prob = self.request.GET.get('actual_prob')
+        if actual_prob:
+            initial['actual_prob'] = safe_float(actual_prob)
+
+        ev = self.request.GET.get('ev')
+        if ev:
+            initial['ev'] = safe_float(ev)
+
+        # n_last_matches (скрытое)
+        n_last_matches = self.request.GET.get('n_last_matches')
+        if n_last_matches:
+            initial['n_last_matches'] = safe_int(n_last_matches)
+
+        # Интервал
+        interval = self.request.GET.get('interval')
+        if interval:
+            initial['interval'] = interval
+
+        # Автоматические поля
+        from .models import Bank
+        from django.utils import timezone
+        initial['bank_before'] = float(Bank.get_balance())
+        initial['settled_at'] = timezone.now().date().isoformat()  # только дата
+        initial['fractional_kelly'] = 0.5  # ← ИСПРАВЛЕНО
+
+        return initial
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['kelly_choices'] = [
+            (0.25, '1/4'),
+            (0.5, '1/2'),
+            (0.75, '3/4'),
+            (1.0, 'Полный'),
+        ]
+        return context
+

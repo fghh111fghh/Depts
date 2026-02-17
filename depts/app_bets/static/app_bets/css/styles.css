@@ -1431,3 +1431,156 @@
         gap: 5px;
     }
 }
+
+/* ====== КНОПКА УЧЁТА СТАВОК ====== */
+.bets-records-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    background: #6c757d;  /* нейтральный серый цвет */
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: opacity 0.2s;
+    gap: 8px;
+    height: 40px;
+    box-sizing: border-box;
+}
+
+.bets-records-btn:hover {
+    opacity: 0.9;
+}
+
+/* Если кнопка будет располагаться рядом с другими, можно добавить отступ */
+.bets-records-btn i {
+    font-size: 1rem;
+}
+
+/* ====== СТИЛИ ДЛЯ cleaned.html ====== */
+
+/* Контейнер для времени и названия */
+.match-time-title {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.match-time {
+    font-size: 1rem;
+    color: #6c757d;
+    background: #e9ecef;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Строка с деталями (вероятности, n) */
+.match-details-row {
+    display: flex;
+    gap: 30px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed #dee2e6;
+    font-size: 0.95rem;
+    flex-wrap: wrap;
+}
+
+/* Кнопка "Учесть" */
+.bets-account-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 16px;
+    background: #27ae60;  /* зелёный, как у кнопки экспорта */
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: opacity 0.2s;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    height: 36px;
+    box-sizing: border-box;
+    margin-top: 8px;
+}
+
+.bets-account-btn:hover {
+    opacity: 0.9;
+}
+
+.bets-account-btn i {
+    font-size: 0.95rem;
+}
+
+/* Контейнер для кнопки (выравнивание справа) */
+.match-account-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .match-details-row {
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .match-time-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .match-account-row {
+        justify-content: center;
+    }
+
+    .bets-account-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .match-time {
+        font-size: 0.9rem;
+    }
+}
+
+/* Строка с вероятностями и кнопкой */
+.match-prob-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed #dee2e6;
+    font-size: 0.95rem;
+}
+
+.prob-values {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .match-prob-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .prob-values {
+        flex-direction: column;
+        gap: 5px;
+    }
+    .bets-account-btn {
+        width: 100%;
+    }
+}
