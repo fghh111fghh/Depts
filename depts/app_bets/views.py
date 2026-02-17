@@ -689,7 +689,8 @@ class CleanedTemplateView(TemplateView):
         if not os.path.exists(excel_path):
             return None
         df = pd.read_excel(excel_path)
-        required = ['Хозяева', 'Гости', 'ТБ2,5', 'ТМ2,5']
+        # Ожидаемые колонки: Время, Хозяева, Гости, ТБ2,5, ТМ2,5
+        required = ['Время', 'Хозяева', 'Гости', 'ТБ2,5', 'ТМ2,5']
         if not all(col in df.columns for col in required):
             return None
         return df
@@ -774,10 +775,17 @@ class CleanedTemplateView(TemplateView):
         analysis_results = []
 
         for idx, row in excel_df.iterrows():
+            # Преобразование времени в строку
+            match_time = row['Время']
+            if hasattr(match_time, 'strftime'):
+                time_str = match_time.strftime('%H:%M')
+            else:
+                time_str = str(match_time)
+
             home_name = row['Хозяева']
             away_name = row['Гости']
-            odds_over = row['ТБ2,5']
-            odds_under = row['ТМ2,5']
+            odds_over = float(row['ТБ2,5']) if not pd.isna(row['ТБ2,5']) else None
+            odds_under = float(row['ТМ2,5']) if not pd.isna(row['ТМ2,5']) else None
 
             home_team = self.find_team(home_name)
             away_team = self.find_team(away_name)
@@ -798,11 +806,12 @@ class CleanedTemplateView(TemplateView):
             best_actual = None
             best_interval = None
             best_prob = None
+            best_odds = None
 
             for p in probs:
                 # over
                 actual_over, interval_over = self.find_calibration(calib_df, league, 'over', p['n'], p['over_prob'])
-                if actual_over is not None:
+                if actual_over is not None and odds_over is not None:
                     ev_over = (actual_over / 100.0) * odds_over - 1
                     if ev_over > 0 and (best_ev is None or ev_over > best_ev):
                         best_ev = ev_over
@@ -811,10 +820,11 @@ class CleanedTemplateView(TemplateView):
                         best_actual = actual_over
                         best_interval = interval_over
                         best_prob = p['over_prob']
+                        best_odds = odds_over
 
                 # under
                 actual_under, interval_under = self.find_calibration(calib_df, league, 'under', p['n'], p['under_prob'])
-                if actual_under is not None:
+                if actual_under is not None and odds_under is not None:
                     ev_under = (actual_under / 100.0) * odds_under - 1
                     if ev_under > 0 and (best_ev is None or ev_under > best_ev):
                         best_ev = ev_under
@@ -823,9 +833,13 @@ class CleanedTemplateView(TemplateView):
                         best_actual = actual_under
                         best_interval = interval_under
                         best_prob = p['under_prob']
+                        best_odds = odds_under
 
             if best_ev is not None:
                 analysis_results.append({
+                    'time': time_str,
+                    'home': home_name,
+                    'away': away_name,
                     'match': f"{home_name} - {away_name}",
                     'league': league.name,
                     'odds_over': odds_over,
@@ -836,8 +850,13 @@ class CleanedTemplateView(TemplateView):
                     'poisson_prob': round(best_prob * 100, 1),
                     'actual_prob': best_actual,
                     'interval': best_interval,
+                    'recommended_odds': best_odds,
                 })
 
+        # Сортировка по времени
+        analysis_results.sort(key=lambda x: x['time'])
+        # Сохраняем в сессию для экспорта
+        self.request.session['cleaned_analysis_results'] = analysis_results
         context['analysis_results'] = analysis_results
         return context
 
@@ -1279,5 +1298,63 @@ class ExportBetsExcelView(View):
         )
         response[
             'Content-Disposition'] = f'attachment; filename=bets_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+        wb.save(response)
+        return response
+
+
+class ExportCleanedExcelView(View):
+    def get(self, request, *args, **kwargs):
+        results = request.session.get('cleaned_analysis_results', [])
+        if not results:
+            # Если нет данных, можно вернуть пустой файл или ошибку
+            return HttpResponse("Нет данных для экспорта", status=404)
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Анализ матчей"
+
+        headers = [
+            'Время',
+            'Хозяева',
+            'Гости',
+            'Лига',
+            'Коэффициент',
+            'Исход',
+            'Прогноз Пуассона, %',
+            'Фактическая вероятность, %',
+            'EV, %'
+        ]
+        ws.append(headers)
+        for cell in ws[1]:
+            cell.font = openpyxl.styles.Font(bold=True)
+
+        for res in results:
+            row = [
+                res.get('time', ''),
+                res.get('home', ''),
+                res.get('away', ''),
+                res.get('league', ''),
+                res.get('recommended_odds', ''),
+                res.get('target', ''),
+                res.get('poisson_prob', ''),
+                res.get('actual_prob', ''),
+                res.get('ev', ''),
+            ]
+            ws.append(row)
+
+        # автоширина
+        for col in ws.columns:
+            max_len = 0
+            col_letter = col[0].column_letter
+            for cell in col:
+                if cell.value and len(str(cell.value)) > max_len:
+                    max_len = len(str(cell.value))
+            ws.column_dimensions[col_letter].width = min(max_len + 2, 30)
+
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        filename = f"cleaned_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        response['Content-Disposition'] = f'attachment; filename={filename}'
         wb.save(response)
         return response

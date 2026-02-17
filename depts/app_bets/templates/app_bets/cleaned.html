@@ -8,6 +8,17 @@
     <h1><i class="fa-solid fa-chart-line"></i> Анализ матчей по калибровке</h1>
 </div>
 
+<!-- Кнопка экспорта (стили как на главной) -->
+<div class="bets-sort-container" style="justify-content: flex-end;">
+    <div class="bets-actions-wrapper">
+        {% if analysis_results %}
+        <a href="{% url 'app_bets:export_cleaned' %}" class="bets-export-btn">
+            <i class="fa-solid fa-file-excel"></i> В Excel
+        </a>
+        {% endif %}
+    </div>
+</div>
+
 <div class="bets-results-container-full">
     {% if error %}
         <div class="alert alert-danger">{{ error }}</div>
@@ -16,7 +27,10 @@
         <div class="bets-result-card">
             <div class="match-header-line">
                 <div class="match-title-line">
-                    <strong class="match-name-large">{{ res.match }}</strong>
+                    <div style="display: flex; align-items: baseline; gap: 10px;">
+                        <span class="match-time">{{ res.time }}</span>
+                        <strong class="match-name-large">{{ res.match }}</strong>
+                    </div>
                     <div class="league-line">{{ res.league }}</div>
                 </div>
                 <div class="odds-line">
@@ -50,8 +64,15 @@
     {% endif %}
 </div>
 
-<!-- Дополнительные стили для строки деталей (можно добавить в styles.css) -->
 <style>
+.match-time {
+    font-size: 1rem;
+    color: #6c757d;
+    background: #e9ecef;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+}
 .match-details-row {
     display: flex;
     gap: 30px;

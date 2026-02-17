@@ -11,4 +11,5 @@ urlpatterns = [
     path('upload-csv/', views.UploadCSVView.as_view(), name='upload_csv'),
     path('cleaned/', views.CleanedTemplateView.as_view(), name='cleaned'),
     path('export/excel/', views.ExportBetsExcelView.as_view(), name='export_excel'),
+    path('export_cleaned/', views.ExportCleanedExcelView.as_view(), name='export_cleaned'),
 ]
