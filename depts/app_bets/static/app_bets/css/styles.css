@@ -1341,3 +1341,93 @@
     transition: width 0.4s ease;
     box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
 }
+
+/* ====== ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ cleaned.html ====== */
+
+/* Таблица калибровочных данных */
+.calib-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.calib-table thead {
+    background: var(--primary-color);
+    color: white;
+}
+
+.calib-table th {
+    padding: 8px 6px;
+    text-align: left;
+    font-weight: 600;
+}
+
+.calib-table td {
+    padding: 6px 4px;
+    border-bottom: 1px solid #eee;
+}
+
+.calib-table tbody tr:hover {
+    background: #f5f5f5;
+}
+
+.ev-positive {
+    color: #27ae60;
+    font-weight: bold;
+}
+
+/* Сообщения об ошибках/предупреждениях */
+.alert {
+    padding: 12px 20px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    border: 1px solid transparent;
+}
+
+.alert-danger {
+    background-color: var(--danger-bg);
+    border-color: var(--danger-border);
+    color: var(--danger-text);
+}
+
+.alert-warning {
+    background-color: var(--warning-bg);
+    border-color: var(--warning-border);
+    color: var(--warning-text);
+}
+
+/* Строка с деталями матча (вероятность, n) */
+.match-details-row {
+    display: flex;
+    gap: 30px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed #dee2e6;
+    font-size: 0.95rem;
+}
+
+/* Адаптивность для таблицы */
+@media (max-width: 1024px) {
+    .calib-table {
+        font-size: 0.7rem;
+    }
+    .calib-table th, .calib-table td {
+        padding: 4px 2px;
+    }
+}
+
+@media (max-width: 768px) {
+    .calib-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    .match-details-row {
+        flex-direction: column;
+        gap: 5px;
+    }
+}

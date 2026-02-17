@@ -1,6 +1,5 @@
-# validate_poisson_historical.py
-# Полная версия с классами PoissonHistoricalValidator и PoissonRollingValidator
-# Содержит все необходимые методы: find_match_in_db, get_poisson_over_prob_before_date и др.
+# validate_poisson_rolling.py
+# Скрипт для анализа калибровки модели Пуассона при разном количестве последних матчей команд
 
 import pandas as pd
 import numpy as np
@@ -14,38 +13,38 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class PoissonHistoricalValidator:
+class PoissonRollingValidator:
     """
-    Базовый валидатор, использующий все матчи до даты (оригинальная логика).
-    Содержит методы для загрузки CSV, поиска матча в БД, расчёта вероятности,
-    обработки строк, вывода статистики и калибровочных таблиц.
+    Валидатор с возможностью ограничивать статистику команд последними N матчами.
     """
 
-    def __init__(self, csv_path, min_team_matches=3, target_league=None, filter_odds=True):
+    def __init__(self, csv_path, min_team_matches=3, target_league=None, filter_odds=True, last_matches=None):
+        """
+        :param csv_path: путь к CSV-файлу
+        :param min_team_matches: минимальное количество матчей команды (используется только если last_matches=None)
+        :param target_league: код лиги для фильтрации
+        :param filter_odds: фильтровать строки по наличию коэффициентов
+        :param last_matches: если указано, используется именно это количество последних матчей (игнорирует min_team_matches)
+        """
         self.csv_path = csv_path
         self.min_team_matches = min_team_matches
         self.target_league = target_league
         self.filter_odds = filter_odds
+        self.last_matches = last_matches
         self.results = defaultdict(list)
         self.stats = defaultdict(int)
 
     def load_csv(self):
-        """Загружает CSV и возвращает DataFrame с правильным разделителем."""
         df = pd.read_csv(self.csv_path, encoding='utf-8', sep=';', low_memory=False)
-        # Убираем лишние пробелы в названиях колонок (но оставляем символ '>')
         df.columns = [col.strip() for col in df.columns]
 
-        # Фильтрация по наличию коэффициентов
         if self.filter_odds:
-            # Список возможных колонок с коэффициентами на тотал >2.5 (оригинальные названия)
             odds_cols = [
                 'B365>2.5', 'Avg>2.5', 'Max>2.5', 'P>2.5',
                 'B365C>2.5', 'PC>2.5', 'MaxC>2.5', 'AvgC>2.5'
             ]
-            # Оставляем только те, которые есть в данных
             existing_odds_cols = [col for col in odds_cols if col in df.columns]
             if existing_odds_cols:
-                # Фильтруем: оставляем строки, где хотя бы один из этих столбцов не NaN
                 df = df[df[existing_odds_cols].notna().any(axis=1)]
                 print(f"После фильтрации по наличию коэффициентов осталось {len(df)} строк")
             else:
@@ -53,10 +52,6 @@ class PoissonHistoricalValidator:
         return df
 
     def find_match_in_db(self, row):
-        """
-        По строке CSV находит соответствующий объект Match в БД.
-        Учитывает, что время может отсутствовать (NaN).
-        """
         self.stats['total_rows'] += 1
         div = row.get('Div')
         if pd.isna(div):
@@ -166,11 +161,6 @@ class PoissonHistoricalValidator:
         return match
 
     def get_poisson_over_prob_before_date(self, match):
-        """
-        Рассчитывает вероятность тотала >2.5 по модели Пуассона,
-        используя только матчи, сыгранные до даты match.date.
-        Возвращает вероятность (доля) или None, если недостаточно данных.
-        """
         league_matches_before = Match.objects.filter(
             league=match.league,
             season=match.season,
@@ -189,44 +179,54 @@ class PoissonHistoricalValidator:
         league_avg_home_conceded = league_avg_away
         league_avg_away_conceded = league_avg_home
 
-        home_home = Match.objects.filter(
+        # --- Статистика хозяев (последние N домашних матчей до даты) ---
+        home_home_qs = Match.objects.filter(
             league=match.league,
             season=match.season,
             home_team=match.home_team,
             date__lt=match.date,
             home_score_reg__isnull=False,
             away_score_reg__isnull=False
-        )
-        home_home_cnt = home_home.count()
-        if home_home_cnt < self.min_team_matches:
+        ).order_by('-date')
+
+        if self.last_matches is not None:
+            home_home_qs = home_home_qs[:self.last_matches]
+            required = self.last_matches
+        else:
+            required = self.min_team_matches
+
+        home_home_data = list(home_home_qs.values('home_score_reg', 'away_score_reg'))
+        if len(home_home_data) < required:
             self.stats['home_less_3'] += 1
             return None
         self.stats['home_ok'] += 1
 
-        home_scored = home_home.aggregate(s=Sum('home_score_reg'))['s'] or 0
-        home_conceded = home_home.aggregate(c=Sum('away_score_reg'))['c'] or 0
-        avg_home_scored = home_scored / home_home_cnt
-        avg_home_conceded = home_conceded / home_home_cnt
+        avg_home_scored = sum(d['home_score_reg'] for d in home_home_data) / len(home_home_data)
+        avg_home_conceded = sum(d['away_score_reg'] for d in home_home_data) / len(home_home_data)
 
-        away_away = Match.objects.filter(
+        # --- Статистика гостей (последние N гостевых матчей до даты) ---
+        away_away_qs = Match.objects.filter(
             league=match.league,
             season=match.season,
             away_team=match.away_team,
             date__lt=match.date,
             home_score_reg__isnull=False,
             away_score_reg__isnull=False
-        )
-        away_away_cnt = away_away.count()
-        if away_away_cnt < self.min_team_matches:
+        ).order_by('-date')
+
+        if self.last_matches is not None:
+            away_away_qs = away_away_qs[:self.last_matches]
+
+        away_away_data = list(away_away_qs.values('home_score_reg', 'away_score_reg'))
+        if len(away_away_data) < required:
             self.stats['away_less_3'] += 1
             return None
         self.stats['away_ok'] += 1
 
-        away_scored = away_away.aggregate(s=Sum('away_score_reg'))['s'] or 0
-        away_conceded = away_away.aggregate(c=Sum('home_score_reg'))['c'] or 0
-        avg_away_scored = away_scored / away_away_cnt
-        avg_away_conceded = away_conceded / away_away_cnt
+        avg_away_scored = sum(d['away_score_reg'] for d in away_away_data) / len(away_away_data)
+        avg_away_conceded = sum(d['home_score_reg'] for d in away_away_data) / len(away_away_data)
 
+        # Защита от нулевых значений
         avg_home_scored = max(avg_home_scored, 0.5)
         avg_home_conceded = max(avg_home_conceded, 0.5)
         avg_away_scored = max(avg_away_scored, 0.3)
@@ -236,6 +236,7 @@ class PoissonHistoricalValidator:
         league_avg_home_conceded = max(league_avg_home_conceded, 1.0)
         league_avg_away_conceded = max(league_avg_away_conceded, 0.8)
 
+        # Сила атаки/обороны
         home_attack = avg_home_scored / league_avg_home
         away_defense = avg_away_conceded / league_avg_away_conceded
         away_attack = avg_away_scored / league_avg_away
@@ -264,22 +265,19 @@ class PoissonHistoricalValidator:
         return over_prob
 
     def get_odds_from_row(self, row):
-        """Извлекает коэффициент на тотал больше 2.5 из строки CSV."""
-        for col in ['B365>2.5', 'Avg>2.5', 'Max>2.5', 'P>2.5',
-                    'B365C>2.5', 'PC>2.5', 'MaxC>2.5', 'AvgC>2.5']:
+        for col in ['B365>2.5', 'Avg>2.5', 'Max>2.5', 'P>2.5', 'B365C>2.5', 'PC>2.5', 'MaxC>2.5', 'AvgC>2.5']:
             if col in row and pd.notna(row[col]):
                 return float(row[col])
         self.stats['odds_missing'] += 1
         return None
 
     def process_row(self, row):
-        """Обрабатывает одну строку CSV."""
         match = self.find_match_in_db(row)
         if not match:
             return
 
-        pred_prob = self.get_poisson_over_prob_before_date(match)
-        if pred_prob is None:
+        over_prob = self.get_poisson_over_prob_before_date(match)
+        if over_prob is None:
             return
 
         fthg = row.get('FTHG')
@@ -294,14 +292,13 @@ class PoissonHistoricalValidator:
             return
 
         self.results[match.league_id].append({
-            'pred': pred_prob,
+            'pred': over_prob,
             'actual': actual,
             'odds': odds
         })
         self.stats['success'] += 1
 
     def run(self):
-        """Запуск обработки CSV и валидации."""
         print("Загрузка CSV...")
         df = self.load_csv()
         total = len(df)
@@ -336,7 +333,7 @@ class PoissonHistoricalValidator:
             return
 
         print("\n" + "=" * 90)
-        print("КАЛИБРОВКА МОДЕЛИ ПУАССОНА (Тотал >2.5) ПО ЛИГАМ".center(90))
+        print(f"КАЛИБРОВКА МОДЕЛИ ПУАССОНА (Тотал >2.5) ПО ЛИГАМ (last_matches={self.last_matches})".center(90))
         print("=" * 90)
 
         for league_id, records in self.results.items():
@@ -347,7 +344,7 @@ class PoissonHistoricalValidator:
             self._print_interval_table(records, bins, min_matches)
 
         print("\n" + "=" * 90)
-        print("АГРЕГИРОВАННАЯ КАЛИБРОВКА (ВСЕ ЛИГИ)".center(90))
+        print(f"АГРЕГИРОВАННАЯ КАЛИБРОВКА (ВСЕ ЛИГИ) last_matches={self.last_matches}".center(90))
         print("=" * 90)
 
         all_records = []
@@ -414,132 +411,42 @@ class PoissonHistoricalValidator:
         return low
 
 
-# =============================================================================
-#   НОВЫЙ КЛАСС – Rolling валидатор с учётом последних N матчей
-# =============================================================================
-
-class PoissonRollingValidator(PoissonHistoricalValidator):
+def run_poisson_rolling(csv_path='football_history_db_in_file.csv', target_league=None, last_matches_list=None):
     """
-    Валидатор с возможностью ограничивать статистику команд последними N матчами.
-    Если last_matches не указан, работает как родительский класс.
+    Запускает валидацию для каждого значения last_matches в списке.
+    Результаты выводятся на экран и сохраняются в CSV-файл с именем, содержащим значение.
     """
-    def __init__(self, csv_path, min_team_matches=3, target_league=None, filter_odds=True, last_matches=None):
-        super().__init__(csv_path, min_team_matches, target_league, filter_odds)
-        self.last_matches = last_matches
-
-    def get_poisson_over_prob_before_date(self, match):
-        """
-        Рассчитывает вероятность тотала >2.5, используя последние last_matches матчей команды.
-        Если last_matches не задан, использует все матчи до даты (как в родителе).
-        """
-        # Если параметр не указан, вызываем родительский метод
-        if self.last_matches is None:
-            return super().get_poisson_over_prob_before_date(match)
-
-        # --- РАСЧЁТ С ПОСЛЕДНИМИ N МАТЧАМИ ---
-        league_matches_before = Match.objects.filter(
-            league=match.league,
-            season=match.season,
-            date__lt=match.date,
-            home_score_reg__isnull=False,
-            away_score_reg__isnull=False
-        )
-        total_league = league_matches_before.count()
-        if total_league < 5:
-            self.stats['league_less_5'] += 1
-            return None
-        self.stats['league_ok'] += 1
-
-        league_avg_home = league_matches_before.aggregate(avg=Avg('home_score_reg'))['avg'] or 1.2
-        league_avg_away = league_matches_before.aggregate(avg=Avg('away_score_reg'))['avg'] or 1.0
-        league_avg_home_conceded = league_avg_away
-        league_avg_away_conceded = league_avg_home
-
-        # --- Статистика хозяев (последние N домашних матчей до даты) ---
-        home_home_qs = Match.objects.filter(
-            league=match.league,
-            season=match.season,
-            home_team=match.home_team,
-            date__lt=match.date,
-            home_score_reg__isnull=False,
-            away_score_reg__isnull=False
-        ).order_by('-date')[:self.last_matches]
-
-        home_home_data = list(home_home_qs.values('home_score_reg', 'away_score_reg'))
-        if len(home_home_data) < self.min_team_matches:
-            self.stats['home_less_3'] += 1
-            return None
-        self.stats['home_ok'] += 1
-
-        avg_home_scored = sum(d['home_score_reg'] for d in home_home_data) / len(home_home_data)
-        avg_home_conceded = sum(d['away_score_reg'] for d in home_home_data) / len(home_home_data)
-
-        # --- Статистика гостей (последние N гостевых матчей до даты) ---
-        away_away_qs = Match.objects.filter(
-            league=match.league,
-            season=match.season,
-            away_team=match.away_team,
-            date__lt=match.date,
-            home_score_reg__isnull=False,
-            away_score_reg__isnull=False
-        ).order_by('-date')[:self.last_matches]
-
-        away_away_data = list(away_away_qs.values('home_score_reg', 'away_score_reg'))
-        if len(away_away_data) < self.min_team_matches:
-            self.stats['away_less_3'] += 1
-            return None
-        self.stats['away_ok'] += 1
-
-        avg_away_scored = sum(d['away_score_reg'] for d in away_away_data) / len(away_away_data)
-        avg_away_conceded = sum(d['home_score_reg'] for d in away_away_data) / len(away_away_data)
-
-        # Защита от нулевых значений
-        avg_home_scored = max(avg_home_scored, 0.5)
-        avg_home_conceded = max(avg_home_conceded, 0.5)
-        avg_away_scored = max(avg_away_scored, 0.3)
-        avg_away_conceded = max(avg_away_conceded, 0.5)
-        league_avg_home = max(league_avg_home, 1.0)
-        league_avg_away = max(league_avg_away, 0.8)
-        league_avg_home_conceded = max(league_avg_home_conceded, 1.0)
-        league_avg_away_conceded = max(league_avg_away_conceded, 0.8)
-
-        # Сила атаки/обороны
-        home_attack = avg_home_scored / league_avg_home
-        away_defense = avg_away_conceded / league_avg_away_conceded
-        away_attack = avg_away_scored / league_avg_away
-        home_defense = avg_home_conceded / league_avg_home_conceded
-
-        lambda_home = home_attack * away_defense * league_avg_home
-        lambda_away = away_attack * home_defense * league_avg_away
-
-        lambda_home = max(min(lambda_home, 3.5), 0.5)
-        lambda_away = max(min(lambda_away, 3.0), 0.3)
-
-        def poisson_prob(l, k):
-            try:
-                return (math.exp(-l) * (l ** k)) / math.factorial(k)
-            except:
-                return 0.0
-
-        over_prob = 0.0
-        for h in range(0, 11):
-            for a in range(0, 11):
-                if h + a > 2.5:
-                    prob = poisson_prob(lambda_home, h) * poisson_prob(lambda_away, a)
-                    over_prob += prob
-
-        self.stats['pred_calculated'] += 1
-        return over_prob
-
-
-# Функция запуска (для совместимости)
-def run_poisson_validation(csv_path='football_history_db_in_file.csv', min_team_matches=3, target_league=None, filter_odds=True):
     import django
     django.setup()
-    validator = PoissonHistoricalValidator(csv_path, min_team_matches, target_league, filter_odds)
-    validator.run()
-    return validator
+
+    if last_matches_list is None:
+        last_matches_list = [5, 6, 7, 8, 9, 10]
+
+    for lm in last_matches_list:
+        print("\n" + "=" * 90)
+        print(f"ЗАПУСК ДЛЯ last_matches = {lm}".center(90))
+        print("=" * 90)
+        validator = PoissonRollingValidator(
+            csv_path=csv_path,
+            min_team_matches=3,  # не используется, т.к. передан last_matches
+            target_league=target_league,
+            filter_odds=True,
+            last_matches=lm
+        )
+        validator.run()
+
+        # Сохраняем агрегированные результаты в CSV
+        if validator.results:
+            all_records = []
+            for recs in validator.results.values():
+                all_records.extend(recs)
+            if all_records:
+                df_out = pd.DataFrame(all_records)
+                df_out['last_matches'] = lm
+                df_out.to_csv(f'calibration_lm_{lm}.csv', index=False, encoding='utf-8')
+                print(f"\nРезультаты сохранены в calibration_lm_{lm}.csv")
 
 
 if __name__ == "__main__":
-    print("Скрипт загружен. Используйте функцию run_poisson_validation() для запуска.")
+    print("Скрипт для анализа калибровки при разном количестве последних матчей.")
+    print("Используйте функцию run_poisson_rolling() для запуска.")

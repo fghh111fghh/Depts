@@ -1031,3 +1031,70 @@ class Match(models.Model):
             print(f"Error in get_historical_total_insight: {e}")
 
         return result
+
+    def calculate_poisson_lambda_last_n(self, n=10):
+        try:
+            league_stats = self.league.get_season_averages(self.season)
+            if not league_stats or league_stats['total_matches'] == 0:
+                return {'home_lambda': 1.2, 'away_lambda': 1.0, 'error': 'Нет статистики лиги'}
+
+            l_avg_home_goals = Decimal(str(league_stats['avg_home_goals'] or 1.2))
+            l_avg_away_goals = Decimal(str(league_stats['avg_away_goals'] or 1.0))
+            l_avg_home_conceded = l_avg_away_goals
+            l_avg_away_conceded = l_avg_home_goals
+
+            # Последние N домашних матчей хозяев в сезоне (независимо от даты, но они уже сыграны)
+            home_matches = Match.objects.filter(
+                league=self.league,
+                season=self.season,
+                home_team=self.home_team,
+                home_score_reg__isnull=False,
+                away_score_reg__isnull=False
+            ).order_by('-date')[:n]
+
+            home_count = home_matches.count()
+            if home_count < 3:
+                home_attack = Decimal('1.0')
+                home_defense = Decimal('1.0')
+            else:
+                h_agg = home_matches.aggregate(s=Sum('home_score_reg'), c=Sum('away_score_reg'))
+                h_avg_scored = Decimal(str(h_agg['s'] or 0)) / home_count
+                h_avg_conceded = Decimal(str(h_agg['c'] or 0)) / home_count
+                h_avg_scored = max(h_avg_scored, Decimal('0.5'))
+                h_avg_conceded = max(h_avg_conceded, Decimal('0.5'))
+                home_attack = h_avg_scored / l_avg_home_goals
+                home_defense = h_avg_conceded / l_avg_home_conceded
+
+            # Последние N гостевых матчей гостей в сезоне
+            away_matches = Match.objects.filter(
+                league=self.league,
+                season=self.season,
+                away_team=self.away_team,
+                home_score_reg__isnull=False,
+                away_score_reg__isnull=False
+            ).order_by('-date')[:n]
+
+            away_count = away_matches.count()
+            if away_count < 3:
+                away_attack = Decimal('1.0')
+                away_defense = Decimal('1.0')
+            else:
+                a_agg = away_matches.aggregate(s=Sum('away_score_reg'), c=Sum('home_score_reg'))
+                a_avg_scored = Decimal(str(a_agg['s'] or 0)) / away_count
+                a_avg_conceded = Decimal(str(a_agg['c'] or 0)) / away_count
+                a_avg_scored = max(a_avg_scored, Decimal('0.3'))
+                a_avg_conceded = max(a_avg_conceded, Decimal('0.5'))
+                away_attack = a_avg_scored / l_avg_away_goals
+                away_defense = a_avg_conceded / l_avg_away_conceded
+
+            lambda_home = home_attack * away_defense * l_avg_home_goals
+            lambda_away = away_attack * home_defense * l_avg_away_goals
+
+            lambda_home = max(min(float(lambda_home), 3.5), 0.5)
+            lambda_away = max(min(float(lambda_away), 3.0), 0.3)
+
+            return {'home_lambda': round(lambda_home, 2), 'away_lambda': round(lambda_away, 2)}
+
+        except Exception as e:
+            print(f"Ошибка в calculate_poisson_lambda_last_n: {e}")
+            return {'home_lambda': 1.2, 'away_lambda': 1.0, 'error': str(e)}

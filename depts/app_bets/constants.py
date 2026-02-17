@@ -77,6 +77,8 @@ class AnalysisConstants:
     PREDICTION_UNDER = 'МЕНЬШЕ'
     PREDICTION_FIFTY = '50/50'
 
+    LAMBDA_LAST_N = 10
+
 
 class ParsingConstants:
     """

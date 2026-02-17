@@ -18,12 +18,15 @@
 import csv
 import logging
 import os
+import pickle
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Dict, Optional
 import openpyxl
+import pandas as pd
+from django.conf import settings
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils.timezone import make_aware, get_current_timezone
@@ -445,7 +448,7 @@ class AnalyzeView(View):
                                 season=season,
                                 odds_home=h_odd
                             )
-                            p_data = m_obj.calculate_poisson_lambda()
+                            p_data = m_obj.calculate_poisson_lambda_last_n(AnalysisConstants.LAMBDA_LAST_N)
                             poisson_results = self.get_poisson_probs(p_data['home_lambda'], p_data['away_lambda'])
                             top_scores = poisson_results['top_scores']
 
@@ -662,9 +665,180 @@ class AnalyzeView(View):
 class CleanedTemplateView(TemplateView):
     template_name = 'app_bets/cleaned.html'
 
+    def get_league_mapping(self):
+        leagues = League.objects.all()
+        mapping = {}
+        for league in leagues:
+            mapping[league.name] = league.external_id
+            mapping[f"{league.name} ({league.country.name})"] = league.external_id
+        return mapping
+
+    def get_calibration_data(self):
+        pickle_path = os.path.join(settings.BASE_DIR, 'calibration_summary.pkl')
+        if not os.path.exists(pickle_path):
+            return None
+        with open(pickle_path, 'rb') as f:
+            df = pickle.load(f)
+        league_map = self.get_league_mapping()
+        df['external_id'] = df['league'].map(league_map)
+        df = df.dropna(subset=['external_id'])
+        return df
+
+    def get_excel_matches(self):
+        excel_path = os.path.join(settings.BASE_DIR, 'for_analyze_matches.xlsx')
+        if not os.path.exists(excel_path):
+            return None
+        df = pd.read_excel(excel_path)
+        required = ['Хозяева', 'Гости', 'ТБ2,5', 'ТМ2,5']
+        if not all(col in df.columns for col in required):
+            return None
+        return df
+
+    def find_team(self, name):
+        try:
+            return Team.objects.get(Q(aliases__name__iexact=name) | Q(name__iexact=name))
+        except Team.DoesNotExist:
+            return None
+        except Team.MultipleObjectsReturned:
+            return Team.objects.filter(Q(aliases__name__iexact=name) | Q(name__iexact=name)).first()
+
+    def get_league_for_team(self, team):
+        last_match = Match.objects.filter(
+            Q(home_team=team) | Q(away_team=team)
+        ).select_related('league').order_by('-date').first()
+        return last_match.league if last_match else None
+
+    def calculate_probs_for_match(self, home_team, away_team, league, n_values):
+        results = []
+        for n in n_values:
+            temp_match = Match(
+                home_team=home_team,
+                away_team=away_team,
+                league=league,
+                season=None
+            )
+            lambdas = temp_match.calculate_poisson_lambda_last_n(n=n)
+            if 'error' in lambdas:
+                continue
+            over_prob = self.poisson_over_prob(lambdas['home_lambda'], lambdas['away_lambda'])
+            results.append({
+                'n': n,
+                'over_prob': over_prob,
+                'under_prob': 1 - over_prob,
+                'home_lambda': lambdas['home_lambda'],
+                'away_lambda': lambdas['away_lambda']
+            })
+        return results
+
+    def poisson_over_prob(self, l_home, l_away, max_goals=10):
+        import math
+        def poisson(l, k):
+            return math.exp(-l) * (l**k) / math.factorial(k)
+        over = 0.0
+        for h in range(max_goals+1):
+            for a in range(max_goals+1):
+                if h + a > 2.5:
+                    over += poisson(l_home, h) * poisson(l_away, a)
+        return over
+
+    def find_calibration(self, calib_df, league, target, n, prob):
+        league_code = league.external_id
+        subset = calib_df[(calib_df['external_id'] == league_code) &
+                          (calib_df['target'] == target) &
+                          (calib_df['last_matches'] == n)]
+        if subset.empty:
+            return None, None
+        prob_pct = prob * 100
+        for _, row in subset.iterrows():
+            interval = row['interval']
+            if interval.startswith('>'):
+                low = float(interval[1:])
+                high = 100
+            else:
+                low, high = map(float, interval.split('-'))
+            if low <= prob_pct < high:
+                return row['actual_%'], interval
+        return None, None
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['cleaned_results'] = self.request.session.get('cleaned_results')
+
+        calib_df = self.get_calibration_data()
+        excel_df = self.get_excel_matches()
+
+        if calib_df is None or excel_df is None:
+            context['error'] = 'Не удалось загрузить калибровочные данные или Excel-файл.'
+            return context
+
+        n_values = list(range(5, 11))
+        analysis_results = []
+
+        for idx, row in excel_df.iterrows():
+            home_name = row['Хозяева']
+            away_name = row['Гости']
+            odds_over = row['ТБ2,5']
+            odds_under = row['ТМ2,5']
+
+            home_team = self.find_team(home_name)
+            away_team = self.find_team(away_name)
+            if not home_team or not away_team:
+                continue
+
+            league = self.get_league_for_team(home_team) or self.get_league_for_team(away_team)
+            if not league:
+                continue
+
+            probs = self.calculate_probs_for_match(home_team, away_team, league, n_values)
+            if not probs:
+                continue
+
+            best_ev = None
+            best_target = None
+            best_n = None
+            best_actual = None
+            best_interval = None
+            best_prob = None
+
+            for p in probs:
+                # over
+                actual_over, interval_over = self.find_calibration(calib_df, league, 'over', p['n'], p['over_prob'])
+                if actual_over is not None:
+                    ev_over = (actual_over / 100.0) * odds_over - 1
+                    if ev_over > 0 and (best_ev is None or ev_over > best_ev):
+                        best_ev = ev_over
+                        best_target = 'over'
+                        best_n = p['n']
+                        best_actual = actual_over
+                        best_interval = interval_over
+                        best_prob = p['over_prob']
+
+                # under
+                actual_under, interval_under = self.find_calibration(calib_df, league, 'under', p['n'], p['under_prob'])
+                if actual_under is not None:
+                    ev_under = (actual_under / 100.0) * odds_under - 1
+                    if ev_under > 0 and (best_ev is None or ev_under > best_ev):
+                        best_ev = ev_under
+                        best_target = 'under'
+                        best_n = p['n']
+                        best_actual = actual_under
+                        best_interval = interval_under
+                        best_prob = p['under_prob']
+
+            if best_ev is not None:
+                analysis_results.append({
+                    'match': f"{home_name} - {away_name}",
+                    'league': league.name,
+                    'odds_over': odds_over,
+                    'odds_under': odds_under,
+                    'target': 'ТБ 2.5' if best_target == 'over' else 'ТМ 2.5',
+                    'ev': round(best_ev * 100, 1),
+                    'n': best_n,
+                    'poisson_prob': round(best_prob * 100, 1),
+                    'actual_prob': best_actual,
+                    'interval': best_interval,
+                })
+
+        context['analysis_results'] = analysis_results
         return context
 
 
