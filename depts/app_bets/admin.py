@@ -203,9 +203,27 @@ class BetAdmin(admin.ModelAdmin):
         self.message_user(request, "Выбранные ставки отмечены как возврат.")
     mark_as_refund.short_description = "Отметить как возврат"
 
+    def delete_queryset(self, request, queryset):
+        """Массовое удаление с корректным откатом банка."""
+        from .models import Bank
+        from decimal import Decimal
+
+        total = Decimal('0.00')
+        for bet in queryset:
+            if bet.profit and bet.result != Bet.ResultChoices.REFUND:
+                total += bet.profit
+
+        if total != 0:
+            Bank.update_balance(-total)
+
+        queryset.delete()
+        self.message_user(request, f"Удалено {queryset.count()} ставок, банк скорректирован")
+
     def save_model(self, request, obj, form, change):
-        if not obj.bank_before:
-            obj.bank_before = Bank.get_balance()
+        """Сохранение через админку."""
+        # Просто вызываем save, вся логика уже в модели
         super().save_model(request, obj, form, change)
-        if obj.result and obj.profit is not None:
-            Bank.update_balance(obj.profit)
+        if change:
+            self.message_user(request, f"Ставка {obj} обновлена")
+        else:
+            self.message_user(request, f"Ставка {obj} создана")

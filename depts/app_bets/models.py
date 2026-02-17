@@ -1156,12 +1156,10 @@ class Bet(models.Model):
     interval = models.CharField(max_length=10, verbose_name="Интервал калибровки")
 
     stake = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Сумма ставки")
-    bank_before = models.DecimalField(max_digits=10, decimal_places=2,
-                                      blank=True, null=True,
-    verbose_name="Банк до ставки")
-    bank_after = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Банк после ставки", blank=True, null=True)
+    bank_before = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Банк до ставки")
+    bank_after = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name="Банк после ставки")
 
-    result = models.CharField(max_length=6, choices=ResultChoices.choices, blank=True, null=True, verbose_name="Результат")
+    result = models.CharField(max_length=6, choices=ResultChoices.choices, verbose_name="Результат")
     profit = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name="Прибыль")
     settled_at = models.DateTimeField(blank=True, null=True, verbose_name="Дата расчёта")
 
@@ -1172,6 +1170,10 @@ class Bet(models.Model):
 
     class Meta:
         ordering = ['-date_placed']
+        indexes = [
+            models.Index(fields=['result']),
+            models.Index(fields=['date_placed']),
+        ]
         verbose_name = "Ставка"
         verbose_name_plural = "Ставки"
 
@@ -1191,64 +1193,59 @@ class Bet(models.Model):
             return 0
         return None
 
-    def update_bank_after_save(self, old_instance=None):
-        """Обновляет банк после сохранения ставки."""
+    def save(self, *args, **kwargs):
+        """Полный контроль сохранения с обработкой изменений."""
         from .models import Bank
 
-        # Если это новая ставка
-        if old_instance is None:
-            if self.result:
-                profit = self.calculate_profit()
-                if profit is not None:
-                    Bank.update_balance(profit)
-                    self.bank_after = Bank.get_balance()
-                    # Сохраняем ещё раз, но без рекурсии
-                    Bet.objects.filter(pk=self.pk).update(bank_after=self.bank_after)
-
-        # Если ставка изменялась
-        else:
-            # Откатываем старый результат
-            old_profit = old_instance.calculate_profit()
-            if old_profit is not None:
-                Bank.update_balance(-old_profit)
-
-            # Применяем новый результат
-            if self.result:
-                new_profit = self.calculate_profit()
-                if new_profit is not None:
-                    Bank.update_balance(new_profit)
-                    self.bank_after = Bank.get_balance()
-                    Bet.objects.filter(pk=self.pk).update(bank_after=self.bank_after)
-
-    def save(self, *args, **kwargs):
-        # Сохраняем старую версию для сравнения
+        # Получаем старую версию, если это обновление
+        old_profit = None
         if self.pk:
-            old_instance = Bet.objects.get(pk=self.pk)
+            try:
+                old = Bet.objects.get(pk=self.pk)
+                old_profit = old.profit
+                old_result = old.result
+            except Bet.DoesNotExist:
+                old_profit = None
+                old_result = None
         else:
-            old_instance = None
+            old_profit = None
+            old_result = None
 
-        # Устанавливаем bank_before, если его нет
-        if not self.bank_before and not old_instance:
+        # Устанавливаем bank_before для новой ставки
+        if not self.bank_before and not self.pk:
             self.bank_before = Bank.get_balance()
 
-        # Автоматический расчёт прибыли и bank_after
+        # Рассчитываем profit и bank_after
         if self.result:
-            if self.result == self.ResultChoices.WIN:
-                self.profit = self.stake * (self.recommended_odds - 1)
-            elif self.result == self.ResultChoices.LOSS:
-                self.profit = -self.stake
-            elif self.result == self.ResultChoices.REFUND:
-                self.profit = 0
+            self.profit = self.calculate_profit()
+            if self.result == self.ResultChoices.REFUND:
+                self.bank_after = self.bank_before
+            elif self.profit is not None:
+                self.bank_after = self.bank_before + self.profit
 
+        # Сохраняем
         super().save(*args, **kwargs)
 
-        # Обновляем банк после сохранения
-        self.update_bank_after_save(old_instance)
+        # ОБРАБОТКА БАНКА
+        # 1. Новая ставка
+        if not old_profit and self.profit and self.result != self.ResultChoices.REFUND:
+            Bank.update_balance(self.profit)
+
+        # 2. Изменение существующей ставки
+        elif old_profit is not None:
+            # Откатываем старую прибыль
+            if old_profit != 0 and old_result != self.ResultChoices.REFUND:
+                Bank.update_balance(-old_profit)
+
+            # Добавляем новую прибыль
+            if self.profit and self.result != self.ResultChoices.REFUND:
+                Bank.update_balance(self.profit)
 
     def delete(self, *args, **kwargs):
-        """При удалении возвращаем банк в исходное состояние."""
-        if self.result:
-            profit = self.calculate_profit()
-            if profit is not None:
-                Bank.update_balance(-profit)
+        """Контролируемое удаление с откатом банка."""
+        from .models import Bank
+
+        if self.profit and self.result != self.ResultChoices.REFUND:
+            Bank.update_balance(-self.profit)
+
         super().delete(*args, **kwargs)

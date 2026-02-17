@@ -25,6 +25,8 @@ from typing import List, Dict, Optional
 import openpyxl
 import pandas as pd
 from django.conf import settings
+from django.contrib import messages
+from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
 from django.db.models import F, Q
 from django.http import HttpResponse
@@ -1402,11 +1404,12 @@ class BetRecordsView(TemplateView):
     template_name = 'app_bets/bet_records.html'
 
 
-class BetCreateView(CreateView):
+class BetCreateView(SuccessMessageMixin, CreateView):
     model = Bet
     form_class = BetForm
     template_name = 'app_bets/bet_form.html'
     success_url = reverse_lazy('app_bets:cleaned')
+    success_message = "Ставка на матч %(home_team)s - %(away_team)s (коэф. %(recommended_odds)s, сумма %(stake)s) успешно сохранена!"
 
     def get_initial(self):
         initial = super().get_initial()
@@ -1491,18 +1494,40 @@ class BetCreateView(CreateView):
         from .models import Bank
         from django.utils import timezone
         initial['bank_before'] = float(Bank.get_balance())
-        initial['settled_at'] = timezone.now().date().isoformat()  # только дата
-        initial['fractional_kelly'] = 0.5  # ← ИСПРАВЛЕНО
+        initial['settled_at'] = timezone.now().date().isoformat()
+        initial['fractional_kelly'] = 0.5
+
+        # Расчёт начальной суммы ставки
+        try:
+            bank = initial.get('bank_before', 0)
+            odds = initial.get('recommended_odds', 0)
+            prob = initial.get('actual_prob', 0)
+            fraction = initial.get('fractional_kelly', 0.5)
+
+            if odds and prob and bank and fraction:
+                p = float(prob) / 100
+                k = float(odds)
+                full_kelly = (p * k - 1) / (k - 1)
+                limited_kelly = max(0, min(full_kelly, 1))
+                stake = float(bank) * limited_kelly * float(fraction)
+                initial['stake'] = round(stake / 100) * 100
+            else:
+                initial['stake'] = 0
+        except Exception as e:
+            print(f"Ошибка расчёта stake: {e}")
+            initial['stake'] = 0
 
         return initial
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['kelly_choices'] = [
-            (0.25, '1/4'),
-            (0.5, '1/2'),
-            (0.75, '3/4'),
-            (1.0, 'Полный'),
-        ]
-        return context
+    def get_success_message(self, cleaned_data):
+        return self.success_message % {
+            'home_team': self.object.home_team.name,
+            'away_team': self.object.away_team.name,
+            'recommended_odds': self.object.recommended_odds,
+            'stake': self.object.stake,
+        }
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'Ошибка при сохранении ставки. Пожалуйста, исправьте ошибки в форме.')
+        return super().form_invalid(form)
 
