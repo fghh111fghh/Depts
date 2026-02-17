@@ -1,7 +1,70 @@
-"deptsvenv/" 
-"*.pyc" 
-"__pycache__/" 
-"db.sqlite3" 
-".env" 
-".idea/" 
-depts/combined_data.pkl
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+deptsvenv/
+venv/
+env/
+ENV/
+
+# Database
+db.sqlite3
+*.db
+
+# Uploaded / generated data files
+*.csv
+*.xlsx
+*.pkl
+*.log
+*.json
+!matches_export.json  # если нужно сохранить пример, но лучше исключить всё
+!manage.py
+
+# Local configuration
+.env
+.idea/
+.vscode/
+
+# Project-specific directories (if they contain generated files)
+for_calibration/
+import_data/
+positive_ev/
+second_matches/
+
+# Specific large files
+calibration_lm_*.csv
+calibration_results.csv
+football_history_db_in_file.csv
+matches_export.csv
+backup_db.json
+calibration_summary.pkl
+for_analyze_matches.xlsx
+Калибровка*.xlsx
+Результат*.xlsx
+
+# Keep code directories (but ensure they don't contain unwanted files)
+app_bets/
+app_depts/
+app_main/
+static/
+templates/
+
+# Keep python scripts in root (they are code)
+*.py
+!calibrate_all.py
+!calibrate_all_rolling.py
+!calibrate_all_rolling_final.py
+!collect_positive_ev.py
+!export_matches.py
+!manage.py
+!read_calibration_files.py
+!test_import_matches.py
+!validate_models.py
+!validate_poisson_historical.py
+!validate_poisson_rolling.py
+!validate_poisson_under.py
+
+# Logs
+*.log
