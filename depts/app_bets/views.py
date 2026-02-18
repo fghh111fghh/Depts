@@ -316,7 +316,6 @@ class AnalyzeView(View):
         lines = [l.strip() for l in raw_text.split('\n') if l.strip()]
 
         if not lines:
-            # СОХРАНЯЕМ ПУСТЫЕ ДАННЫЕ В СЕССИЮ
             request.session['results'] = results
             request.session['raw_text'] = raw_text
             request.session['unknown_teams'] = list(unknown_teams)
@@ -330,6 +329,32 @@ class AnalyzeView(View):
                 'all_teams': Team.objects.all().order_by('name'),
                 'current_sort': current_sort,
             })
+
+        # --- МАКСИМАЛЬНАЯ ОПТИМИЗАЦИЯ: загружаем все данные одним запросом ---
+        # Загружаем все матчи сразу
+        all_matches = list(Match.objects.filter(
+            home_score_reg__isnull=False
+        ).select_related(
+            'home_team', 'away_team', 'league', 'season'
+        ).order_by('date'))
+
+        # Индексируем матчи по лиге для быстрого доступа
+        matches_by_league = {}
+        for match in all_matches:
+            if match.league_id not in matches_by_league:
+                matches_by_league[match.league_id] = []
+            matches_by_league[match.league_id].append(match)
+
+        # Загружаем все команды
+        all_teams = {team.id: team for team in Team.objects.all()}
+
+        # Загружаем все алиасы
+        all_aliases = {}
+        for alias in TeamAlias.objects.all().select_related('team'):
+            all_aliases[alias.name] = alias.team
+
+        # Загружаем все лиги
+        all_leagues = {league.id: league for league in League.objects.all()}
 
         # --- 3. ПАРСИНГ И АНАЛИЗ МАТЧЕЙ ---
         skip_to = -1
@@ -349,41 +374,66 @@ class AnalyzeView(View):
                     if len(names) == 2:
                         away_raw, home_raw = names[0], names[1]
 
-                        home_team = self.get_team_smart(home_raw)
-                        away_team = self.get_team_smart(away_raw)
+                        # Поиск команды через кэш
+                        home_team = None
+                        away_team = None
+
+                        clean_home = self.clean_team_name(home_raw)
+                        clean_away = self.clean_team_name(away_raw)
+
+                        # Сначала ищем в алиасах
+                        if clean_home in all_aliases:
+                            home_team = all_aliases[clean_home]
+                        else:
+                            # Ищем по имени в загруженных командах
+                            for team in all_teams.values():
+                                if team.name.lower() == clean_home:
+                                    home_team = team
+                                    break
+
+                        if clean_away in all_aliases:
+                            away_team = all_aliases[clean_away]
+                        else:
+                            for team in all_teams.values():
+                                if team.name.lower() == clean_away:
+                                    away_team = team
+                                    break
 
                         if home_team and away_team:
                             logger.info(Messages.MATCH_FOUND.format(
                                 home_team.name, away_team.name, h_odd, d_odd, a_odd
                             ))
 
-                            # --- АНАЛИЗ МАТЧА ---
-                            # Поиск лиги с защитой от None
-                            ref = Match.objects.filter(home_team=home_team).select_related('league__country').first()
+                            # Поиск лиги
                             league = None
-                            if ref and ref.league:
-                                league = ref.league
-                            else:
+                            # Ищем первый матч с этой командой
+                            for match in all_matches:
+                                if match.home_team_id == home_team.id and match.league:
+                                    league = match.league
+                                    break
+
+                            if not league:
+                                # Пробуем по стране
                                 league = League.objects.filter(country=home_team.country).first()
 
-                            # Если лига не найдена - пропускаем матч
                             if not league:
                                 logger.warning(f"Не найдена лига для команды {home_team.name}, матч пропущен")
-                                if not home_team:
-                                    unknown_teams.add(home_raw.strip())
-                                if not away_team:
-                                    unknown_teams.add(away_raw.strip())
+                                unknown_teams.add(home_raw.strip())
+                                unknown_teams.add(away_raw.strip())
                                 continue
 
-                            # --- ШАБЛОНЫ ---
-                            all_league_matches = list(
-                                Match.objects.filter(league=league, home_score_reg__isnull=False).order_by('date'))
+                            # Получаем матчи этой лиги из кэша
+                            league_matches = matches_by_league.get(league.id, [])
+
+                            # --- ШАБЛОНЫ (используем кэшированные данные) ---
                             team_history = {}
                             match_patterns = {}
-                            for m in all_league_matches:
+
+                            for m in league_matches:
                                 h_id, a_id = m.home_team_id, m.away_team_id
                                 h_f = "".join(team_history.get(h_id, []))[-AnalysisConstants.PATTERN_FORM_LENGTH:]
                                 a_f = "".join(team_history.get(a_id, []))[-AnalysisConstants.PATTERN_FORM_LENGTH:]
+
                                 if len(h_f) == AnalysisConstants.PATTERN_FORM_LENGTH and len(
                                         a_f) == AnalysisConstants.PATTERN_FORM_LENGTH:
                                     match_patterns[m.id] = (h_f, a_f)
@@ -411,7 +461,7 @@ class AnalyzeView(View):
 
                             if len(curr_h_form) == AnalysisConstants.PATTERN_FORM_LENGTH and len(
                                     curr_a_form) == AnalysisConstants.PATTERN_FORM_LENGTH:
-                                for m in all_league_matches:
+                                for m in league_matches:
                                     if match_patterns.get(m.id) == (curr_h_form, curr_a_form):
                                         p_count += 1
                                         if m.home_score_reg > m.away_score_reg:
@@ -445,7 +495,7 @@ class AnalyzeView(View):
                                         'p2': p2_pct
                                     }
 
-                            # --- ПУАССОН И БЛИЗНЕЦЫ ---
+                            # --- ПУАССОН ---
                             m_obj = Match(
                                 home_team=home_team,
                                 away_team=away_team,
@@ -460,33 +510,31 @@ class AnalyzeView(View):
                             # --- ИСТОРИЧЕСКИЙ АНАЛИЗ ТОТАЛА (БАЙЕС) ---
                             historical_total_insight = m_obj.get_historical_total_insight()
 
-                            # Поиск "близнецов" с защитой от None
+                            # --- БЛИЗНЕЦЫ (через кэшированные матчи) ---
                             tol = AnalysisConstants.TWINS_TOLERANCE_SMALL
-                            twins_qs = Match.objects.none()
+                            twins_matches = []
 
-                            if league and league.country:
-                                twins_qs = Match.objects.filter(
-                                    league__country=league.country,
-                                    odds_home__range=(h_odd - tol, h_odd + tol),
-                                    odds_away__range=(a_odd - tol, a_odd + tol)
-                                ).exclude(home_score_reg__isnull=True)
+                            for m in league_matches:
+                                h_diff = abs(float(m.odds_home) - float(h_odd))
+                                a_diff = abs(float(m.odds_away) - float(a_odd))
+                                if h_diff <= tol and a_diff <= tol:
+                                    twins_matches.append(m)
 
-                                if twins_qs.count() == 0:
-                                    tol = AnalysisConstants.TWINS_TOLERANCE_LARGE
-                                    twins_qs = Match.objects.filter(
-                                        league__country=league.country,
-                                        odds_home__range=(h_odd - tol, h_odd + tol),
-                                        odds_away__range=(a_odd - tol, a_odd + tol)
-                                    ).exclude(home_score_reg__isnull=True)
+                            if not twins_matches:
+                                tol = AnalysisConstants.TWINS_TOLERANCE_LARGE
+                                for m in league_matches:
+                                    h_diff = abs(float(m.odds_home) - float(h_odd))
+                                    a_diff = abs(float(m.odds_away) - float(a_odd))
+                                    if h_diff <= tol and a_diff <= tol:
+                                        twins_matches.append(m)
 
-                            # --- БЛИЗНЕЦЫ ---
-                            t_count = twins_qs.count()
+                            t_count = len(twins_matches)
                             twins_data = None
 
                             if t_count > 0:
-                                hw_t = twins_qs.filter(home_score_reg__gt=F('away_score_reg')).count()
-                                dw_t = twins_qs.filter(home_score_reg=F('away_score_reg')).count()
-                                aw_t = twins_qs.filter(home_score_reg__lt=F('away_score_reg')).count()
+                                hw_t = sum(1 for m in twins_matches if m.home_score_reg > m.away_score_reg)
+                                dw_t = sum(1 for m in twins_matches if m.home_score_reg == m.away_score_reg)
+                                aw_t = sum(1 for m in twins_matches if m.home_score_reg < m.away_score_reg)
 
                                 total_with_results = hw_t + dw_t + aw_t
 
@@ -513,19 +561,16 @@ class AnalyzeView(View):
                                         'p2': p2_pct
                                     }
 
-                            # --- ЛИЧНЫЕ ВСТРЕЧИ ---
-                            h2h_qs = Match.objects.filter(
-                                home_team=home_team,
-                                away_team=away_team
-                            ).exclude(home_score_reg__isnull=True).order_by('-date')
-
-                            h2h_list = [
-                                {
-                                    'date': m.date.strftime(Messages.DATE_FORMAT),
-                                    'score': f"{m.home_score_reg}:{m.away_score_reg}"
-                                }
-                                for m in h2h_qs
-                            ]
+                            # --- ЛИЧНЫЕ ВСТРЕЧИ (через кэшированные матчи) ---
+                            h2h_list = []
+                            for m in league_matches:
+                                if (m.home_team_id == home_team.id and m.away_team_id == away_team.id) or \
+                                        (m.home_team_id == away_team.id and m.away_team_id == home_team.id):
+                                    h2h_list.append({
+                                        'date': m.date.strftime(Messages.DATE_FORMAT),
+                                        'score': f"{m.home_score_reg}:{m.away_score_reg}"
+                                    })
+                            h2h_list = h2h_list[:10]
 
                             # --- ВЕКТОРНЫЙ СИНТЕЗ ---
                             v_p1, v_x, v_p2 = 0, 0, 0
@@ -560,8 +605,6 @@ class AnalyzeView(View):
                                 (v_p1 >= AnalysisConstants.VERDICT_STRONG_THRESHOLD, Messages.VERDICT_SIGNAL_P1),
                                 (v_p2 >= AnalysisConstants.VERDICT_STRONG_THRESHOLD, Messages.VERDICT_SIGNAL_P2),
                                 (v_x >= AnalysisConstants.VERDICT_STRONG_THRESHOLD, Messages.VERDICT_SIGNAL_DRAW),
-                                (v_p1 >= AnalysisConstants.VERDICT_WEAK_THRESHOLD, Messages.VERDICT_ACCENT_1X),
-                                (v_p2 >= AnalysisConstants.VERDICT_WEAK_THRESHOLD, Messages.VERDICT_ACCENT_X2),
                             ]
 
                             verdict = Messages.VERDICT_NO_CLEAR_VECTOR
@@ -588,7 +631,7 @@ class AnalyzeView(View):
                                 'twins_data': twins_data,
                                 'pattern_data': pattern_data,
                                 'h2h_list': h2h_list,
-                                'h2h_total': h2h_qs.count(),
+                                'h2h_total': len(h2h_list),
                                 'odds': (
                                     float(h_odd) if h_odd is not None else None,
                                     float(d_odd) if d_odd is not None else None,
@@ -612,12 +655,11 @@ class AnalyzeView(View):
 
         # --- СОХРАНЯЕМ ИСХОДНЫЙ ПОРЯДОК ПЕРЕД СОРТИРОВКОЙ ---
         if results:
-            # Создаем глубокую копию исходного порядка
             request.session['original_results'] = [dict(r) for r in results]
         else:
             request.session['original_results'] = []
 
-        # --- СОРТИРУЕМ РЕЗУЛЬТАТЫ - ТОЛЬКО ЕСЛИ ОНИ ЕСТЬ ---
+        # --- СОРТИРУЕМ РЕЗУЛЬТАТЫ ---
         if results:
             if current_sort == 'btts_desc':
                 results.sort(key=lambda x: x['poisson_btts']['yes'], reverse=True)

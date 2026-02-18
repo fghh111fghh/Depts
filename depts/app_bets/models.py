@@ -284,6 +284,10 @@ class Match(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=["odds_home", "odds_away"]),
+            models.Index(fields=["home_team"]),
+            models.Index(fields=["away_team"]),
+            models.Index(fields=["league", "date"]),  # новый индекс
+            models.Index(fields=["home_team", "away_team"]),  # новый индекс
         ]
         verbose_name = "Матч"
         verbose_name_plural = "Матчи"
@@ -1043,21 +1047,31 @@ class Match(models.Model):
             l_avg_home_conceded = l_avg_away_goals
             l_avg_away_conceded = l_avg_home_goals
 
-            # Последние N домашних матчей хозяев в сезоне (независимо от даты, но они уже сыграны)
-            home_matches = Match.objects.filter(
+            # ОДНИМ ЗАПРОСОМ получаем все домашние матчи хозяев
+            home_matches = list(Match.objects.filter(
                 league=self.league,
                 season=self.season,
                 home_team=self.home_team,
                 home_score_reg__isnull=False,
                 away_score_reg__isnull=False
-            ).order_by('-date')[:n]
+            ).order_by('-date').values('home_score_reg', 'away_score_reg')[:n])
 
-            home_count = home_matches.count()
+            # ОДНИМ ЗАПРОСОМ получаем все гостевые матчи гостей
+            away_matches = list(Match.objects.filter(
+                league=self.league,
+                season=self.season,
+                away_team=self.away_team,
+                home_score_reg__isnull=False,
+                away_score_reg__isnull=False
+            ).order_by('-date').values('home_score_reg', 'away_score_reg')[:n])
+
+            home_count = len(home_matches)
             if home_count < 3:
                 home_attack = Decimal('1.0')
                 home_defense = Decimal('1.0')
             else:
-                h_agg = home_matches.aggregate(s=Sum('home_score_reg'), c=Sum('away_score_reg'))
+                h_agg = {'s': sum(m['home_score_reg'] for m in home_matches),
+                         'c': sum(m['away_score_reg'] for m in home_matches)}
                 h_avg_scored = Decimal(str(h_agg['s'] or 0)) / home_count
                 h_avg_conceded = Decimal(str(h_agg['c'] or 0)) / home_count
                 h_avg_scored = max(h_avg_scored, Decimal('0.5'))
@@ -1065,21 +1079,13 @@ class Match(models.Model):
                 home_attack = h_avg_scored / l_avg_home_goals
                 home_defense = h_avg_conceded / l_avg_home_conceded
 
-            # Последние N гостевых матчей гостей в сезоне
-            away_matches = Match.objects.filter(
-                league=self.league,
-                season=self.season,
-                away_team=self.away_team,
-                home_score_reg__isnull=False,
-                away_score_reg__isnull=False
-            ).order_by('-date')[:n]
-
-            away_count = away_matches.count()
+            away_count = len(away_matches)
             if away_count < 3:
                 away_attack = Decimal('1.0')
                 away_defense = Decimal('1.0')
             else:
-                a_agg = away_matches.aggregate(s=Sum('away_score_reg'), c=Sum('home_score_reg'))
+                a_agg = {'s': sum(m['away_score_reg'] for m in away_matches),
+                         'c': sum(m['home_score_reg'] for m in away_matches)}
                 a_avg_scored = Decimal(str(a_agg['s'] or 0)) / away_count
                 a_avg_conceded = Decimal(str(a_agg['c'] or 0)) / away_count
                 a_avg_scored = max(a_avg_scored, Decimal('0.3'))
