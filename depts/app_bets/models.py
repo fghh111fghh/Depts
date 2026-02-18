@@ -1135,8 +1135,8 @@ class Bet(models.Model):
         REFUND = 'REFUND', 'Возврат'
 
     class TargetChoices(models.TextChoices):
-        OVER = 'over', 'Тотал больше 2.5'
-        UNDER = 'under', 'Тотал меньше 2.5'
+        OVER = 'over', 'ТБ 2.5'
+        UNDER = 'under', 'ТМ 2.5'
 
     match_time = models.CharField(max_length=5, verbose_name="Время матча")
     home_team = models.ForeignKey('Team', on_delete=models.PROTECT, related_name='bets_home', verbose_name="Хозяева")
