@@ -1,7 +1,11 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from .models import Sport, Country, League, Team, TeamAlias, Season, Match, Bank, Bet
-
+from django.shortcuts import redirect, render
+from django.contrib import messages
+from django.urls import path
+from .models import Bank, BankTransaction
+from .forms import BankAdjustmentForm
 # --- ИНЛАЙНЫ ---
 
 class TeamAliasInline(admin.TabularInline):
@@ -116,11 +120,74 @@ class SeasonAdmin(admin.ModelAdmin):
 class BankAdmin(admin.ModelAdmin):
     list_display = ['balance', 'updated_at']
 
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('adjust/', self.admin_site.admin_view(self.adjust_bank_view), name='bank-adjust'),
+            path('transactions/', self.admin_site.admin_view(self.transactions_view), name='bank-transactions'),
+        ]
+        return custom_urls + urls
+
+    def adjust_bank_view(self, request):
+        """Отдельная страница для корректировки банка"""
+        form = BankAdjustmentForm(request.POST or None)
+        current_balance = Bank.get_balance()
+        recent_transactions = BankTransaction.objects.all()[:10]
+
+        if request.method == 'POST' and form.is_valid():
+            trans_type = form.cleaned_data['transaction_type']
+            amount = form.cleaned_data['amount']
+            custom_amount = form.cleaned_data['custom_amount']
+            description = form.cleaned_data['description']
+
+            try:
+                if trans_type == 'DEPOSIT':
+                    Bank.update_balance(amount, 'DEPOSIT', description)
+                    messages.success(request, f'Банк пополнен на {amount}')
+
+                elif trans_type == 'WITHDRAWAL':
+                    Bank.update_balance(-amount, 'WITHDRAWAL', description)
+                    messages.success(request, f'Снято {amount} с банка')
+
+                elif trans_type == 'CUSTOM':
+                    Bank.update_balance(custom_amount, 'CORRECTION', description)
+                    messages.success(request, f'Банк скорректирован на {custom_amount}')
+
+                return redirect('admin:bank-adjust')
+
+            except Exception as e:
+                messages.error(request, f'Ошибка: {e}')
+
+        context = {
+            'form': form,
+            'current_balance': current_balance,
+            'recent_transactions': recent_transactions,
+            'title': 'Корректировка банка',
+            'opts': self.model._meta,
+        }
+        return render(request, 'admin/bank_adjust.html', context)
+
+    def transactions_view(self, request):
+        """Просмотр всех транзакций"""
+        transactions = BankTransaction.objects.all().select_related('bet')
+        context = {
+            'transactions': transactions,
+            'title': 'История операций банка',
+            'opts': self.model._meta,
+        }
+        return render(request, 'admin/bank_transactions.html', context)
+
     def has_delete_permission(self, request, obj=None):
         return False
 
     def has_add_permission(self, request):
-        return not Bank.objects.exists()
+        return False
+
+    def changelist_view(self, request, extra_context=None):
+        """Переопределяем страницу списка, добавляя кнопки"""
+        extra_context = extra_context or {}
+        extra_context['show_adjust_button'] = True
+        return super().changelist_view(request, extra_context)
 
 @admin.register(Bet)
 class BetAdmin(admin.ModelAdmin):
@@ -227,3 +294,31 @@ class BetAdmin(admin.ModelAdmin):
             self.message_user(request, f"Ставка {obj} обновлена")
         else:
             self.message_user(request, f"Ставка {obj} создана")
+
+
+@admin.register(BankTransaction)
+class BankTransactionAdmin(admin.ModelAdmin):
+    list_display = ['created_at', 'transaction_type', 'amount', 'balance_before', 'balance_after', 'description']
+    list_filter = ['transaction_type', 'created_at']
+    readonly_fields = ['balance_before', 'balance_after', 'created_at']
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return True  # Разрешаем удаление
+
+    def delete_queryset(self, request, queryset):
+        """Массовое удаление с корректным пересчетом баланса"""
+        from .models import Bank
+        bank = Bank.get_instance()
+
+        for obj in queryset:
+            effect = obj.balance_after - obj.balance_before
+            bank.balance -= effect
+
+        bank.save()
+        queryset.delete()

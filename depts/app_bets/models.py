@@ -1118,15 +1118,73 @@ class Bank(models.Model):
         return cls.get_instance().balance
 
     @classmethod
-    def update_balance(cls, amount):
+    def update_balance(cls, amount, transaction_type='CORRECTION', description='', bet=None):
+        """
+        Обновляет баланс и создает запись в истории.
+        amount может быть положительным (пополнение) или отрицательным (снятие)
+        """
+        from .models import BankTransaction
+
         obj = cls.get_instance()
+        balance_before = obj.balance
         obj.balance += Decimal(str(amount))
         obj.save()
+
+        # Создаем запись в истории
+        BankTransaction.objects.create(
+            amount=abs(Decimal(str(amount))),
+            transaction_type=transaction_type,
+            balance_before=balance_before,
+            balance_after=obj.balance,
+            description=description,
+            bet=bet
+        )
+
         return obj.balance
 
     def __str__(self):
         return f"Банк: {self.balance}"
 
+
+class BankTransaction(models.Model):
+    class TransactionType(models.TextChoices):
+        DEPOSIT = 'DEPOSIT', 'Пополнение'
+        WITHDRAWAL = 'WITHDRAWAL', 'Снятие'
+        CORRECTION = 'CORRECTION', 'Корректировка'
+
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Сумма")
+    transaction_type = models.CharField(max_length=10, choices=TransactionType.choices, verbose_name="Тип операции")
+    balance_before = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Баланс до")
+    balance_after = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Баланс после")
+    description = models.TextField(blank=True, verbose_name="Описание")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата операции")
+    bet = models.ForeignKey('Bet', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Связанная ставка")
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Транзакция банка"
+        verbose_name_plural = "Транзакции банка"
+
+    def __str__(self):
+        return f"{self.get_transaction_type_display()} {self.amount} ({self.created_at.strftime('%d.%m.%Y')})"
+
+    def delete(self, *args, **kwargs):
+        """При удалении транзакции откатываем изменения банка"""
+        from .models import Bank
+
+        # Получаем текущий банк
+        bank = Bank.get_instance()
+
+        # Вычисляем, как транзакция повлияла на баланс
+        # Сравниваем balance_after и balance_before
+        effect = self.balance_after - self.balance_before
+
+        # Откатываем эффект
+        bank.balance -= effect
+        bank.save()
+
+        # Удаляем транзакцию
+        super().delete(*args, **kwargs)
 
 class Bet(models.Model):
     class ResultChoices(models.TextChoices):
@@ -1159,7 +1217,12 @@ class Bet(models.Model):
     bank_before = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Банк до ставки")
     bank_after = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name="Банк после ставки")
 
-    result = models.CharField(max_length=6, choices=ResultChoices.choices, verbose_name="Результат")
+    result = models.CharField(
+        max_length=6,
+        choices=ResultChoices.choices,
+        default=ResultChoices.WIN,  # или LOSS, или REFUND - любой существующий
+        verbose_name="Результат"
+    )
     profit = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name="Прибыль")
     settled_at = models.DateTimeField(blank=True, null=True, verbose_name="Дата")
 

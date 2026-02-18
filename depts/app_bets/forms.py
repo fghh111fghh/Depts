@@ -164,3 +164,30 @@ class BetForm(forms.ModelForm):
             raise forms.ValidationError('Результат ставки обязателен.')
 
         return cleaned_data
+
+
+class BankAdjustmentForm(forms.Form):
+    TRANSACTION_CHOICES = [
+        ('DEPOSIT', 'Пополнение (+5000)'),
+        ('WITHDRAWAL', 'Снятие (-5000)'),
+        ('CUSTOM', 'Произвольная сумма'),
+    ]
+
+    transaction_type = forms.ChoiceField(choices=TRANSACTION_CHOICES, label='Тип операции')
+    amount = forms.DecimalField(max_digits=10, decimal_places=2, required=False, label='Сумма')
+    custom_amount = forms.DecimalField(max_digits=10, decimal_places=2, required=False, label='Произвольная сумма')
+    description = forms.CharField(widget=forms.Textarea, required=False, label='Описание')
+
+    def clean(self):
+        cleaned_data = super().clean()
+        trans_type = cleaned_data.get('transaction_type')
+        amount = cleaned_data.get('amount')
+        custom = cleaned_data.get('custom_amount')
+
+        if trans_type == 'CUSTOM' and not custom:
+            raise forms.ValidationError('Укажите произвольную сумму')
+
+        if trans_type != 'CUSTOM' and not amount:
+            raise forms.ValidationError('Выберите сумму')
+
+        return cleaned_data
