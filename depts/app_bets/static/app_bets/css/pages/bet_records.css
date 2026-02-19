@@ -81,6 +81,36 @@
     cursor: not-allowed;
 }
 
+/* Кнопка сигналов */
+.btn-signals {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    border: none;
+    cursor: pointer;
+}
+
+.btn-signals:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-signals .badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    margin-left: 5px;
+}
+
 /* ====== МОДАЛЬНЫЕ ОКНА ====== */
 .modal {
     display: none;
@@ -206,7 +236,7 @@
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Это раздвигает группы кнопок */
+    justify-content: space-between;
     gap: 20px;
     flex-wrap: wrap;
 }
@@ -216,10 +246,6 @@
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
-}
-
-.action-group:last-child {
-    margin-left: auto; /* Прижимает правую группу к краю */
 }
 
 .action-select {
@@ -236,36 +262,6 @@
     outline: none;
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-/* Кнопка сигналов */
-.btn-signals {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 8px;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-    border: none;
-    cursor: pointer;
-}
-
-.btn-signals:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-.btn-signals .badge {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    margin-left: 5px;
 }
 
 /* Панель фильтров */
@@ -487,7 +483,6 @@
 .bet-result {
     text-align: right;
     min-width: 120px;
-    margin-left: auto;
 }
 
 .result-badge {
@@ -515,22 +510,22 @@
 .bet-profit {
     font-size: 1.1rem;
     font-weight: 600;
+    margin-top: 5px;
 }
 
-.profit-positive {
-    color: #00ff00 !important;
+/* Цвета прибыли как у бейджей */
+.bet-profit.profit-positive {
+    color: var(--success) !important;  /* Такой же как у result-win */
     font-weight: 700 !important;
-    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
 }
 
-.profit-negative {
-    color: #ff3333 !important;
+.bet-profit.profit-negative {
+    color: var(--danger) !important;   /* Такой же как у result-loss */
     font-weight: 700 !important;
-    text-shadow: 0 0 5px rgba(255, 51, 51, 0.3);
 }
 
 .profit-badge {
-    background: rgba(255, 255, 255, 0.15) !important;
+    background: rgba(255, 255, 255, 0.15);
     border-radius: 8px;
     padding: 5px 10px;
 }
@@ -593,6 +588,11 @@
     background: var(--primary);
     color: white;
     border-color: var(--primary);
+}
+
+/* Утилиты */
+.ml-auto {
+    margin-left: auto;
 }
 
 /* Адаптивность */

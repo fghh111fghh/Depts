@@ -125,8 +125,8 @@
                     <select name="sort">
                         <option value="-date_placed" {% if request.GET.sort == '-date_placed' %}selected{% endif %}>По дате ↓</option>
                         <option value="date_placed" {% if request.GET.sort == 'date_placed' %}selected{% endif %}>По дате ↑</option>
-                        <option value="-stake" {% if request.GET.sort == '-stake' %}selected{% endif %}>По сумме ↓</option>
-                        <option value="stake" {% if request.GET.sort == 'stake' %}selected{% endif %}>По сумме ↑</option>
+                        <option value="-stake" {% if request.GET.sort == '-stake' %}selected{% endif %}>По сумме ставок↓</option>
+                        <option value="stake" {% if request.GET.sort == 'stake' %}selected{% endif %}>По сумме ставок↑</option>
                         <option value="-profit" {% if request.GET.sort == '-profit' %}selected{% endif %}>По прибыли ↓</option>
                         <option value="profit" {% if request.GET.sort == 'profit' %}selected{% endif %}>По прибыли ↑</option>
                     </select>
