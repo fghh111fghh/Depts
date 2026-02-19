@@ -35,6 +35,36 @@
         font-size: 0.9rem;
         margin-left: 5px;
     }
+
+    /* Усиленные цвета для прибыли */
+    .profit-positive {
+        color: #00ff00 !important;
+        font-weight: 700 !important;
+        text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+    }
+
+    .profit-negative {
+        color: #ff3333 !important;
+        font-weight: 700 !important;
+        text-shadow: 0 0 5px rgba(255, 51, 51, 0.3);
+    }
+
+    /* Блок прибыли с блеклым фоном */
+    .profit-badge {
+        background: rgba(255, 255, 255, 0.15) !important;
+        border-radius: 8px;
+        padding: 5px 10px;
+    }
+
+    .bet-profit {
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+
+    /* Убираем знак минус, оставляем только цвет */
+    .profit-negative::before {
+        content: "";
+    }
 </style>
 {% endblock %}
 
@@ -43,7 +73,7 @@
     <!-- Баланс и статистика -->
     <div class="balance-card">
         <div class="balance-label">Текущий баланс</div>
-        <div class="balance-amount">{{ current_balance|floatformat:2 }} ₽</div>
+        <div class="balance-amount">{{ current_balance|floatformat:0 }} ₽</div>
 
         <div class="stats-grid">
             <div class="stat-item">
@@ -63,13 +93,13 @@
                 <div class="stat-value">{{ refunds_count }}</div>
             </div>
             <div class="stat-item">
-                <div class="stat-label">Общая сумма</div>
-                <div class="stat-value">{{ total_stake|floatformat:2 }} ₽</div>
+                <div class="stat-label">Сумма ставок</div>
+                <div class="stat-value">{{ total_stake|floatformat:0 }} ₽</div>
             </div>
-            <div class="stat-item">
+            <div class="stat-item profit-badge">
                 <div class="stat-label">Прибыль</div>
                 <div class="stat-value {% if total_profit > 0 %}profit-positive{% elif total_profit < 0 %}profit-negative{% endif %}">
-                    {{ total_profit|floatformat:2 }} ₽
+                    {{ total_profit|floatformat:0|cut:"-" }} ₽
                 </div>
             </div>
         </div>
@@ -171,8 +201,8 @@
                     <select name="sort">
                         <option value="-date_placed" {% if request.GET.sort == '-date_placed' %}selected{% endif %}>По дате ↓</option>
                         <option value="date_placed" {% if request.GET.sort == 'date_placed' %}selected{% endif %}>По дате ↑</option>
-                        <option value="-stake" {% if request.GET.sort == '-stake' %}selected{% endif %}>По сумме ↓</option>
-                        <option value="stake" {% if request.GET.sort == 'stake' %}selected{% endif %}>По сумме ↑</option>
+                        <option value="-stake" {% if request.GET.sort == '-stake' %}selected{% endif %}>По сумме ставок ↓</option>
+                        <option value="stake" {% if request.GET.sort == 'stake' %}selected{% endif %}>По сумме ставок ↑</option>
                         <option value="-profit" {% if request.GET.sort == '-profit' %}selected{% endif %}>По прибыли ↓</option>
                         <option value="profit" {% if request.GET.sort == 'profit' %}selected{% endif %}>По прибыли ↑</option>
                     </select>
@@ -217,7 +247,7 @@
                         {{ bet.get_recommended_target_display }}
                     </span>
                     <span class="bet-odds">{{ bet.recommended_odds|floatformat:2 }}</span>
-                    <span class="bet-stake">{{ bet.stake|floatformat:2 }} ₽</span>
+                    <span class="bet-stake">{{ bet.stake|floatformat:0 }} ₽</span>
                     <span class="bet-ev {% if bet.ev > 0 %}ev-positive{% elif bet.ev < 0 %}ev-negative{% endif %}">
                         EV: {{ bet.ev|floatformat:1 }}%
                     </span>
@@ -236,7 +266,7 @@
 
                     {% if bet.profit %}
                     <div class="bet-profit {% if bet.profit > 0 %}profit-positive{% elif bet.profit < 0 %}profit-negative{% endif %}">
-                        {{ bet.profit|floatformat:2 }} ₽
+                        {{ bet.profit|floatformat:0|cut:"-" }} ₽
                     </div>
                     {% endif %}
                 </div>
