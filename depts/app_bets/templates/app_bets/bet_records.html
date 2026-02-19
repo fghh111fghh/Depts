@@ -12,7 +12,7 @@
     <!-- Баланс и статистика -->
     <div class="balance-card">
         <div class="balance-label">Текущий баланс</div>
-        <div class="balance-amount">{{ current_balance|floatformat:2 }} ₽</div>
+        <div class="balance-amount">{{ current_balance|floatformat:0 }} ₽</div>
 
         <div class="stats-grid">
             <div class="stat-item">
@@ -33,12 +33,12 @@
             </div>
             <div class="stat-item">
                 <div class="stat-label">Сумма ставок</div>
-                <div class="stat-value">{{ total_stake|floatformat:2 }} ₽</div>
+                <div class="stat-value">{{ total_stake|floatformat:0 }} ₽</div>
             </div>
             <div class="stat-item profit-badge">
                 <div class="stat-label">Прибыль</div>
                 <div class="stat-value {% if total_profit > 0 %}profit-positive{% elif total_profit < 0 %}profit-negative{% endif %}">
-                    {{ total_profit|floatformat:2 }} ₽
+                    {{ total_profit|floatformat:0 }} ₽
                 </div>
             </div>
         </div>
@@ -166,7 +166,7 @@
                         {{ bet.get_recommended_target_display }}
                     </span>
                     <span class="bet-odds">{{ bet.recommended_odds|floatformat:2 }}</span>
-                    <span class="bet-stake">{{ bet.stake|floatformat:2 }} ₽</span>
+                    <span class="bet-stake">{{ bet.stake|floatformat:0 }} ₽</span>
                     <span class="bet-ev {% if bet.ev > 0 %}ev-positive{% elif bet.ev < 0 %}ev-negative{% endif %}">
                         EV: {{ bet.ev|floatformat:1 }}%
                     </span>
@@ -183,7 +183,7 @@
                     {% endif %}
                     {% if bet.profit %}
                     <div class="bet-profit {% if bet.profit > 0 %}profit-positive{% elif bet.profit < 0 %}profit-negative{% endif %}">
-                        {{ bet.profit|floatformat:2 }} ₽
+                        {{ bet.profit|floatformat:0 }} ₽
                     </div>
                     {% endif %}
                 </div>

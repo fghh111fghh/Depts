@@ -430,6 +430,7 @@
     margin: 0 5px;
 }
 
+/* Блок информации в карточке */
 .bet-info {
     display: flex;
     flex-wrap: wrap;
@@ -453,20 +454,25 @@
     color: var(--danger);
 }
 
-.bet-odds {
+/* Кэф и сумма - одинаковый жирный шрифт */
+.bet-odds,
+.bet-stake {
     font-size: 1.2rem;
     font-weight: 700;
+}
+
+.bet-odds {
     color: var(--primary);
 }
 
 .bet-stake {
-    font-size: 1.1rem;
-    font-weight: 500;
     color: var(--dark);
 }
 
+/* Матожидание - жирный как кэф, зеленый */
 .bet-ev {
-    font-size: 0.95rem;
+    font-size: 1.2rem;
+    font-weight: 700;
     padding: 4px 10px;
     border-radius: 15px;
     background: var(--light);
@@ -513,14 +519,13 @@
     margin-top: 5px;
 }
 
-/* Цвета прибыли как у бейджей */
 .bet-profit.profit-positive {
-    color: var(--success) !important;  /* Такой же как у result-win */
+    color: var(--success) !important;
     font-weight: 700 !important;
 }
 
 .bet-profit.profit-negative {
-    color: var(--danger) !important;   /* Такой же как у result-loss */
+    color: var(--danger) !important;
     font-weight: 700 !important;
 }
 
