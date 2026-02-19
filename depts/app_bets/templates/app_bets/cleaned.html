@@ -8,14 +8,36 @@
     <h1><i class="fa-solid fa-chart-line"></i> Анализ матчей по калибровке</h1>
 </div>
 
-<!-- Кнопка экспорта -->
+<!-- Кнопки экспорта и перехода к учёту -->
 <div class="bets-sort-container" style="justify-content: flex-end;">
-    <div class="bets-actions-wrapper">
+    <div class="bets-actions-wrapper" style="display: flex; gap: 10px;">
         {% if analysis_results %}
         <a href="{% url 'app_bets:export_cleaned' %}" class="bets-export-btn">
             <i class="fa-solid fa-file-excel"></i> В Excel
         </a>
         {% endif %}
+        <a href="{% url 'app_bets:records' %}" class="bets-records-btn" style="
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        ">
+            <i class="fa-solid fa-book"></i> Учёт ставок
+            <span style="
+                background: rgba(255,255,255,0.2);
+                padding: 2px 8px;
+                border-radius: 20px;
+                font-size: 0.9rem;
+                margin-left: 5px;
+            ">журнал</span>
+        </a>
     </div>
 </div>
 
@@ -68,4 +90,33 @@
         </div>
     {% endif %}
 </div>
+
+<!-- Добавим немного стилей для адаптивности -->
+<style>
+    .bets-actions-wrapper {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .bets-records-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .bets-records-btn:active {
+        transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+        .bets-sort-container {
+            justify-content: center !important;
+        }
+
+        .bets-actions-wrapper {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
 {% endblock %}

@@ -1192,6 +1192,7 @@ class BankTransaction(models.Model):
         # Удаляем транзакцию
         super().delete(*args, **kwargs)
 
+
 class Bet(models.Model):
     class ResultChoices(models.TextChoices):
         WIN = 'WIN', 'Выигрыш'
@@ -1313,8 +1314,15 @@ class Bet(models.Model):
     def delete(self, *args, **kwargs):
         """Контролируемое удаление с откатом банка."""
         from .models import Bank
+        import logging
+        logger = logging.getLogger(__name__)
 
+        print(f"Deleting bet {self.id}, profit: {self.profit}, result: {self.result}")
+
+        # Откатываем банк если была прибыль
         if self.profit and self.result != self.ResultChoices.REFUND:
+            print(f"Reverting bank by {-self.profit}")
             Bank.update_balance(-self.profit)
 
         super().delete(*args, **kwargs)
+        print(f"Bet {self.id} deleted")

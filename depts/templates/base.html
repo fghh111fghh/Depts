@@ -7,6 +7,7 @@
     <title>{{ active_module_title }}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'app_depts/css/styles.css' %}">
+    {% block extra_css %}{% endblock %}  <!-- ЭТОЙ СТРОКИ НЕ ХВАТАЛО -->
 </head>
 <body>
 
@@ -78,5 +79,6 @@
 </footer>
 
 <script src="{% static 'app_depts/js/scripts.js' %}"></script>
+{% block extra_js %}{% endblock %}  <!-- И ЭТОТ БЛОК ТОЖЕ ДОБАВЬТЕ ДЛЯ JS -->
 </body>
 </html>

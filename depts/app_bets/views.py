@@ -26,11 +26,14 @@ import openpyxl
 import pandas as pd
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import F, Q, Sum, DecimalField
+from django.db.models.functions import Coalesce
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.timezone import make_aware, get_current_timezone
@@ -38,7 +41,10 @@ from django.views import View
 import re
 import math
 import unicodedata
-from django.views.generic import TemplateView, CreateView
+from django.views.decorators.http import require_POST
+from django.views.generic import TemplateView, CreateView, ListView
+from openpyxl.styles import Font, PatternFill, Alignment
+
 from app_bets.constants import Outcome, ParsingConstants, AnalysisConstants, Messages
 from app_bets.forms import BetForm
 from app_bets.models import Team, TeamAlias, Season, Match, League, Bet, Sport, Country, Bank
@@ -1442,9 +1448,6 @@ class CountryAutocomplete(autocomplete.Select2QuerySetView):
             qs = qs.filter(name__istartswith=self.q)
         return qs
 
-class BetRecordsView(TemplateView):
-    template_name = 'app_bets/bet_records.html'
-
 
 class BetCreateView(SuccessMessageMixin, CreateView):
     model = Bet
@@ -1572,4 +1575,356 @@ class BetCreateView(SuccessMessageMixin, CreateView):
     def form_invalid(self, form):
         messages.error(self.request, 'Ошибка при сохранении ставки. Пожалуйста, исправьте ошибки в форме.')
         return super().form_invalid(form)
+
+
+class BetRecordsView(LoginRequiredMixin, ListView):
+    """
+    View для отображения записей ставок в стиле админки
+    """
+    model = Bet
+    template_name = 'app_bets/bet_records.html'
+    context_object_name = 'bets'
+    paginate_by = 20
+
+    def get_queryset(self):
+        """
+        Получение queryset с фильтрацией и сортировкой
+        """
+        queryset = Bet.objects.select_related(
+            'home_team',
+            'away_team',
+            'league__sport',
+            'league__country'
+        )
+
+        # Фильтры
+        # Поиск по командам или лиге
+        search_query = self.request.GET.get('search', '')
+        if search_query:
+            queryset = queryset.filter(
+                Q(home_team__name__icontains=search_query) |
+                Q(away_team__name__icontains=search_query) |
+                Q(league__name__icontains=search_query) |
+                Q(league__country__name__icontains=search_query)
+            )
+
+        # Фильтр по дате начала
+        date_from = self.request.GET.get('date_from', '')
+        if date_from:
+            try:
+                date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
+                queryset = queryset.filter(date_placed__date__gte=date_from)
+            except ValueError:
+                pass
+
+        # Фильтр по дате окончания
+        date_to = self.request.GET.get('date_to', '')
+        if date_to:
+            try:
+                date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
+                # Добавляем +1 день, чтобы включить весь день окончания
+                date_to = datetime.combine(date_to, datetime.max.time())
+                queryset = queryset.filter(date_placed__lte=date_to)
+            except ValueError:
+                pass
+
+        # Фильтр по лиге
+        league_id = self.request.GET.get('league', '')
+        if league_id and league_id.isdigit():
+            queryset = queryset.filter(league_id=league_id)
+
+        # Фильтр по спорту
+        sport_id = self.request.GET.get('sport', '')
+        if sport_id and sport_id.isdigit():
+            queryset = queryset.filter(league__sport_id=sport_id)
+
+        # Фильтр по результату
+        result = self.request.GET.get('result', '')
+        if result and result != 'all':
+            queryset = queryset.filter(result=result)
+
+        # Фильтр по типу ставки (ТБ/ТМ)
+        target = self.request.GET.get('target', '')
+        if target and target != 'all':
+            queryset = queryset.filter(recommended_target=target)
+
+        # Фильтр по минимальной сумме
+        min_amount = self.request.GET.get('min_amount', '')
+        if min_amount and min_amount.replace('.', '', 1).isdigit():
+            queryset = queryset.filter(stake__gte=Decimal(min_amount))
+
+        # Фильтр по максимальной сумме
+        max_amount = self.request.GET.get('max_amount', '')
+        if max_amount and max_amount.replace('.', '', 1).isdigit():
+            queryset = queryset.filter(stake__lte=Decimal(max_amount))
+
+        # Фильтр по минимальному EV
+        min_ev = self.request.GET.get('min_ev', '')
+        if min_ev and min_ev.replace('-', '', 1).replace('.', '', 1).isdigit():
+            queryset = queryset.filter(ev__gte=float(min_ev))
+
+        # Фильтр по максимальному EV
+        max_ev = self.request.GET.get('max_ev', '')
+        if max_ev and max_ev.replace('-', '', 1).replace('.', '', 1).isdigit():
+            queryset = queryset.filter(ev__lte=float(max_ev))
+
+        # Сортировка
+        sort_field = self.request.GET.get('sort', '-date_placed')
+        valid_sort_fields = [
+            'date_placed', '-date_placed',
+            'stake', '-stake',
+            'ev', '-ev',
+            'profit', '-profit',
+            'recommended_odds', '-recommended_odds',
+            'home_team__name', '-home_team__name',
+            'league__name', '-league__name',
+        ]
+
+        if sort_field in valid_sort_fields:
+            queryset = queryset.order_by(sort_field)
+        else:
+            queryset = queryset.order_by('-date_placed')
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        """
+        Добавление дополнительных данных в контекст
+        """
+        context = super().get_context_data(**kwargs)
+
+        # Текущий баланс
+        context['current_balance'] = Bank.get_balance()
+
+        # Статистика по ставкам
+        bets = self.get_queryset()
+        context['total_bets'] = bets.count()
+        context['total_stake'] = bets.aggregate(
+            total=Coalesce(Sum('stake'), 0, output_field=DecimalField())
+        )['total']
+        context['total_profit'] = bets.aggregate(
+            total=Coalesce(Sum('profit'), 0, output_field=DecimalField())
+        )['total']
+
+        # Количество по результатам
+        context['wins_count'] = bets.filter(result=Bet.ResultChoices.WIN).count()
+        context['losses_count'] = bets.filter(result=Bet.ResultChoices.LOSS).count()
+        context['refunds_count'] = bets.filter(result=Bet.ResultChoices.REFUND).count()
+
+        # ROI (возврат инвестиций)
+        if context['total_stake'] > 0:
+            context['roi'] = (context['total_profit'] / context['total_stake']) * 100
+        else:
+            context['roi'] = 0
+
+        # Списки для фильтров
+        context['leagues'] = League.objects.filter(bet__isnull=False).distinct().order_by('name')
+        context['sports'] = Sport.objects.filter(sport_leagues__bet__isnull=False).distinct()
+
+        # Текущие значения фильтров для формы
+        context['current_filters'] = {
+            'search': self.request.GET.get('search', ''),
+            'date_from': self.request.GET.get('date_from', ''),
+            'date_to': self.request.GET.get('date_to', ''),
+            'league': self.request.GET.get('league', ''),
+            'sport': self.request.GET.get('sport', ''),
+            'result': self.request.GET.get('result', ''),
+            'target': self.request.GET.get('target', ''),
+            'min_amount': self.request.GET.get('min_amount', ''),
+            'max_amount': self.request.GET.get('max_amount', ''),
+            'min_ev': self.request.GET.get('min_ev', ''),
+            'max_ev': self.request.GET.get('max_ev', ''),
+            'sort': self.request.GET.get('sort', '-date_placed'),
+        }
+
+        return context
+
+
+logger = logging.getLogger(__name__)
+
+
+@require_POST
+@staff_member_required
+def bulk_bet_action(request):
+    """
+    Обработка массовых действий со ставками
+    """
+    action = request.POST.get('action')
+    bet_ids = request.POST.getlist('selected_bets')
+    confirm = request.POST.get('confirm')
+
+    if not bet_ids:
+        messages.error(request, 'Не выбрано ни одной ставки')
+        return redirect('app_bets:records')
+
+    if action == 'delete':
+        # Для удаления нужен confirm
+        if confirm != 'true':
+            # Сохраняем ID в сессии и показываем страницу подтверждения
+            request.session['pending_bet_ids'] = bet_ids
+            bets = Bet.objects.filter(id__in=bet_ids)
+            return render(request, 'app_bets/confirm_bulk_delete.html', {
+                'bets': bets,
+                'count': bets.count(),
+                'total_stake': bets.aggregate(total=Sum('stake'))['total'],
+                'total_profit': bets.aggregate(total=Sum('profit'))['total'],
+            })
+        else:
+            # Подтвержденное удаление - берем ID из POST или сессии
+            if not bet_ids:
+                bet_ids = request.session.pop('pending_bet_ids', [])
+
+            if bet_ids:
+                # Получаем все ставки для удаления
+                bets_to_delete = Bet.objects.filter(id__in=bet_ids)
+
+                # ВАЖНО: Вызываем delete() для каждой ставки отдельно,
+                # чтобы сработал метод delete() модели и обновился банк
+                deleted_count = 0
+                total_profit_reverted = 0
+
+                for bet in bets_to_delete:
+                    profit = bet.profit
+                    bet.delete()  # Здесь сработает метод delete() модели
+                    if profit:
+                        total_profit_reverted += profit
+                    deleted_count += 1
+
+                messages.success(
+                    request,
+                    f'Удалено {deleted_count} ставок. Баланс скорректирован на {abs(total_profit_reverted)} ₽'
+                )
+            else:
+                messages.error(request, 'Не найдены ставки для удаления')
+
+    elif action == 'mark_win':
+        bets = Bet.objects.filter(id__in=bet_ids)
+        for bet in bets:
+            bet.result = Bet.ResultChoices.WIN
+            bet.save()  # save() вызовет обновление банка
+        messages.success(request, f'Отмечено как выигрыш: {bets.count()} ставок')
+
+    elif action == 'mark_loss':
+        bets = Bet.objects.filter(id__in=bet_ids)
+        for bet in bets:
+            bet.result = Bet.ResultChoices.LOSS
+            bet.save()  # save() вызовет обновление банка
+        messages.success(request, f'Отмечено как проигрыш: {bets.count()} ставок')
+
+    elif action == 'mark_refund':
+        bets = Bet.objects.filter(id__in=bet_ids)
+        for bet in bets:
+            bet.result = Bet.ResultChoices.REFUND
+            bet.save()  # save() вызовет обновление банка
+        messages.success(request, f'Отмечено как возврат: {bets.count()} ставок')
+
+    return redirect('app_bets:records')
+
+
+@staff_member_required
+def export_bets_excel(request):
+    """
+    Экспорт ставок в Excel
+    """
+    # Получаем отфильтрованный queryset как в BetRecordsView
+    queryset = Bet.objects.select_related(
+        'home_team', 'away_team', 'league__sport', 'league__country'
+    )
+
+    # Применяем те же фильтры, что и в представлении
+    # (копируем логику фильтрации из BetRecordsView.get_queryset)
+    search_query = request.GET.get('search', '')
+    if search_query:
+        queryset = queryset.filter(
+            Q(home_team__name__icontains=search_query) |
+            Q(away_team__name__icontains=search_query) |
+            Q(league__name__icontains=search_query) |
+            Q(league__country__name__icontains=search_query)
+        )
+
+    date_from = request.GET.get('date_from', '')
+    if date_from:
+        try:
+            date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
+            queryset = queryset.filter(date_placed__date__gte=date_from)
+        except ValueError:
+            pass
+
+    date_to = request.GET.get('date_to', '')
+    if date_to:
+        try:
+            date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
+            date_to = datetime.combine(date_to, datetime.max.time())
+            queryset = queryset.filter(date_placed__lte=date_to)
+        except ValueError:
+            pass
+
+    # Создаем Excel файл
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Ставки"
+
+    # Заголовки
+    headers = [
+        'Дата', 'Время', 'Лига', 'Хозяева', 'Гости',
+        'Ставка', 'Кэф', 'Сумма', 'Результат', 'Прибыль',
+        'EV %', 'Вер. Пуассона', 'Факт. вер.', 'n матчей'
+    ]
+
+    # Стили для заголовков
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.value = header
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
+
+    # Данные
+    for row_num, bet in enumerate(queryset, 2):
+        ws.cell(row=row_num, column=1, value=bet.date_placed.strftime('%d.%m.%Y'))
+        ws.cell(row=row_num, column=2, value=bet.match_time)
+        ws.cell(row=row_num, column=3, value=str(bet.league))
+        ws.cell(row=row_num, column=4, value=bet.home_team.name)
+        ws.cell(row=row_num, column=5, value=bet.away_team.name)
+        ws.cell(row=row_num, column=6, value=bet.get_recommended_target_display())
+        ws.cell(row=row_num, column=7, value=float(bet.recommended_odds))
+        ws.cell(row=row_num, column=8, value=float(bet.stake))
+        ws.cell(row=row_num, column=9, value=bet.get_result_display())
+        ws.cell(row=row_num, column=10, value=float(bet.profit) if bet.profit else 0)
+        ws.cell(row=row_num, column=11, value=bet.ev)
+        ws.cell(row=row_num, column=12, value=bet.poisson_prob)
+        ws.cell(row=row_num, column=13, value=bet.actual_prob)
+        ws.cell(row=row_num, column=14, value=bet.n_last_matches)
+
+        # Форматирование чисел
+        for col in [7, 8, 10]:
+            ws.cell(row=row_num, column=col).number_format = '#,##0.00'
+        for col in [11, 12, 13]:
+            ws.cell(row=row_num, column=col).number_format = '0.00'
+
+    # Автоширина колонок
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 30)
+        ws.column_dimensions[column].width = adjusted_width
+
+    # Создаем ответ
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response[
+        'Content-Disposition'] = f'attachment; filename=bets_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+
+    wb.save(response)
+    return response
 
