@@ -1,0 +1,338 @@
+/* ====== КАРТОЧКИ РЕЗУЛЬТАТОВ ====== */
+.bets-results-area {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.bets-result-card {
+    background: #fff;
+    border-left: 6px solid var(--info-color);
+    margin-bottom: 0;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Верхняя строка матча */
+.match-header-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #eee;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.match-title-line {
+    flex: 1;
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+}
+
+.match-name-large {
+    font-size: 1.3rem;
+    color: var(--primary-color);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.league-line {
+    font-size: 0.85rem;
+    color: var(--gray-text);
+    margin-top: 3px;
+}
+
+.match-time-title {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.match-time {
+    font-size: 1rem;
+    color: var(--gray-text);
+    background: #e9ecef;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Коэффициенты */
+.odds-line {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin: 0 20px;
+    background: var(--gray-bg);
+    padding: 8px 20px;
+    border-radius: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.odd-box-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 50px;
+}
+
+.odd-label-line {
+    font-size: 0.8rem;
+    color: var(--gray-text);
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.odd-value-line {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--primary-color);
+}
+
+.odd-sep-line {
+    color: #dee2e6;
+    font-weight: 300;
+    font-size: 1.2rem;
+}
+
+/* Вердикт */
+.verdict-line {
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 1.2rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    min-width: 90px;
+    text-align: center;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    border: 2px solid;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.verdict-p1 {
+    background: linear-gradient(135deg, var(--success-bg), #c3e6cb);
+    color: var(--success-text);
+    border-color: #b1dfbb;
+}
+
+.verdict-p2 {
+    background: linear-gradient(135deg, var(--danger-bg), #f5c6cb);
+    color: var(--danger-text);
+    border-color: #f1b0b7;
+}
+
+.verdict-draw {
+    background: linear-gradient(135deg, var(--warning-bg), #ffeaa7);
+    color: var(--warning-text);
+    border-color: #ffdf7e;
+}
+
+/* Пуассон и близнецы */
+.poisson-twins-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 25px;
+    margin-top: 15px;
+}
+
+.poisson-main-block {
+    background: var(--gray-bg);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    display: flex;
+    flex-direction: column;
+}
+
+.poisson-title {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1rem;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.poisson-scores-label {
+    font-size: 0.75rem;
+    color: var(--gray-text);
+    display: block;
+    margin-bottom: 5px;
+}
+
+.scores-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    align-items: center;
+}
+
+.score-rectangle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--poisson-gradient);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    min-width: 70px;
+    height: 50px;
+    box-shadow: 0 3px 6px rgba(50, 50, 93, 0.11);
+    text-align: center;
+}
+
+.score-value {
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin-bottom: 2px;
+    line-height: 1;
+}
+
+.prob-value {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+/* Блок близнецов */
+.twins-main-block {
+    background: var(--info-bg);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #c5e3fc;
+    display: flex;
+    flex-direction: column;
+}
+
+.twins-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.twins-title {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.twins-count-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--info-text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.twins-probabilities {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.twins-prob-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border-left-width: 6px;
+    border-left-style: solid;
+}
+
+.twins-prob-item.p1 {
+    background: var(--success-bg);
+    border-left-color: var(--success-border);
+}
+
+.twins-prob-item.x {
+    background: var(--warning-bg);
+    border-left-color: var(--warning-border);
+}
+
+.twins-prob-item.p2 {
+    background: var(--danger-bg);
+    border-left-color: var(--danger-border);
+}
+
+.twins-prob-label {
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.twins-prob-label.p1 {
+    color: var(--success-text);
+}
+
+.twins-prob-label.x {
+    color: var(--warning-text);
+}
+
+.twins-prob-label.p2 {
+    color: var(--danger-text);
+}
+
+.twins-prob-value {
+    font-weight: 800;
+    font-size: 1.1rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.twins-prob-value.p1 {
+    color: var(--success-text);
+}
+
+.twins-prob-value.x {
+    color: var(--warning-text);
+}
+
+.twins-prob-value.p2 {
+    color: var(--danger-text);
+}
+
+/* Пустое состояние */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: var(--gray-text);
+    margin-bottom: 20px;
+    opacity: 0.3;
+}
+
+.empty-state h3 {
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: var(--gray-text);
+}

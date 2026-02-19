@@ -1,0 +1,165 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .balance-box {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    .balance-box .current-balance {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #28a745;
+    }
+    .balance-box .label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-bottom: 5px;
+    }
+    .transactions-table {
+        margin-top: 30px;
+    }
+    .transactions-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .transactions-table th {
+        background: #f8f9fa;
+        padding: 10px;
+        text-align: left;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .transactions-table td {
+        padding: 8px 10px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .deposit { color: #28a745; }
+    .withdrawal { color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="balance-box">
+        <div class="label">Текущий баланс</div>
+        <div class="current-balance">{{ current_balance|floatformat:2 }} ₽</div>
+    </div>
+
+    <form method="post" id="bank-adjust-form">
+        {% csrf_token %}
+        
+        {% if form.errors %}
+        <div class="alert alert-danger">
+            {{ form.errors }}
+        </div>
+        {% endif %}
+
+        <fieldset class="module aligned">
+            <h2>Корректировка баланса</h2>
+            
+            <div class="form-row">
+                <div>
+                    {{ form.transaction_type.label_tag }}
+                    {{ form.transaction_type }}
+                </div>
+            </div>
+            
+            <div class="form-row" id="amount-row">
+                <div>
+                    {{ form.amount.label_tag }}
+                    {{ form.amount }}
+                    <div class="help">Для пополнения и снятия</div>
+                </div>
+            </div>
+            
+            <div class="form-row" id="custom-amount-row" style="display: none;">
+                <div>
+                    {{ form.custom_amount.label_tag }}
+                    {{ form.custom_amount }}
+                    <div class="help">Отрицательное число - снятие, положительное - пополнение</div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div>
+                    {{ form.description.label_tag }}
+                    {{ form.description }}
+                </div>
+            </div>
+        </fieldset>
+
+        <div class="submit-row">
+            <input type="submit" value="Применить" class="default">
+            <a href="{% url 'admin:app_bets_bank_changelist' %}" class="button cancel-link">Назад</a>
+        </div>
+    </form>
+
+    <div class="transactions-table">
+        <h2>Последние операции</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Тип</th>
+                    <th>Сумма</th>
+                    <th>Баланс до</th>
+                    <th>Баланс после</th>
+                    <th>Описание</th>
+                    <th>Ставка</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in recent_transactions %}
+                <tr>
+                    <td>{{ t.created_at|date:"d.m.Y H:i" }}</td>
+                    <td>{{ t.get_transaction_type_display }}</td>
+                    <td class="{% if t.amount > 0 %}deposit{% else %}withdrawal{% endif %}">
+                        {{ t.amount|floatformat:2 }}
+                    </td>
+                    <td>{{ t.balance_before|floatformat:2 }}</td>
+                    <td>{{ t.balance_after|floatformat:2 }}</td>
+                    <td>{{ t.description|truncatechars:50 }}</td>
+                    <td>
+                        {% if t.bet %}
+                            <a href="{% url 'admin:app_bets_bet_change' t.bet.id %}">Ставка #{{ t.bet.id }}</a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p style="margin-top: 10px;">
+            <a href="{% url 'admin:bank-transactions' %}" class="button">Вся история</a>
+        </p>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const transType = document.getElementById('id_transaction_type');
+    const amountRow = document.getElementById('amount-row');
+    const customRow = document.getElementById('custom-amount-row');
+    
+    function toggleRows() {
+        if (transType.value === 'CUSTOM') {
+            amountRow.style.display = 'none';
+            customRow.style.display = 'block';
+        } else {
+            amountRow.style.display = 'block';
+            customRow.style.display = 'none';
+        }
+    }
+    
+    transType.addEventListener('change', toggleRows);
+    toggleRows();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Подтверждение удаления{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 50px auto; padding: 30px; background: white; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.1);">
+    <h2 style="color: #e74c3c; margin-bottom: 20px;">Подтверждение удаления</h2>
+    
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <p style="font-size: 1.2rem; margin-bottom: 10px;">
+            Вы уверены, что хотите удалить <strong>{{ count }}</strong> ставок?
+        </p>
+        <p style="color: #e74c3c; font-weight: bold;">
+            Это действие нельзя отменить!
+        </p>
+    </div>
+    
+    <div style="margin-bottom: 20px;">
+        <p><strong>Общая сумма ставок:</strong> {{ total_stake|floatformat:2 }} ₽</p>
+        <p><strong>Общая прибыль:</strong> {{ total_profit|floatformat:2 }} ₽</p>
+    </div>
+    
+    <form method="post" action="{% url 'app_bets:bulk_bet_action' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete">
+        <input type="hidden" name="confirm" value="true">
+        {% for bet in bets %}
+        <input type="hidden" name="selected_bets" value="{{ bet.id }}">
+        {% endfor %}
+        
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <a href="{% url 'app_bets:records' %}" style="padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px;">Отмена</a>
+            <button type="submit" style="padding: 10px 20px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                Да, удалить
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

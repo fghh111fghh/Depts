@@ -1,0 +1,54 @@
+/* ====== CSS ПЕРЕМЕННЫЕ ====== */
+:root {
+    /* Основные цвета */
+    --primary-color: #3498db;
+    --primary-dark: #2980b9;
+    --dark-bg: #2c3e50;
+    --light-bg: #f8f9fa;
+    --accent: #f39c12;
+
+    /* Цвета статусов */
+    --success-color: #2ecc71;
+    --danger-color: #e74c3c;
+    --warning-color: #f1c40f;
+    --info-color: #3498db;
+
+    /* Фоновые цвета для статусов */
+    --success-bg: #d4edda;
+    --danger-bg: #f8d7da;
+    --warning-bg: #fff3cd;
+    --info-bg: #e8f4fc;
+
+    /* Цвета текста */
+    --text-main: #333;
+    --text-muted: #7f8c8d;
+    --text-light: #ffffff;
+    --text-dark: #2d3436;
+
+    /* Цвета границ */
+    --border-color: #ddd;
+    --border-light: #eee;
+
+    /* Размеры */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 15px;
+
+    /* Тени */
+    --shadow-sm: 0 4px 12px rgba(0,0,0,0.05);
+    --shadow-md: 0 2px 10px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+
+    /* Отступы */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 12px;
+    --spacing-lg: 16px;
+    --spacing-xl: 20px;
+
+    /* Z-index */
+    --z-modal: 9999;
+    --z-dropdown: 1000;
+    --z-tooltip: 100;
+}

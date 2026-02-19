@@ -4,68 +4,7 @@
 {% block title %}Учёт ставок{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'app_bets/css/bet_records.css' %}">
-<style>
-    /* Дополнительные стили для кнопки сигналов, если их нет в CSS файле */
-    .btn-signals {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 10px 20px;
-        border-radius: 8px;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-        border: none;
-        cursor: pointer;
-    }
-
-    .btn-signals:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-    }
-
-    .btn-signals .badge {
-        background: rgba(255, 255, 255, 0.2);
-        padding: 2px 8px;
-        border-radius: 20px;
-        font-size: 0.9rem;
-        margin-left: 5px;
-    }
-
-    /* Усиленные цвета для прибыли */
-    .profit-positive {
-        color: #00ff00 !important;
-        font-weight: 700 !important;
-        text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
-    }
-
-    .profit-negative {
-        color: #ff3333 !important;
-        font-weight: 700 !important;
-        text-shadow: 0 0 5px rgba(255, 51, 51, 0.3);
-    }
-
-    /* Блок прибыли с блеклым фоном */
-    .profit-badge {
-        background: rgba(255, 255, 255, 0.15) !important;
-        border-radius: 8px;
-        padding: 5px 10px;
-    }
-
-    .bet-profit {
-        font-size: 1.2rem;
-        font-weight: 700;
-    }
-
-    /* Убираем знак минус, оставляем только цвет */
-    .profit-negative::before {
-        content: "";
-    }
-</style>
+<link rel="stylesheet" href="{% static 'app_bets/css/pages/bet_records.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -73,7 +12,7 @@
     <!-- Баланс и статистика -->
     <div class="balance-card">
         <div class="balance-label">Текущий баланс</div>
-        <div class="balance-amount">{{ current_balance|floatformat:0 }} ₽</div>
+        <div class="balance-amount">{{ current_balance|floatformat:2 }} ₽</div>
 
         <div class="stats-grid">
             <div class="stat-item">
@@ -94,12 +33,12 @@
             </div>
             <div class="stat-item">
                 <div class="stat-label">Сумма ставок</div>
-                <div class="stat-value">{{ total_stake|floatformat:0 }} ₽</div>
+                <div class="stat-value">{{ total_stake|floatformat:2 }} ₽</div>
             </div>
             <div class="stat-item profit-badge">
                 <div class="stat-label">Прибыль</div>
                 <div class="stat-value {% if total_profit > 0 %}profit-positive{% elif total_profit < 0 %}profit-negative{% endif %}">
-                    {{ total_profit|floatformat:0|cut:"-" }} ₽
+                    {{ total_profit|floatformat:2 }} ₽
                 </div>
             </div>
         </div>
@@ -119,13 +58,10 @@
         </div>
 
         <div class="action-group ml-auto" style="display: flex; gap: 10px;">
-            <!-- Кнопка Сигналы (как в cleaned шаблоне) -->
             <a href="{% url 'app_bets:cleaned' %}" class="btn-signals">
                 <i class="fa-solid fa-chart-line"></i> Сигналы
                 <span class="badge">анализ</span>
             </a>
-
-            <!-- Кнопка Excel -->
             <a href="{% url 'app_bets:export_bets_excel' %}?{{ request.GET.urlencode }}" class="btn btn-excel">
                 📊 Excel
             </a>
@@ -141,24 +77,18 @@
 
         <form id="filterForm" method="get">
             <div class="filters-grid">
-                <!-- Поиск -->
                 <div class="filter-group">
                     <label>Поиск</label>
                     <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Команда или лига...">
                 </div>
-
-                <!-- Дата -->
                 <div class="filter-group">
                     <label>Дата с</label>
                     <input type="date" name="date_from" value="{{ request.GET.date_from }}">
                 </div>
-
                 <div class="filter-group">
                     <label>Дата по</label>
                     <input type="date" name="date_to" value="{{ request.GET.date_to }}">
                 </div>
-
-                <!-- Спорт -->
                 <div class="filter-group">
                     <label>Вид спорта</label>
                     <select name="sport">
@@ -170,8 +100,6 @@
                         {% endfor %}
                     </select>
                 </div>
-
-                <!-- Лига -->
                 <div class="filter-group">
                     <label>Лига</label>
                     <select name="league">
@@ -183,8 +111,6 @@
                         {% endfor %}
                     </select>
                 </div>
-
-                <!-- Результат -->
                 <div class="filter-group">
                     <label>Результат</label>
                     <select name="result">
@@ -194,21 +120,18 @@
                         <option value="REFUND" {% if request.GET.result == 'REFUND' %}selected{% endif %}>Возврат</option>
                     </select>
                 </div>
-
-                <!-- Сортировка -->
                 <div class="filter-group">
                     <label>Сортировка</label>
                     <select name="sort">
                         <option value="-date_placed" {% if request.GET.sort == '-date_placed' %}selected{% endif %}>По дате ↓</option>
                         <option value="date_placed" {% if request.GET.sort == 'date_placed' %}selected{% endif %}>По дате ↑</option>
-                        <option value="-stake" {% if request.GET.sort == '-stake' %}selected{% endif %}>По сумме ставок ↓</option>
-                        <option value="stake" {% if request.GET.sort == 'stake' %}selected{% endif %}>По сумме ставок ↑</option>
+                        <option value="-stake" {% if request.GET.sort == '-stake' %}selected{% endif %}>По сумме ↓</option>
+                        <option value="stake" {% if request.GET.sort == 'stake' %}selected{% endif %}>По сумме ↑</option>
                         <option value="-profit" {% if request.GET.sort == '-profit' %}selected{% endif %}>По прибыли ↓</option>
                         <option value="profit" {% if request.GET.sort == 'profit' %}selected{% endif %}>По прибыли ↑</option>
                     </select>
                 </div>
             </div>
-
             <div class="filter-actions">
                 <button type="submit" class="btn btn-primary">Применить</button>
                 <a href="{% url 'app_bets:records' %}" class="btn btn-secondary">Сбросить</a>
@@ -224,35 +147,30 @@
             {% elif bet.result == 'LOSS' %}loss
             {% elif bet.result == 'REFUND' %}refund
             {% endif %}">
-
             <div class="bet-checkbox">
                 <input type="checkbox" class="bet-select" value="{{ bet.id }}">
             </div>
-
             <div class="bet-content">
                 <div class="bet-datetime">
                     <div class="bet-date">{{ bet.date_placed|date:"d.m.Y" }}</div>
                     <div class="bet-time">{{ bet.match_time }}</div>
                 </div>
-
                 <div class="bet-match">
                     <div class="bet-league">{{ bet.league.name }}</div>
                     <div class="bet-teams">
                         {{ bet.home_team.name }} <span class="vs">vs</span> {{ bet.away_team.name }}
                     </div>
                 </div>
-
                 <div class="bet-info">
                     <span class="bet-target {% if bet.recommended_target == 'over' %}target-over{% else %}target-under{% endif %}">
                         {{ bet.get_recommended_target_display }}
                     </span>
                     <span class="bet-odds">{{ bet.recommended_odds|floatformat:2 }}</span>
-                    <span class="bet-stake">{{ bet.stake|floatformat:0 }} ₽</span>
+                    <span class="bet-stake">{{ bet.stake|floatformat:2 }} ₽</span>
                     <span class="bet-ev {% if bet.ev > 0 %}ev-positive{% elif bet.ev < 0 %}ev-negative{% endif %}">
                         EV: {{ bet.ev|floatformat:1 }}%
                     </span>
                 </div>
-
                 <div class="bet-result">
                     {% if bet.result %}
                     <span class="result-badge
@@ -263,10 +181,9 @@
                         {{ bet.get_result_display }}
                     </span>
                     {% endif %}
-
                     {% if bet.profit %}
                     <div class="bet-profit {% if bet.profit > 0 %}profit-positive{% elif bet.profit < 0 %}profit-negative{% endif %}">
-                        {{ bet.profit|floatformat:0|cut:"-" }} ₽
+                        {{ bet.profit|floatformat:2 }} ₽
                     </div>
                     {% endif %}
                 </div>
@@ -288,40 +205,24 @@
             {% if page_obj.has_previous %}
             <li class="page-item">
                 <a class="page-link" href="?page=1
-                    {% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">«
-                </a>
+                    {% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" title="Первая страница">««</a>
             </li>
             <li class="page-item">
                 <a class="page-link" href="?page={{ page_obj.previous_page_number }}
-                    {% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">‹
-                </a>
+                    {% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" title="Предыдущая страница">«</a>
             </li>
             {% endif %}
-
-            {% for num in page_obj.paginator.page_range %}
-                {% if page_obj.number == num %}
-                <li class="page-item active">
-                    <span class="page-link">{{ num }}</span>
-                </li>
-                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ num }}
-                        {% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}
-                    </a>
-                </li>
-                {% endif %}
-            {% endfor %}
-
+            <li class="page-item active">
+                <span class="page-link">{{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+            </li>
             {% if page_obj.has_next %}
             <li class="page-item">
                 <a class="page-link" href="?page={{ page_obj.next_page_number }}
-                    {% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">›
-                </a>
+                    {% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" title="Следующая страница">»</a>
             </li>
             <li class="page-item">
                 <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}
-                    {% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">»
-                </a>
+                    {% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" title="Последняя страница">»»</a>
             </li>
             {% endif %}
         </ul>
@@ -350,9 +251,7 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const checkboxes = document.querySelectorAll('.bet-select');
@@ -390,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Очищаем форму от старых данных (сохраняем csrf и основные поля)
+        // Очищаем форму от старых данных
         while (form.children.length > 3) {
             form.removeChild(form.lastChild);
         }

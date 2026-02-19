@@ -1,0 +1,429 @@
+/* ====== СТИЛИ ДЛЯ СТРАНИЦЫ АНАЛИЗА СТАВОК ====== */
+.bets-main-grid {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 25px;
+    margin-top: 20px;
+}
+
+.bets-left-col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.bets-input-pane {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+}
+
+.bets-textarea {
+    width: 100%;
+    border: 1px solid #ddd;
+    padding: 12px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    resize: vertical;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+}
+
+.bets-textarea:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.bets-btn-analyze {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary-color, #2c3e50);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: opacity 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bets-btn-analyze:hover {
+    opacity: 0.9;
+}
+
+.bets-input-label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+/* Счетчики результатов */
+.bets-counters {
+    margin-top: 15px;
+    margin-bottom: 5px;
+    padding: 10px;
+    background: var(--info-bg, #e8f4fc);
+    border-radius: 6px;
+    border-left: 4px solid #3498db;
+}
+
+.bets-counters-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.bets-counter-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bets-counter-icon {
+    font-size: 1.1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bets-counter-icon.calculator {
+    color: var(--info-text, #2980b9);
+}
+
+.bets-counter-icon.graduation {
+    color: var(--warning-text, #856404);
+}
+
+.bets-counter-label {
+    font-size: 0.9rem;
+    color: var(--primary-color, #2c3e50);
+}
+
+.bets-counter-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.bets-counter-value.blue {
+    color: var(--info-text, #2980b9);
+}
+
+.bets-counter-value.orange {
+    color: var(--warning-text, #856404);
+}
+
+.bets-counter-divider {
+    border-left: 2px solid #bdc3c7;
+    padding-left: 15px;
+}
+
+/* Обучение системы */
+.bets-unknown-section {
+    background: #fff9e6;
+    border: 1px solid #ffeeba;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.bets-unknown-title {
+    margin: 0 0 10px 0;
+    display: flex;
+    align-items: center;
+}
+
+.bets-unknown-badge {
+    background: var(--warning-text, #856404);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bets-alias-form {
+    background: var(--warning-bg, #fff3cd);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ffeeba;
+    display: flex;
+    flex-direction: column;
+}
+
+.bets-alias-name {
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.bets-alias-select {
+    width: 100%;
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+}
+
+.bets-alias-btn {
+    margin-top: 8px;
+    padding: 6px;
+    font-size: 12px;
+    background: var(--warning-text, #856404);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* CSV импорт */
+.bets-csv-section {
+    margin-top: 20px;
+    border-top: 2px solid #eee;
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.bets-csv-label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: var(--primary-color, #2c3e50);
+}
+
+.bets-csv-description {
+    font-size: 0.75rem;
+    color: var(--gray-text, #6c757d);
+    margin-bottom: 10px;
+}
+
+.bets-csv-btn {
+    width: 100%;
+    padding: 14px;
+    background: #16a085;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bets-csv-btn:hover {
+    opacity: 0.9;
+}
+
+/* Результат импорта */
+.bets-import-result {
+    margin-top: 20px;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+}
+
+.bets-import-result.success {
+    background: var(--success-bg, #d4edda);
+    border: 1px solid #c3e6cb;
+}
+
+.bets-import-result.error {
+    background: var(--danger-bg, #f8d7da);
+    border: 1px solid #f5c6cb;
+}
+
+.bets-import-result.warning {
+    background: var(--warning-bg, #fff3cd);
+    border: 1px solid #ffeeba;
+}
+
+.bets-import-title {
+    margin-top: 0;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.bets-import-title.success {
+    color: var(--success-text, #155724);
+}
+
+.bets-import-title.error {
+    color: var(--danger-text, #721c24);
+}
+
+.bets-import-title.warning {
+    color: var(--warning-text, #856404);
+}
+
+.bets-import-message {
+    white-space: pre-line;
+    font-family: monospace;
+    margin: 0;
+    font-size: 0.9rem;
+    background: rgba(255,255,255,0.5);
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.bets-import-details {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: var(--gray-text, #6c757d);
+    padding-left: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Стили для фильтров сортировки */
+.bets-sort-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.bets-sort-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.bets-sort-label {
+    font-size: 0.85rem;
+    color: var(--gray-text, #6c757d);
+    font-weight: 600;
+}
+
+.bets-sort-form {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.bets-sort-btn {
+    padding: 6px 12px;
+    background: var(--gray-bg, #f8f9fa);
+    border: 1px solid var(--gray-border, #dee2e6);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--gray-text, #6c757d);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bets-sort-btn:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.bets-sort-btn.active {
+    background: var(--info-bg, #e8f4fc);
+    border-color: var(--info-border, #3498db);
+    color: var(--info-text, #2980b9);
+    font-weight: 700;
+}
+
+.bets-sort-btn i {
+    margin-right: 4px;
+    font-size: 0.75rem;
+}
+
+/* Кнопки действий */
+.bets-actions-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.bets-filter-btn,
+.bets-export-btn,
+.bets-records-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: opacity 0.2s;
+    gap: 8px;
+    height: 40px;
+    box-sizing: border-box;
+}
+
+.bets-filter-btn {
+    background: #3498db;
+}
+
+.bets-export-btn {
+    background: #27ae60;
+}
+
+.bets-records-btn {
+    background: #6c757d;
+}
+
+.bets-filter-btn:hover,
+.bets-export-btn:hover,
+.bets-records-btn:hover {
+    opacity: 0.9;
+}
+
+/* Адаптивность */
+@media (max-width: 1024px) {
+    .bets-main-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .bets-sort-container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .bets-sort-wrapper {
+        width: 100%;
+    }
+
+    .bets-sort-form {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+}
