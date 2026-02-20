@@ -270,7 +270,6 @@
             </div>
 
             <!-- Исторический анализ тотала (Байес) -->
-            <!-- Исторический анализ тотала (Байес) -->
             {% if res.historical_total %}
             <div class="historical-total-block">
                 <div class="historical-total-header">
@@ -295,52 +294,52 @@
             {% endif %}
 
             <!-- Исторический шаблон -->
-            <div class="pattern-block">
-                <div class="pattern-header">
-                    <span class="pattern-title">
-                        <i class="fa-solid fa-clock-rotate-left"></i> Исторический шаблон (серия x4)
-                    </span>
-                    {% if res.pattern_data.count %}
-                    <span class="pattern-count">
-                        Найдено: {{ res.pattern_data.count }}
-                    </span>
-                    {% endif %}
-                </div>
+<div class="pattern-block">
+    <div class="pattern-header">
+        <span class="pattern-title">
+            <i class="fa-solid fa-clock-rotate-left"></i> Исторический шаблон (серия x4)
+        </span>
+        {% if res.pattern_data and res.pattern_data.count %}
+        <span class="pattern-count">
+            Найдено: {{ res.pattern_data.count }}
+        </span>
+        {% endif %}
+    </div>
 
-                {% if res.pattern_data.pattern %}
-                <div class="pattern-content">
-                    <!-- Квадратики -->
-                    <div class="pattern-badges-row">
-                        {% for char in res.pattern_data.pattern %}
-                        {% if char == 'В' %}
-                        <span class="p-badge v-win">В</span>
-                        {% elif char == 'П' %}
-                        <span class="p-badge v-loss">П</span>
-                        {% elif char == 'Н' %}
-                        <span class="p-badge v-draw">Н</span>
-                        {% elif char == '-' %}
-                        <span class="p-separator">—</span>
-                        {% endif %}
-                        {% endfor %}
-                    </div>
+    {% if res.pattern_data and res.pattern_data.pattern %}
+    <div class="pattern-content">
+        <!-- Квадратики -->
+        <div class="pattern-badges-row">
+            {% for char in res.pattern_data.pattern %}
+            {% if char == 'В' %}
+            <span class="p-badge v-win">В</span>
+            {% elif char == 'П' %}
+            <span class="p-badge v-loss">П</span>
+            {% elif char == 'Н' %}
+            <span class="p-badge v-draw">Н</span>
+            {% elif char == '-' %}
+            <span class="p-separator">—</span>
+            {% endif %}
+            {% endfor %}
+        </div>
 
-                    <!-- Проценты -->
-                    <div class="pattern-percents">
-                        {% if res.pattern_data.p1 is not None %}
-                        <span class="pattern-percent-item p1">П1 {{ res.pattern_data.p1 }}%</span>
-                        {% endif %}
-                        {% if res.pattern_data.x is not None %}
-                        <span class="pattern-percent-item x">X {{ res.pattern_data.x }}%</span>
-                        {% endif %}
-                        {% if res.pattern_data.p2 is not None %}
-                        <span class="pattern-percent-item p2">П2 {{ res.pattern_data.p2 }}%</span>
-                        {% endif %}
-                    </div>
-                </div>
-                {% else %}
-                <div class="pattern-no-data">{{ res.pattern_data }}</div>
-                {% endif %}
-            </div>
+        <!-- Проценты -->
+        <div class="pattern-percents">
+            {% if res.pattern_data.p1 is not None %}
+            <span class="pattern-percent-item p1">П1 {{ res.pattern_data.p1 }}%</span>
+            {% endif %}
+            {% if res.pattern_data.x is not None %}
+            <span class="pattern-percent-item x">X {{ res.pattern_data.x }}%</span>
+            {% endif %}
+            {% if res.pattern_data.p2 is not None %}
+            <span class="pattern-percent-item p2">П2 {{ res.pattern_data.p2 }}%</span>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="pattern-no-data">Нет данных</div>
+    {% endif %}
+</div>
 
             <!-- Личные встречи -->
             <div class="h2h-block">

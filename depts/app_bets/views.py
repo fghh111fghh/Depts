@@ -567,16 +567,29 @@ class AnalyzeView(View):
                                         'p2': p2_pct
                                     }
 
-                            # --- ЛИЧНЫЕ ВСТРЕЧИ (через кэшированные матчи) ---
-                            h2h_list = []
+                            # --- ЛИЧНЫЕ ВСТРЕЧИ (только где home_team - хозяин, away_team - гость) ---
+                            h2h_matches = []
                             for m in league_matches:
-                                if (m.home_team_id == home_team.id and m.away_team_id == away_team.id) or \
-                                        (m.home_team_id == away_team.id and m.away_team_id == home_team.id):
-                                    h2h_list.append({
-                                        'date': m.date.strftime(Messages.DATE_FORMAT),
+                                # Проверяем, что home_team был хозяином, а away_team - гостем
+                                if m.home_team_id == home_team.id and m.away_team_id == away_team.id:
+                                    h2h_matches.append({
+                                        'date': m.date,
+                                        'date_str': m.date.strftime(Messages.DATE_FORMAT),
                                         'score': f"{m.home_score_reg}:{m.away_score_reg}"
                                     })
-                            h2h_list = h2h_list[:10]
+
+                            # СОРТИРУЕМ ПО ДАТЕ ОТ НОВЫХ К СТАРЫМ
+                            h2h_matches.sort(key=lambda x: x['date'], reverse=True)
+
+                            # БЕРЕМ ПЕРВЫЕ 10
+                            h2h_matches = h2h_matches[:10]
+
+                            h2h_list = []
+                            for m in h2h_matches:
+                                h2h_list.append({
+                                    'date': m['date_str'],
+                                    'score': m['score']
+                                })
 
                             # --- ВЕКТОРНЫЙ СИНТЕЗ ---
                             v_p1, v_x, v_p2 = 0, 0, 0

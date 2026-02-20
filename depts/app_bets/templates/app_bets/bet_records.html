@@ -38,7 +38,7 @@
             <div class="stat-item profit-badge">
                 <div class="stat-label">Прибыль</div>
                 <div class="stat-value {% if total_profit > 0 %}profit-positive{% elif total_profit < 0 %}profit-negative{% endif %}">
-                    {{ total_profit|floatformat:0 }} ₽
+                    {{ total_profit|floatformat:0|cut:"-" }} ₽
                 </div>
             </div>
         </div>

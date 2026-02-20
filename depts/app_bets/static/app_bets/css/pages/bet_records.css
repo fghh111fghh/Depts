@@ -529,10 +529,25 @@
     font-weight: 700 !important;
 }
 
+/* Цвета для прибыли в блоке статистики */
+.profit-positive {
+    color: var(--success) !important;
+}
+
+.profit-negative {
+    color: var(--danger) !important;
+}
+
 .profit-badge {
-    background: rgba(255, 255, 255, 0.15);
+    background: white !important;
     border-radius: 8px;
     padding: 5px 10px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.profit-badge .stat-label {
+    color: #000000 !important;
 }
 
 /* Пустое состояние */
@@ -655,3 +670,4 @@
         width: 100%;
     }
 }
+
