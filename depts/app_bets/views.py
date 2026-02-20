@@ -410,17 +410,39 @@ class AnalyzeView(View):
                                 home_team.name, away_team.name, h_odd, d_odd, a_odd
                             ))
 
-                            # Поиск лиги
+                            # --- ИСПРАВЛЕННЫЙ ПОИСК ЛИГИ ---
                             league = None
-                            # Ищем первый матч с этой командой
+
+                            # 1. Сначала ищем матчи, где эти команды играли друг против друга
                             for match in all_matches:
-                                if match.home_team_id == home_team.id and match.league:
+                                if ((match.home_team_id == home_team.id and match.away_team_id == away_team.id) or
+                                    (
+                                            match.home_team_id == away_team.id and match.away_team_id == home_team.id)) and match.league:
                                     league = match.league
+                                    logger.info(f"Лига найдена по личным встречам: {league.name}")
                                     break
 
+                            # 2. Если не нашли, ищем матчи с home_team в качестве хозяев
                             if not league:
-                                # Пробуем по стране
+                                for match in all_matches:
+                                    if match.home_team_id == home_team.id and match.league:
+                                        league = match.league
+                                        logger.info(f"Лига найдена по домашним матчам {home_team.name}: {league.name}")
+                                        break
+
+                            # 3. Если все еще не нашли, ищем матчи с away_team в качестве гостей
+                            if not league:
+                                for match in all_matches:
+                                    if match.away_team_id == away_team.id and match.league:
+                                        league = match.league
+                                        logger.info(f"Лига найдена по гостевым матчам {away_team.name}: {league.name}")
+                                        break
+
+                            # 4. Если ничего не нашли, пробуем по стране
+                            if not league:
                                 league = League.objects.filter(country=home_team.country).first()
+                                if league:
+                                    logger.info(f"Лига найдена по стране {home_team.country}: {league.name}")
 
                             if not league:
                                 logger.warning(f"Не найдена лига для команды {home_team.name}, матч пропущен")
