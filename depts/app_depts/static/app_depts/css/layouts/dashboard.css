@@ -1,0 +1,126 @@
+/* ====== DASHBOARD UNIQUE STYLES (ds-) ====== */
+.ds-welcome-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 50px 15px;
+    width: 100%;
+}
+
+.ds-header-block {
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+.ds-header-block h1 {
+    font-size: 2.8rem;
+    color: #1e293b;
+    margin-bottom: 15px;
+    font-weight: 800;
+}
+
+.ds-header-block p {
+    color: #64748b;
+    font-size: 1.25rem;
+}
+
+/* Сетка на флексах */
+.ds-modules-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 35px;
+    width: 100%;
+    max-width: 1200px;
+}
+
+/* Карточка модуля */
+.ds-module-card {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 calc(33.333% - 35px);
+    max-width: 400px;
+    min-width: 300px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 30px;
+    box-sizing: border-box;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
+}
+
+.ds-module-card:not(.ds-mod-disabled):hover {
+    transform: translateY(-12px);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    border-color: #3b82f6;
+}
+
+/* Иконка */
+.ds-card-icon {
+    width: 70px;
+    height: 70px;
+    background: #f0f7ff;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 25px;
+}
+
+.ds-card-icon i {
+    font-size: 2rem;
+    color: #3b82f6;
+}
+
+/* Текст */
+.ds-card-content h3 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: #0f172a;
+    font-weight: 700;
+}
+
+.ds-card-content p {
+    font-size: 1.05rem;
+    color: #475569;
+    line-height: 1.6;
+    margin-bottom: 25px;
+}
+
+/* Бейджи/Теги */
+.ds-tag {
+    display: inline-flex;
+    padding: 6px 16px;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.ds-tag-active {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.ds-tag-wait {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+/* Неактивное состояние */
+.ds-mod-disabled {
+    opacity: 0.75;
+    background: #f8fafc;
+    cursor: not-allowed;
+}
+
+.ds-mod-disabled .ds-card-icon {
+    background: #e2e8f0;
+}
+
+.ds-mod-disabled .ds-card-icon i {
+    color: #94a3b8;
+}
