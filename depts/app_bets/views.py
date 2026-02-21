@@ -36,11 +36,13 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.utils.timezone import make_aware, get_current_timezone
 from django.views import View
 import re
 import math
 import unicodedata
+from django.views.decorators.cache import cache_page
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView, CreateView, ListView
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -697,7 +699,7 @@ class AnalyzeView(View):
             'current_sort': current_sort,
         })
 
-
+@method_decorator(cache_page(60 * 60 * 24), name='dispatch')  # кэш на 24 часа
 class CleanedTemplateView(TemplateView):
     template_name = 'app_bets/cleaned.html'
 
