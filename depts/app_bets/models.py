@@ -1227,7 +1227,7 @@ class Bet(models.Model):
     result = models.CharField(
         max_length=6,
         choices=ResultChoices.choices,
-        default=ResultChoices.WIN,  # или LOSS, или REFUND - любой существующий
+        default=ResultChoices.REFUND,  # или LOSS, или REFUND - любой существующий
         verbose_name="Результат"
     )
     profit = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name="Прибыль")
