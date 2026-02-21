@@ -1503,3 +1503,102 @@
     font-weight: 700;
     color: #2c3e50;
 }
+
+/* ====== ИСТОРИЧЕСКИЙ АНАЛИЗ ТОТАЛА (БАЙЕС) ====== */
+.historical-total-block {
+    margin-top: 20px;
+    margin-bottom: 5px;
+    background: #f0f7ff;
+    padding: 16px 20px;
+    border-radius: 8px;
+    border: 1px solid #c5e3fc;
+    display: flex;
+    flex-direction: column;
+}
+
+.historical-total-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.historical-total-title {
+    font-size: 0.9rem;
+    color: #2c3e50;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.historical-total-title i {
+    font-size: 1rem;
+    color: #3498db;
+}
+
+/* ====== ИСТОРИЧЕСКИЙ АНАЛИЗ ТОТАЛА (БАЙЕС) ====== */
+.historical-total-block {
+    margin-top: 20px;
+    margin-bottom: 5px;
+    background: #f0f7ff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: 1px solid #c5e3fc;
+}
+
+.historical-total-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.historical-total-title {
+    font-size: 0.9rem;
+    color: #2c3e50;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.historical-total-title i {
+    font-size: 1rem;
+    color: #3498db;
+}
+
+.historical-total-value {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #2980b9;
+    background: white;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid #c5e3fc;
+    white-space: nowrap;
+}
+
+.historical-total-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #2c3e50;
+    white-space: nowrap;
+}
+
+/* Убираем иконку только у заголовка "Близнецы (кэфы)" */
+.twins-main-block .twins-title i.fa-copy {
+    display: none;
+}
+
+/* Стиль для блока когда нет данных */
+.pattern-no-data {
+    color: var(--gray-text, #6c757d);
+    font-style: italic;
+    font-size: 0.9rem;
+    padding: 5px 0;
+    text-align: right;
+    margin-left: auto;
+}
+

@@ -184,19 +184,6 @@
                     </div>
                 </div>
                 {% endif %}
-
-                <!-- ЦВЕТНОЙ КВАДРАТИК ВЕРДИКТА -->
-                <div class="verdict-line
-                    {% if res.verdict == 'СИГНАЛ: П1' %}verdict-p1
-                    {% elif res.verdict == 'СИГНАЛ: П2' %}verdict-p2
-                    {% elif res.verdict == 'СИГНАЛ: НИЧЬЯ' %}verdict-draw
-                    {% endif %}">
-                    {% if res.verdict == 'СИГНАЛ: П1' %}П1
-                    {% elif res.verdict == 'СИГНАЛ: П2' %}П2
-                    {% elif res.verdict == 'СИГНАЛ: НИЧЬЯ' %}НИЧЬЯ
-                    {% else %}{{ res.verdict }}
-                    {% endif %}
-                </div>
             </div>
 
             <!-- Пуассон и Близнецы в одной строке -->
@@ -208,7 +195,6 @@
                     </h4>
 
                     <!-- ТОП-5 СЧЕТОВ В ЦВЕТНЫХ КВАДРАТИКАХ -->
-                    <span class="poisson-scores-label">Вероятные счета:</span>
                     <div class="scores-list">
                         {% for s in res.poisson_top|slice:":5" %}
                         <div class="score-rectangle">
@@ -270,75 +256,64 @@
             </div>
 
             <!-- Исторический анализ тотала (Байес) -->
-            {% if res.historical_total %}
-            <div class="historical-total-block">
-                <div class="historical-total-header">
+{% if res.historical_total %}
+<div class="historical-total-block">
+    <div class="historical-total-header">
         <span class="historical-total-title">
             <i class="fa-solid fa-chart-simple"></i> Исторический анализ
         </span>
-                    <!-- ЦВЕТНАЯ КНОПКА УДАЛЕНА -->
-                </div>
+        <span class="historical-total-label">Тотал больше 2,5</span>
+        <span class="historical-total-value">{{ res.historical_total.over_25 }}%</span>
+    </div>
+</div>
+{% endif %}
 
-                <div class="historical-total-content">
-                    <div class="historical-total-probability">
-                        <div class="probability-bar-label">
-                            <span class="probability-title">Тотал больше 2.5</span>
-                            <span class="probability-value">{{ res.historical_total.over_25 }}%</span>
-                        </div>
-                        <div class="probability-bar-bg">
-                            <div class="probability-bar-fill" style="width: {{ res.historical_total.over_25 }}%;"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Исторический шаблон -->
+           <!-- Исторический шаблон -->
 <div class="pattern-block">
     <div class="pattern-header">
         <span class="pattern-title">
             <i class="fa-solid fa-clock-rotate-left"></i> Исторический шаблон (серия x4)
         </span>
         {% if res.pattern_data and res.pattern_data.count %}
-        <span class="pattern-count">
-            Найдено: {{ res.pattern_data.count }}
-        </span>
+            <span class="pattern-count">Найдено: {{ res.pattern_data.count }}</span>
         {% endif %}
     </div>
 
-    {% if res.pattern_data and res.pattern_data.pattern %}
     <div class="pattern-content">
-        <!-- Квадратики -->
+        <!-- Квадратики слева (из текущих форм команд) -->
         <div class="pattern-badges-row">
-            {% for char in res.pattern_data.pattern %}
-            {% if char == 'В' %}
-            <span class="p-badge v-win">В</span>
-            {% elif char == 'П' %}
-            <span class="p-badge v-loss">П</span>
-            {% elif char == 'Н' %}
-            <span class="p-badge v-draw">Н</span>
-            {% elif char == '-' %}
+            {% for char in res.current_h_form %}
+                {% if char == 'В' %}
+                    <span class="p-badge v-win">В</span>
+                {% elif char == 'П' %}
+                    <span class="p-badge v-loss">П</span>
+                {% elif char == 'Н' %}
+                    <span class="p-badge v-draw">Н</span>
+                {% endif %}
+            {% endfor %}
             <span class="p-separator">—</span>
-            {% endif %}
+            {% for char in res.current_a_form %}
+                {% if char == 'В' %}
+                    <span class="p-badge v-win">В</span>
+                {% elif char == 'П' %}
+                    <span class="p-badge v-loss">П</span>
+                {% elif char == 'Н' %}
+                    <span class="p-badge v-draw">Н</span>
+                {% endif %}
             {% endfor %}
         </div>
 
-        <!-- Проценты -->
+        <!-- Проценты или Нет данных справа -->
         <div class="pattern-percents">
-            {% if res.pattern_data.p1 is not None %}
-            <span class="pattern-percent-item p1">П1 {{ res.pattern_data.p1 }}%</span>
-            {% endif %}
-            {% if res.pattern_data.x is not None %}
-            <span class="pattern-percent-item x">X {{ res.pattern_data.x }}%</span>
-            {% endif %}
-            {% if res.pattern_data.p2 is not None %}
-            <span class="pattern-percent-item p2">П2 {{ res.pattern_data.p2 }}%</span>
+            {% if res.pattern_data and res.pattern_data.p1 is not None %}
+                <span class="pattern-percent-item p1">П1 {{ res.pattern_data.p1 }}%</span>
+                <span class="pattern-percent-item x">X {{ res.pattern_data.x }}%</span>
+                <span class="pattern-percent-item p2">П2 {{ res.pattern_data.p2 }}%</span>
+            {% else %}
+                <span class="pattern-no-data">Нет данных</span>
             {% endif %}
         </div>
     </div>
-    {% else %}
-    <div class="pattern-no-data">Нет данных</div>
-    {% endif %}
 </div>
 
             <!-- Личные встречи -->
