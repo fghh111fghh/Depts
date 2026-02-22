@@ -1,0 +1,123 @@
+/* ====== ОБЩИЕ СТИЛИ ДЛЯ ТАБЛИЦ ====== */
+.transactions-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 5px;
+}
+
+.transactions-table thead tr {
+    background: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.transactions-table th {
+    text-align: left;
+    padding: 16px 15px;
+    color: #0f172a;
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.transactions-table td {
+    padding: 14px 15px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+    font-size: 0.95rem;
+    color: #334155;
+}
+
+.transactions-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.text-right {
+    text-align: right !important;
+}
+
+.type-badge {
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: #0f172a;
+    background: #f1f5f9;
+    padding: 4px 12px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.comment-cell {
+    color: #475569;
+    font-weight: 500;
+    max-width: 300px;
+}
+
+.amount-cell {
+    text-align: right;
+    font-weight: 800;
+    white-space: nowrap;
+    font-size: 1rem;
+}
+
+.amount-cell.positive {
+    color: #e74c3c;
+}
+
+.amount-cell.negative {
+    color: #2ecc71;
+}
+
+.empty-transactions {
+    text-align: center;
+    padding: 40px !important;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .transactions-table thead {
+        display: none;
+    }
+
+    .transactions-table,
+    .transactions-table tbody,
+    .transactions-table tr,
+    .transactions-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .transactions-table tr {
+        margin-bottom: 15px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 15px;
+        background: white;
+    }
+
+    .transactions-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 10px 5px;
+    }
+
+    .transactions-table td:last-child {
+        border-bottom: none;
+    }
+
+    .transactions-table td::before {
+        content: attr(data-label);
+        font-weight: 800;
+        color: #0f172a;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+    }
+
+    .amount-cell {
+        text-align: right;
+        justify-content: flex-end;
+    }
+}
