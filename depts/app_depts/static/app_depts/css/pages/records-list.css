@@ -65,6 +65,7 @@
 .progress-bar-fill {
     background: #2ecc71;
     height: 100%;
+    width: var(--progress-width, 0%);  /* Значение по умолчанию 0% */
 }
 
 .stat-content {

@@ -197,3 +197,18 @@
         height: 1.5rem;
     }
 }
+
+/* ПЕРЕОПРЕДЕЛЕНИЕ ВСЕХ ВОЗМОЖНЫХ ССЫЛОК */
+header.main-header a,
+header.main-header a:hover,
+header.main-header a:active,
+header.main-header a:focus,
+header.main-header a:visited,
+header.main-header .nav-link,
+header.main-header .nav-link:hover,
+header.main-header .admin-button,
+header.main-header .admin-button:hover {
+    text-decoration: none !important;
+    border-bottom: none !important;
+    outline: none !important;
+}

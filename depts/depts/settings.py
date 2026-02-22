@@ -79,6 +79,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'app_main.context_processors.site_modules',
                 'app_main.context_processors.site_texts_processor',
+                'app_depts.context_processors.debts_texts_processor',
                 'app_bets.context_processors.records_url',
             ],
         },

@@ -1,7 +1,7 @@
 import os
 from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import openpyxl
 from django.conf import settings
@@ -15,7 +15,7 @@ from django.views import View
 from django.views.generic import DetailView, ListView
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import landscape, A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import SimpleDocTemplate, TableStyle, Table, Paragraph

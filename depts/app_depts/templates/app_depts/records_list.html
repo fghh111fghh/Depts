@@ -8,40 +8,40 @@
 
 {% block content %}
 
-<div class="dashboard-wrapper" style="padding: 20px 0;">
+<div class="dashboard-wrapper">
 
     <div class="stats-container">
 
         <div class="stat-card card-debt">
-            <span class="stat-label">Активный долг</span>
-            <span class="stat-value">{{ total_unpaid_amount|floatformat:2 |intcomma }} <small>₽</small></span>
+            <span class="stat-label">{{ debt_stats_labels.ACTIVE_DEBT }}</span>
+            <span class="stat-value">{{ total_unpaid_amount|floatformat:2|intcomma }} <small>₽</small></span>
         </div>
 
         <div class="stat-card card-progress">
-            <span class="stat-label">Общий прогресс</span>
+            <span class="stat-label">{{ debt_stats_labels.TOTAL_PROGRESS }}</span>
             <span class="stat-value stat-value-success">{{ overall_progress }}%</span>
             <div class="progress-bar-container">
-                <div class="progress-bar-fill" style="width: {{ overall_progress|stringformat:'f' }}%;"></div>
+                <div class="progress-bar-fill" style="--progress-width: {{ overall_progress|stringformat:'f' }}%;"></div>
             </div>
         </div>
 
         <div class="stat-card {% if overdue_count > 0 %}card-overdue{% else %}card-activity{% endif %}">
-            <span class="stat-label">Активность</span>
+            <span class="stat-label">{{ debt_stats_labels.ACTIVITY }}</span>
 
             <div class="stat-content">
                 <div class="stat-row">
                     <span class="stat-number">{{ creditors_count }}</span>
-                    <span>Кредиторов</span>
+                    <span>{{ debt_stats_labels.CREDITORS }}</span>
                 </div>
 
                 <div class="stat-row stat-divider">
                     <span class="stat-number">{{ records_count }}</span>
-                    <span>Долгов</span>
+                    <span>{{ debt_stats_labels.DEBTS }}</span>
                 </div>
 
                 {% if overdue_count > 0 %}
                 <div class="overdue-alert" title="Обязательства с истекшим сроком">
-                    <i class="fa-solid fa-triangle-exclamation"></i> Просрочено: {{ overdue_count }}
+                    <i class="fa-solid fa-triangle-exclamation"></i> {{ debt_stats_labels.OVERDUE }}: {{ overdue_count }}
                 </div>
                 {% endif %}
             </div>
@@ -50,8 +50,8 @@
     </div>
 
     <div class="export-actions">
-        <button onclick="exportData('excel')" class="btn-export">Скачать Excel</button>
-        <button onclick="exportData('pdf')" class="btn-export">Скачать PDF</button>
+        <button onclick="exportData('excel')" class="btn-export">{{ debt_buttons.EXPORT_EXCEL }}</button>
+        <button onclick="exportData('pdf')" class="btn-export">{{ debt_buttons.EXPORT_PDF }}</button>
     </div>
 
     <div class="controls-panel">
@@ -65,42 +65,42 @@
                         {% for r in records_all %}
                         <option value="{{ r.name }}">
                         <option value="{{ r.creditor.name }}">
-                            {% endfor %}
+                        {% endfor %}
                     </datalist>
                     <div id="search-results" class="search-suggestions"></div>
                 </div>
                 {% if current_type %}<input type="hidden" name="creditor_type" value="{{ current_type }}">{% endif %}
                 {% if current_sort %}<input type="hidden" name="sort" value="{{ current_sort }}">{% endif %}
                 {% if show_paid %}<input type="hidden" name="show_paid" value="1">{% endif %}
-                <button type="submit" class="search-button">НАЙТИ</button>
+                <button type="submit" class="search-button">{{ debt_buttons.SEARCH }}</button>
                 {% if search_query or current_sort or current_type or show_paid or is_urgent %}
                 <a href="{% url 'app_depts:records_list' %}" class="reset-button">
-                    <i class="fa-solid fa-rotate-left"></i> СБРОСИТЬ
+                    <i class="fa-solid fa-rotate-left"></i> {{ debt_buttons.RESET }}
                 </a>
                 {% endif %}
             </form>
 
             <div class="sort-container">
-                <span>СОРТИРОВАТЬ:</span>
+                <span>{{ debt_buttons.SORT }}</span>
 
                 <a href="?sort=creditor{% if search_query %}&q={{ search_query }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
-                   class="sort-link {% if current_sort == 'creditor' %}active{% endif %}">КРЕДИТОР</a>
+                   class="sort-link {% if current_sort == 'creditor' %}active{% endif %}">{{ debt_buttons.BY_CREDITOR }}</a>
 
                 <a href="?sort=amount{% if search_query %}&q={{ search_query }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
-                   class="sort-link {% if current_sort == 'amount' %}active{% endif %}">СУММА</a>
+                   class="sort-link {% if current_sort == 'amount' %}active{% endif %}">{{ debt_buttons.BY_AMOUNT }}</a>
 
                 <a href="?sort=end_date{% if search_query %}&q={{ search_query }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
-                   class="sort-link {% if current_sort == 'end_date' %}active{% endif %}">СРОК</a>
+                   class="sort-link {% if current_sort == 'end_date' %}active{% endif %}">{{ debt_buttons.BY_DEADLINE }}</a>
             </div>
         </div>
 
         <div class="filter-type-row">
             <div class="filter-type-group">
-                <span class="filter-label">Организации:</span>
+                <span class="filter-label">{{ debt_buttons.FILTER_ORGS }}</span>
 
                 <a href="?{% if search_query %}q={{ search_query }}&{% endif %}{% if current_sort %}sort={{ current_sort }}&{% endif %}{% if show_paid %}show_paid=1{% endif %}"
                    class="type-link {% if not current_type and not is_urgent %}active-all{% endif %}">
-                    ВСЕ
+                    {{ debt_buttons.ALL }}
                 </a>
 
                 {% for type_value, type_label in creditor_types %}
@@ -109,18 +109,20 @@
                     {{ type_label|upper }}
                 </a>
                 {% endfor %}
+
                 <a href="?urgent={% if is_urgent %}0{% else %}1{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}"
                    class="type-link urgent-link {% if is_urgent %}active-urgent{% endif %}">
-                    <i class="fa-solid fa-fire-flame-curved"></i> СРОЧНЫЕ
+                    <i class="fa-solid fa-fire-flame-curved"></i> {{ debt_buttons.URGENT }}
                 </a>
             </div>
+
             <div>
                 <a href="?{% if show_paid %}show_paid=0{% else %}show_paid=1{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}"
                    class="paid-toggle {% if show_paid %}active{% endif %}">
                     {% if show_paid %}
-                    <i class="fa-solid fa-eye"></i> ПОКАЗАНЫ ВСЕ
+                    <i class="fa-solid fa-eye"></i> {{ debt_buttons.SHOW_ALL }}
                     {% else %}
-                    <i class="fa-solid fa-eye-slash"></i> ТОЛЬКО АКТИВНЫЕ
+                    <i class="fa-solid fa-eye-slash"></i> {{ debt_buttons.SHOW_ACTIVE }}
                     {% endif %}
                 </a>
             </div>
@@ -132,10 +134,10 @@
         <div class="app-module-card {% if record.is_near_deadline %}deadline-warning{% endif %}">
             {% if record.is_near_deadline and not record.is_paid %}
             <div class="deadline-urgent-badge">
-                <i class="fa-solid fa-clock-rotate-left"></i> СРОК ИСТЕКАЕТ!
+                <i class="fa-solid fa-clock-rotate-left"></i> {{ debt_card_texts.DEADLINE_BADGE }}
             </div>
-            filter-type-row
             {% endif %}
+
             {% if record.is_paid %}
             <div class="card-status-icon">
                 <i class="fa-solid fa-circle-check"></i>
@@ -158,7 +160,7 @@
                     {% if record.creditor.website %}
                     <a href="{{ record.creditor.website }}" target="_blank" class="card-link">
                         <i class="fa-solid fa-globe icon-globe"></i>
-                        <span>Сайт</span>
+                        <span>{{ debt_card_texts.WEBSITE }}</span>
                     </a>
                     {% endif %}
                 </div>
@@ -168,36 +170,37 @@
 
                 {% if record.note %}
                 <div class="card-note">
-                    <i class="fa-solid fa-note-sticky note-icon"></i> {{ record.note|default:"&nbsp;" }}
+                    <i class="fa-solid fa-note-sticky note-icon"></i> {{ record.note }}
                 </div>
                 {% endif %}
 
                 <div class="card-main-amount">
-    <span class="amount-label">
-        {% if record.is_paid %}Выплачено{% else %}Остаток{% endif %}
-    </span>
+                    <span class="amount-label">
+                        {% if record.is_paid %}{{ debt_card_texts.PAID_LABEL }}{% else %}{{ debt_card_texts.BALANCE_LABEL }}{% endif %}
+                    </span>
                     <span class="amount-sum">
-        {% if record.is_paid %}{{ record.total_paid|floatformat:2 }}{% else %}{{ record.balance|floatformat:2 |intcomma }}{% endif %}
-        <small>₽</small>
-    </span>
+                        {% if record.is_paid %}{{ record.total_paid|floatformat:2 }}{% else %}{{ record.balance|floatformat:2|intcomma }}{% endif %}
+                        <small>₽</small>
+                    </span>
                 </div>
 
                 <div class="card-status-bar">
                     {% if record.is_paid %}
-                    <span class="status-badge paid">ПОГАШЕНО</span>
+                    <span class="status-badge paid">{{ debt_card_texts.PAID }}</span>
                     {% elif record.end_date %}
                     <span class="status-badge {% if record.end_date < today %}overdue{% else %}active{% endif %}">
-            До {{ record.end_date|date:"d.m.Y" }}
-        </span>
+                        {{ debt_card_texts.DEADLINE_TO }} {{ record.end_date|date:"d.m.Y" }}
+                    </span>
                     {% else %}
-                    <span class="status-badge empty">Срок не указан</span>
+                    <span class="status-badge empty">{{ debt_card_texts.NO_DEADLINE }}</span>
                     {% endif %}
                 </div>
 
                 <div class="card-progress-details">
-                    <span>ВЫПЛАЧЕНО: <span class="percent-value">{{ record.progress_percent }}%</span></span>
-                    <span class="paid-amount">{{ record.total_paid|floatformat:0 |intcomma }} ₽</span>
+                    <span>{{ debt_card_texts.PROGRESS_LABEL }} <span class="percent-value">{{ record.progress_percent }}%</span></span>
+                    <span class="paid-amount">{{ record.total_paid|floatformat:0|intcomma }} ₽</span>
                 </div>
+
                 <div class="card-progress-track">
                     <div class="card-progress-bar {% if record.is_paid %}paid{% endif %}"
                          style="width: {{ record.progress_percent|stringformat:'f' }}%;">
@@ -206,13 +209,13 @@
 
                 <div class="card-actions">
                     {% if not record.is_paid %}
-                    <button onclick="document.getElementById('modal-{{ record.slug }}').style.display='flex'"
+                    <button onclick="openModal('modal-{{ record.slug }}')"
                             class="btn-payment-add">
-                        + ВНЕСТИ ПЛАТЕЖ
+                        {{ debt_card_texts.ADD_PAYMENT }}
                     </button>
                     {% endif %}
                     <a href="{{ record.get_absolute_url }}" class="btn-details">
-                        ДЕТАЛИ И ИСТОРИЯ
+                        {{ debt_card_texts.DETAILS }}
                     </a>
                 </div>
             </div>
@@ -220,30 +223,30 @@
 
         <div id="modal-{{ record.slug }}" class="modal-overlay">
             <div class="modal-content">
-                <h2 class="modal-title">Внести платеж</h2>
+                <h2 class="modal-title">{{ debt_modal_texts.TITLE }}</h2>
                 <p class="modal-subtitle">
                     {{ record.name }} <br>
-                    <span class="modal-balance-info">(Остаток: <strong>{{ record.balance|floatformat:2 |intcomma }} ₽</strong>)</span>
+                    <span class="modal-balance-info">({{ debt_modal_texts.BALANCE_INFO }} <strong>{{ record.balance|floatformat:2|intcomma }} ₽</strong>)</span>
                 </p>
                 <form action="{% url 'app_depts:quick_payment' record.slug %}" method="POST" class="modal-form">
                     {% csrf_token %}
                     <div class="input-group">
                         <input type="number" name="amount" id="amount-list-{{ record.slug }}"
-                               step="0.01" required placeholder="Сумма ₽"
+                               step="0.01" required placeholder="{{ debt_modal_texts.AMOUNT_PLACEHOLDER }}"
                                class="modal-input-amount">
                         <button type="button"
                                 class="btn-pay-all"
                                 onclick="document.getElementById('amount-list-{{ record.slug }}').value = '{{ record.balance|stringformat:'.2f' }}'.replace(',', '.')">
-                            ОПЛАТИТЬ ВСЁ
+                            {{ debt_modal_texts.PAY_ALL }}
                         </button>
                     </div>
-                    <input type="text" name="comment" placeholder="Комментарий (необязательно)"
+                    <input type="text" name="comment" placeholder="{{ debt_modal_texts.COMMENT_PLACEHOLDER }}"
                            class="modal-input-comment">
                     <div class="modal-footer-btns">
-                        <button type="submit" class="btn-confirm">ОК</button>
+                        <button type="submit" class="btn-confirm">{{ debt_modal_texts.CONFIRM }}</button>
                         <button type="button" class="btn-cancel"
-                                onclick="document.getElementById('modal-{{ record.slug }}').style.display='none'">
-                            ОТМЕНА
+                                onclick="closeModal('modal-{{ record.slug }}')">
+                            {{ debt_modal_texts.CANCEL }}
                         </button>
                     </div>
                 </form>
@@ -254,9 +257,9 @@
             <div class="empty-state-icon">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
-            <p class="empty-state-text">По вашему запросу ничего не найдено.</p>
+            <p class="empty-state-text">{{ debt_empty_state.TITLE }}</p>
             <a href="{% url 'app_depts:records_list' %}" class="btn-reset-filters">
-                СБРОСИТЬ ВСЕ ФИЛЬТРЫ
+                {{ debt_empty_state.RESET_BUTTON }}
             </a>
         </div>
         {% endfor %}
@@ -265,28 +268,21 @@
     {% if is_paginated %}
     <div class="pagination-container">
 
-        {# Кнопка НАЗАД (стрелка) #}
         {% if page_obj.has_previous %}
         <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
            class="pagination-arrow">
             <i class="fa-solid fa-chevron-left"></i>
         </a>
 
-        {# Номер предыдущей страницы #}
         <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
            class="pagination-link">
             {{ page_obj.previous_page_number }}
         </a>
         {% endif %}
 
-        {# АКТИВНАЯ СТРАНИЦА (без ссылки) #}
-        <span class="pagination-current">
-    {{ page_obj.number }}
-</span>
+        <span class="pagination-current">{{ page_obj.number }}</span>
 
-        {# Кнопка ВПЕРЕД (номер и стрелка) #}
         {% if page_obj.has_next %}
-        {# Номер следующей страницы #}
         <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
            class="pagination-link">
             {{ page_obj.next_page_number }}
