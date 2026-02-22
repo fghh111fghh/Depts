@@ -1,10 +1,15 @@
-{% extends 'base.html' %}
+{% extends 'app_main/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'app_main/css/pages/index.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="ds-welcome-wrapper">
     <div class="ds-header-block">
-        <h1>Личная экосистема</h1>
-        <p>Центральный пульт управления модулями</p>
+        <h1>{{ index_page_title }}</h1>
+        <p>{{ index_page_subtitle }}</p>
     </div>
 
     <div class="ds-modules-grid">
@@ -17,13 +22,14 @@
             {% endif %}
 
                 <div class="ds-card-icon">
-                    <i class="fa-solid {{ module.icon }}"></i>
+                    <img src="{% static 'app_main/images/icons/header/' %}{{ module.icon }}.svg"
+                         alt="{{ module.title }}"
+                         class="card-icon">
                 </div>
 
                 <div class="ds-card-content">
                     <h3>{{ module.title }}</h3>
                     <p>{{ module.desc }}</p>
-                    {# Класс тега (active/wait) подставляется автоматически из статуса #}
                     <span class="ds-tag ds-tag-{{ module.status }}">
                         {{ module.status_text }}
                     </span>
