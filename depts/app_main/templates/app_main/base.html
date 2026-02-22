@@ -7,6 +7,7 @@
     <title>{{ active_module_title }}</title>
     <link rel="stylesheet" href="{% static 'app_main/css/base/reset.css' %}">
     <link rel="stylesheet" href="{% static 'app_main/css/base/variables.css' %}">
+    <link rel="stylesheet" href="{% static 'app_main/css/base/base.css' %}">
     <link rel="stylesheet" href="{% static 'app_main/css/layouts/header.css' %}">
     <link rel="stylesheet" href="{% static 'app_main/css/layouts/footer.css' %}">
     {% block extra_css %}{% endblock %}
@@ -56,7 +57,11 @@
     </div>
 </header>
 
-{% block content %}{% endblock %}
+<main class="main-content">
+    <div class="container main-container">
+        {% block content %}{% endblock %}
+    </div>
+</main>
 
 <footer class="main-footer">
     <div class="container">
@@ -66,7 +71,6 @@
     </div>
 </footer>
 
-<script src="{% static 'app_main/js/scripts.js' %}"></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

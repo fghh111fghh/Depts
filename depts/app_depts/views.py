@@ -73,12 +73,29 @@ class RecordsListView(ListView):
             queryset = queryset.filter(is_paid=False)
         if creditor_type:
             queryset = queryset.filter(creditor__creditor_type=creditor_type)
+
+        # ПОИСК С УЧЕТОМ РЕГИСТРА ДЛЯ КИРИЛЛИЦЫ
         if search_query:
-            queryset = queryset.filter(
-                Q(name__icontains=search_query) |
-                Q(creditor__name__icontains=search_query) |
-                Q(note__icontains=search_query)
-            )
+            # Получаем все записи с текущими фильтрами
+            all_records = list(queryset.select_related('creditor'))
+            matched_ids = []
+            search_lower = search_query.lower()
+
+            for record in all_records:
+                # Проверяем все поля без учета регистра
+                name_match = search_lower in record.name.lower()
+                creditor_match = search_lower in record.creditor.name.lower()
+                note_match = record.note and search_lower in record.note.lower()
+
+                if name_match or creditor_match or note_match:
+                    matched_ids.append(record.id)
+
+            # Фильтруем по найденным ID
+            if matched_ids:
+                queryset = queryset.filter(id__in=matched_ids)
+            else:
+                # Если ничего не найдено, возвращаем пустой QuerySet
+                queryset = queryset.none()
 
         # Определение порядка сортировки
         order_list: List[str] = ['is_paid']

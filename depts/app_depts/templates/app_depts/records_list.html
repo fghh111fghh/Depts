@@ -1,7 +1,13 @@
 {% extends 'app_main/base.html' %}
+{% load static %}
 {% load humanize %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'app_depts/css/pages/records-list.css' %}">
+{% endblock %}
+
 {% block content %}
+
 <div class="dashboard-wrapper" style="padding: 20px 0;">
 
     <div class="stats-container">
@@ -300,21 +306,9 @@
     {% endif %}
 
 </div>
-<script>
-    function exportData(format) {
-            let baseUrl = "";
 
-            if (format === 'excel') {
-                baseUrl = "{% url 'app_depts:export_excel' %}";
-            } else if (format === 'pdf') {
-                baseUrl = "{% url 'app_depts:export_pdf' %}";
-            }
+{% endblock %}
 
-            if (baseUrl) {
-                // Собираем текущие параметры фильтрации (поиск, категории и т.д.)
-                const currentParams = window.location.search;
-                window.location.href = baseUrl + currentParams;
-            }
-        }
-</script>
+{% block extra_js %}
+<script src="{% static 'app_depts/js/scripts.js' %}"></script>
 {% endblock %}
