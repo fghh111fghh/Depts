@@ -1,12 +1,19 @@
 {% extends 'app_main/base.html' %}
+{% load static %}
 {% load humanize %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'app_depts/css/components/modal.css' %}">
+<link rel="stylesheet" href="{% static 'app_depts/css/components/tables.css' %}">
+<link rel="stylesheet" href="{% static 'app_depts/css/pages/record-detail.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="container detail-wrapper">
 
     <div class="record-detail-header">
         <a href="{% url 'app_depts:records_list' %}" class="btn-back">
-            <i class="fa-solid fa-arrow-left"></i> Назад к списку
+            ← {{ debt_detail_texts.BACK_BUTTON }}
         </a>
         <h1 class="record-title">{{ record.name }}</h1>
         <p class="record-subtitle">{{ record.creditor.name }}</p>
@@ -16,30 +23,38 @@
 
         <div class="detail-main-content">
             <div class="note-box">
-                <h3 class="note-box-title">Примечание к долгу</h3>
-                <p class="note-box-text">{{ record.note|default:"—" }}</p>
+                <h3 class="note-box-title">{{ debt_detail_texts.NOTE_TITLE }}</h3>
+                {% if record.note %}
+                <p class="note-box-text">{{ record.note }}</p>
+                {% else %}
+                <p class="note-box-text note-box-empty">{{ debt_detail_texts.NO_NOTE }}</p>
+                {% endif %}
             </div>
 
             <div class="detail-card transactions-card">
-                <h2 class="card-title">История транзакций</h2>
+                <h2 class="card-title">{{ debt_detail_texts.TRANSACTIONS_TITLE }}</h2>
                 <table class="transactions-table">
                     <thead>
-                    <tr class="table-header-row">
-                        <th>ДАТА</th>
-                        <th>ТИП</th>
-                        <th>КОММЕНТАРИЙ</th>
-                        <th class="text-right">СУММА</th>
+                    <tr>
+                        <th>{{ debt_detail_texts.TABLE_HEADER_DATE }}</th>
+                        <th>{{ debt_detail_texts.TABLE_HEADER_TYPE }}</th>
+                        <th>{{ debt_detail_texts.TABLE_HEADER_COMMENT }}</th>
+                        <th class="text-right">{{ debt_detail_texts.TABLE_HEADER_AMOUNT }}</th>
                     </tr>
                     </thead>
                     <tbody>
                     {% for tr in transactions %}
-                    <tr class="transaction-row">
+                    <tr>
                         <td>{{ tr.date|date:"d.m.Y" }}</td>
-                        <td class="type-badge">{{ tr.get_type_display|upper }}</td>
+                        <td><span class="type-badge">{{ tr.get_type_display|upper }}</span></td>
                         <td class="comment-cell">{{ tr.comment|default:"—" }}</td>
                         <td class="amount-cell {% if tr.type == 'PAYMENT' or tr.type == 'WRITE_OFF' %}negative{% else %}positive{% endif %}">
-                            {% if tr.type == 'PAYMENT' or tr.type == 'WRITE_OFF' %}-{% else %}+{% endif %}{{ tr.amount|floatformat:2 |intcomma }} ₽
+                            {% if tr.type == 'PAYMENT' or tr.type == 'WRITE_OFF' %}-{% else %}+{% endif %}{{ tr.amount|floatformat:2|intcomma }} ₽
                         </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="empty-transactions">Нет транзакций</td>
                     </tr>
                     {% endfor %}
                     </tbody>
@@ -49,77 +64,70 @@
 
         <div class="detail-sidebar">
             <div class="balance-card">
-                <span class="balance-label">Текущий долг</span>
-                <div class="balance-amount">{{ record.balance|floatformat:2 |intcomma }} ₽</div>
+                <span class="balance-label">{{ debt_detail_texts.BALANCE_LABEL }}</span>
+                <div class="balance-amount">{{ record.balance|floatformat:2|intcomma }} ₽</div>
 
                 <div class="balance-progress-section">
                     <div class="progress-stats">
-                        <span class="progress-label">Выплачено: {{ record.progress_percent }}%</span>
-                        <span class="progress-value">{{ record.total_paid|floatformat:0 |intcomma }} ₽</span>
+                        <span class="progress-label">{{ debt_detail_texts.PROGRESS_LABEL }} {{ record.progress_percent }}%</span>
+                        <span class="progress-value">{{ record.total_paid|floatformat:0|intcomma }} ₽</span>
                     </div>
                     <div class="progress-track">
-                        <div class="progress-bar-fill"
-                             style="width: {{ record.progress_percent|stringformat:'f' }}%;"></div>
+                        <div class="progress-bar-fill" style="width: {{ record.progress_percent|stringformat:'f' }}%;"></div>
                     </div>
                 </div>
 
                 <div class="balance-card-footer">
                     <div class="footer-stats-row">
-                        <span>Начислено всего:</span>
-                        <span class="stats-value">{{ record.total_accrued|floatformat:2 |intcomma }} ₽</span>
+                        <span>{{ debt_detail_texts.ACCRUED_TOTAL }}</span>
+                        <span class="stats-value">{{ record.total_accrued|floatformat:2|intcomma }} ₽</span>
                     </div>
                 </div>
             </div>
 
             {% if not record.is_paid %}
-            <button class="btn-payment-main"
-                    onclick="document.getElementById('modal-{{ record.slug }}').style.display='flex'">
-                <i class="fas fa-plus-circle"></i> Внести платеж
+            <button class="btn-payment-main" onclick="openModal('modal-{{ record.slug }}')">
+                + {{ debt_detail_texts.PAYMENT_BUTTON }}
             </button>
             {% endif %}
         </div>
     </div>
 </div>
 
+<!-- Модальное окно -->
 <div id="modal-{{ record.slug }}" class="modal-overlay">
     <div class="modal-content">
-        <h2 class="modal-title">Внести платеж</h2>
+        <h2 class="modal-title">{{ debt_modal_texts.TITLE }}</h2>
         <p class="modal-subtitle">
-            {{ record.name }}
-            <span class="remaining-badge">Остаток: <strong>{{ record.balance|floatformat:2 |intcomma }} ₽</strong></span>
+            {{ record.name }} <br>
+            <span class="modal-balance-info">({{ debt_modal_texts.BALANCE_INFO }} <strong>{{ record.balance|floatformat:2|intcomma }} ₽</strong>)</span>
         </p>
-        <form action="{% url 'app_depts:quick_payment' record.slug %}" method="POST">
+        <form action="{% url 'app_depts:quick_payment' record.slug %}" method="POST" class="modal-form">
             {% csrf_token %}
-            <div class="form-field-container">
-                <input type="number"
-                       name="amount"
-                       id="amount-detail"
-                       step="0.01"
-                       required
-                       autofocus
-                       placeholder="Сумма ₽"
-                       class="main-amount-input">
+            <div class="input-group">
+                <input type="number" name="amount" id="amount-detail-{{ record.slug }}"
+                       step="0.01" required placeholder="{{ debt_modal_texts.AMOUNT_PLACEHOLDER }}"
+                       class="modal-input-amount">
                 <button type="button"
                         class="btn-pay-all"
-                        onclick="document.getElementById('amount-detail').value = '{{ record.balance|stringformat:'.2f' }}'.replace(',', '.')">
-                    ОПЛАТИТЬ ВСЁ
+                        onclick="document.getElementById('amount-detail-{{ record.slug }}').value = '{{ record.balance|stringformat:'.2f' }}'.replace(',', '.')">
+                    {{ debt_modal_texts.PAY_ALL }}
                 </button>
             </div>
-
-            <input type="text"
-                   name="comment"
-                   placeholder="Комментарий (необязательно)"
-                   class="form-comment-input">
-
-            <div class="modal-buttons-row">
-                <button type="submit" class="btn-modal-submit">ОК</button>
-                <button type="button"
-                        class="btn-modal-cancel"
-                        onclick="document.getElementById('modal-{{ record.slug }}').style.display='none'">
-                    ОТМЕНА
+            <input type="text" name="comment" placeholder="{{ debt_modal_texts.COMMENT_PLACEHOLDER }}"
+                   class="modal-input-comment">
+            <div class="modal-footer-btns">
+                <button type="submit" class="btn-confirm">{{ debt_modal_texts.CONFIRM }}</button>
+                <button type="button" class="btn-cancel"
+                        onclick="closeModal('modal-{{ record.slug }}')">
+                    {{ debt_modal_texts.CANCEL }}
                 </button>
             </div>
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'app_depts/js/scripts.js' %}"></script>
 {% endblock %}
