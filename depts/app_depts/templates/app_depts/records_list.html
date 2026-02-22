@@ -266,40 +266,40 @@
     </div>
 
     {% if is_paginated %}
-    <div class="pagination-container">
+<div class="pagination-container">
 
-        {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
-           class="pagination-arrow">
-            <i class="fa-solid fa-chevron-left"></i>
-        </a>
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}{% if is_urgent %}&urgent=1{% endif %}"
+       class="pagination-arrow">
+        ←
+    </a>
 
-        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
-           class="pagination-link">
-            {{ page_obj.previous_page_number }}
-        </a>
-        {% endif %}
-
-        <span class="pagination-current">{{ page_obj.number }}</span>
-
-        {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
-           class="pagination-link">
-            {{ page_obj.next_page_number }}
-        </a>
-
-        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}"
-           class="pagination-arrow next">
-            <i class="fa-solid fa-chevron-right"></i>
-        </a>
-        {% endif %}
-
-    </div>
-
-    <div class="pagination-info">
-        Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
-    </div>
+    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}{% if is_urgent %}&urgent=1{% endif %}"
+       class="pagination-link">
+        {{ page_obj.previous_page_number }}
+    </a>
     {% endif %}
+
+    <span class="pagination-current">{{ page_obj.number }}</span>
+
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}{% if is_urgent %}&urgent=1{% endif %}"
+       class="pagination-link">
+        {{ page_obj.next_page_number }}
+    </a>
+
+    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}{% if is_urgent %}&urgent=1{% endif %}"
+       class="pagination-arrow">
+        →
+    </a>
+    {% endif %}
+
+</div>
+
+<div class="pagination-info">
+    Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+</div>
+{% endif %}
 
 </div>
 
