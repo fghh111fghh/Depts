@@ -81,6 +81,7 @@ TEMPLATES = [
                 'app_main.context_processors.site_texts_processor',
                 'app_depts.context_processors.debts_texts_processor',
                 'app_bets.context_processors.records_url',
+                'app_bets.context_processors.bets_menu',
             ],
         },
     },

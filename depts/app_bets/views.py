@@ -61,34 +61,30 @@ class AnalyzeView(ListView):
 
     def get_queryset(self):
         """
-        Возвращает результаты из сессии (так как они не хранятся в БД).
-        Для ListView ожидается QuerySet, но мы адаптируем под список.
+        Возвращает результаты из сессии.
         """
-        # Получаем результаты из сессии
         results = self.request.session.get('results', [])
-
-        # Применяем сортировку
         current_sort = self.get_current_sort()
         results = self.sort_results(results, current_sort)
-
         return results
 
     def get_context_data(self, **kwargs):
-        """Добавляет дополнительные данные в контекст шаблона."""
+        """
+        Добавляет дополнительные данные в контекст шаблона.
+        """
         context = super().get_context_data(**kwargs)
-
-        # Получаем параметры из сессии
         context.update({
             'raw_text': self.request.session.get('raw_text', ''),
             'unknown_teams': sorted(self.request.session.get('unknown_teams', [])),
             'all_teams': Team.objects.all().order_by('name'),
             'current_sort': self.get_current_sort(),
         })
-
         return context
 
     def get_current_sort(self) -> str:
-        """Возвращает текущий параметр сортировки."""
+        """
+        Возвращает текущий параметр сортировки.
+        """
         return self.request.GET.get('sort') or self.request.session.get('current_sort', 'default')
 
     def sort_results(self, results: List[Dict], sort_param: str) -> List[Dict]:
@@ -98,7 +94,6 @@ class AnalyzeView(ListView):
         if not results:
             return results
 
-        # Сохраняем оригинальные результаты для сброса
         if sort_param == 'default':
             results[:] = [dict(r) for r in self.request.session.get('original_results', [])]
         elif sort_param == 'btts_desc':
@@ -128,24 +123,33 @@ class AnalyzeView(ListView):
         """
         Обрабатывает POST-запрос: парсинг текста и анализ матчей.
         """
-        # Получаем параметры
         current_sort = request.POST.get('sort') or request.GET.get('sort') or request.session.get('current_sort',
                                                                                                   'default')
         request.session['current_sort'] = current_sort
         raw_text = request.POST.get('matches_text', '')
 
-        # Обработка создания алиаса
         if 'create_alias' in request.POST:
             self._handle_alias_creation(request)
 
-        # Если нет текста для анализа
+            if raw_text.strip():
+                results, unknown_teams = self._analyze_matches(request, raw_text)
+                request.session['results'] = results
+                request.session['raw_text'] = raw_text
+                request.session['unknown_teams'] = list(unknown_teams)
+
+                if results:
+                    request.session['original_results'] = [dict(r) for r in results]
+
+            query_params = request.GET.urlencode()
+            if query_params:
+                return redirect(f"{request.path}?{query_params}")
+            return redirect(request.path)
+
         if not raw_text.strip():
             return self._render_empty_response(request, raw_text, current_sort)
 
-        # Выполняем анализ
         results, unknown_teams = self._analyze_matches(request, raw_text)
 
-        # Сохраняем в сессию
         request.session['results'] = results
         request.session['raw_text'] = raw_text
         request.session['unknown_teams'] = list(unknown_teams)
@@ -153,10 +157,8 @@ class AnalyzeView(ListView):
         if results:
             request.session['original_results'] = [dict(r) for r in results]
 
-        # Применяем сортировку
         sorted_results = self.sort_results(results, current_sort)
 
-        # Рендерим результат
         return render(request, self.template_name, {
             'results': sorted_results,
             'raw_text': raw_text,
@@ -166,23 +168,63 @@ class AnalyzeView(ListView):
         })
 
     def _handle_alias_creation(self, request):
-        """Создает новый алиас для команды."""
-        alias_raw = request.POST.get('alias_name', '')
-        team_id = request.POST.get('team_id')
+        """
+        Создает новый алиас для команды.
+        """
+        alias_raw = request.POST.get('alias_name', '').strip()
+        team_id = request.POST.get('team_id', '').strip()
 
-        if alias_raw and team_id:
-            try:
-                clean_name = self.clean_team_name(alias_raw)
-                with transaction.atomic():
-                    TeamAlias.objects.update_or_create(
-                        name=clean_name,
-                        defaults={'team_id': team_id}
+        if not alias_raw:
+            messages.error(request, "Название команды не может быть пустым")
+            return False
+
+        if not team_id:
+            messages.error(request, "Не выбрана команда из списка")
+            return False
+
+        try:
+            team = Team.objects.get(id=team_id)
+            clean_name = " ".join(alias_raw.split()).lower()
+
+            existing_alias = TeamAlias.objects.filter(name=clean_name).first()
+            if existing_alias:
+                if existing_alias.team.id == team.id:
+                    messages.info(request, f"Привязка для '{alias_raw}' уже существует")
+                    return True
+                else:
+                    messages.warning(
+                        request,
+                        f"Название '{alias_raw}' уже привязано к команде '{existing_alias.team.name}'. "
+                        f"Сначала удалите старую привязку в админке."
                     )
-            except Exception as e:
-                print(f"Ошибка сохранения алиаса: {e}")
+                    return False
+
+            with transaction.atomic():
+                TeamAlias.objects.create(
+                    name=clean_name,
+                    team=team
+                )
+
+            cache.delete('match_analysis_full_data')
+
+            messages.success(
+                request,
+                f"Команда '{alias_raw}' успешно привязана к '{team.name}'"
+            )
+            return True
+
+        except Team.DoesNotExist:
+            messages.error(request, f"Команда с ID {team_id} не найдена в базе")
+            return False
+
+        except Exception as e:
+            messages.error(request, f"Ошибка при создании привязки: {e}")
+            return False
 
     def _render_empty_response(self, request, raw_text: str, current_sort: str):
-        """Возвращает пустой ответ, когда нет данных для анализа."""
+        """
+        Возвращает пустой ответ, когда нет данных для анализа.
+        """
         return render(request, self.template_name, {
             'results': [],
             'raw_text': raw_text,
@@ -194,69 +236,53 @@ class AnalyzeView(ListView):
     def _load_cached_data(self):
         """
         Загружает данные с кэшированием в памяти.
-        Кэш обновляется раз в сутки.
         """
         cache_key = 'match_analysis_full_data'
 
-        # Пробуем получить из кэша
         cached_data = cache.get(cache_key)
         if cached_data is not None:
-            print("Данные загружены из кэша")
             return cached_data
 
-        print("Загружаем данные из БД в кэш (может занять некоторое время)...")
-
-        # Загружаем все матчи с результатами
         all_matches = list(Match.objects.filter(
             home_score_reg__isnull=False
         ).select_related(
             'home_team', 'away_team', 'league', 'season'
         ).order_by('date'))
 
-        # Индексируем матчи по лиге для быстрого доступа
         matches_by_league = {}
         for match in all_matches:
             if match.league_id not in matches_by_league:
                 matches_by_league[match.league_id] = []
             matches_by_league[match.league_id].append(match)
 
-        # Кэшируем все команды
         all_teams = {team.id: team for team in Team.objects.all()}
 
-        # Кэшируем все алиасы
         all_aliases = {}
         for alias in TeamAlias.objects.all().select_related('team'):
             all_aliases[alias.name] = alias.team
 
-        # Кэшируем все лиги
         all_leagues = {league.id: league for league in League.objects.all()}
 
-        # Сохраняем в кэш на 24 часа (86400 секунд)
         data = (all_matches, matches_by_league, all_teams, all_aliases, all_leagues)
-        cache.set(cache_key, data, 86400)  # 24 часа
+        cache.set(cache_key, data, 86400)
 
-        print(f"Загружено {len(all_matches)} матчей, {len(all_teams)} команд, {len(all_leagues)} лиг")
         return data
 
     def _analyze_matches(self, request, raw_text: str) -> Tuple[List[Dict], set]:
         """
-        Основной метод анализа матчей с использованием кэшированных данных.
+        Основной метод анализа матчей.
         """
         results = []
         unknown_teams = set()
 
-        # Получаем текущий сезон
         season = Season.objects.filter(is_current=True).first() or Season.objects.order_by('-start_date').first()
 
-        # Разбиваем текст на строки
         lines = [l.strip() for l in raw_text.split('\n') if l.strip()]
         if not lines:
             return results, unknown_teams
 
-        # Загружаем данные из кэша (все матчи уже здесь!)
         all_matches, matches_by_league, all_teams_dict, all_aliases, all_leagues = self._load_cached_data()
 
-        # Парсим и анализируем
         skip_to = -1
         for i, line in enumerate(lines):
             if i <= skip_to:
@@ -275,13 +301,11 @@ class AnalyzeView(ListView):
 
                     away_raw, home_raw = names[0], names[1]
 
-                    # Ищем команды в кэшированных данных
                     home_team, away_team = self._find_teams(
                         home_raw, away_raw, all_teams_dict, all_aliases
                     )
 
                     if home_team and away_team:
-                        # Анализируем матч используя кэшированные данные
                         result = self._analyze_single_match(
                             home_team, away_team, season, all_matches, matches_by_league,
                             all_leagues, h_odd, d_odd, a_odd
@@ -294,14 +318,15 @@ class AnalyzeView(ListView):
                         if not away_team:
                             unknown_teams.add(away_raw.strip())
 
-                except (IndexError, ValueError, Exception) as e:
-                    print(f"Error processing line {i}: {e}")
+                except (IndexError, ValueError, Exception):
                     continue
 
         return results, unknown_teams
 
     def _parse_match_data(self, lines: List[str], index: int) -> Optional[Tuple]:
-        """Парсит коэффициенты и названия команд из строк."""
+        """
+        Парсит коэффициенты и названия команд из строк.
+        """
         try:
             h_odd = Decimal(lines[index].replace(',', '.')).quantize(Decimal(Messages.DECIMAL_FORMAT))
             d_odd = Decimal(lines[index + 1].replace(',', '.')).quantize(Decimal(Messages.DECIMAL_FORMAT))
@@ -311,12 +336,13 @@ class AnalyzeView(ListView):
             names = self._extract_team_names(lines, index)
 
             return h_odd, d_odd, a_odd, skip_to, names
-        except Exception as e:
-            print(f"Ошибка парсинга данных матча: {e}")
+        except Exception:
             return None
 
     def _extract_team_names(self, lines: List[str], odds_index: int) -> List[str]:
-        """Извлекает названия команд из строк перед коэффициентами."""
+        """
+        Извлекает названия команд из строк перед коэффициентами.
+        """
         names = []
         search_depth = min(ParsingConstants.MAX_SEARCH_DEPTH, odds_index)
 
@@ -346,24 +372,27 @@ class AnalyzeView(ListView):
 
     @staticmethod
     def clean_team_name(name: str) -> str:
-        """Очищает название команды от лишних символов."""
+        """
+        Очищает название команды для поиска.
+        """
         if not name:
             return ""
         try:
             name = unicodedata.normalize('NFKC', str(name))
             name = re.sub(ParsingConstants.TIME_REGEX, '', name)
-            name = re.sub(r'[^\w\s\d\-\']', ' ', name)
+            name = re.sub(r'[^\w\s\d\-\'\(\)]', ' ', name)
             name = re.sub(r'^\d+\s+|\s+\d+$', '', name)
             name = re.sub(r'[\-\–\—]+', ' ', name)
             name = ' '.join(name.split())
             return name.strip().lower()
-        except Exception as e:
-            print(f"Ошибка очистки названия команды '{name}': {e}")
+        except Exception:
             return str(name).strip().lower() if name else ""
 
     def _find_teams(self, home_raw: str, away_raw: str, all_teams: Dict, all_aliases: Dict) -> Tuple[
         Optional[object], Optional[object]]:
-        """Находит команды по их названиям."""
+        """
+        Находит команды по их названиям.
+        """
         clean_home = self.clean_team_name(home_raw)
         clean_away = self.clean_team_name(away_raw)
 
@@ -373,25 +402,33 @@ class AnalyzeView(ListView):
         return home_team, away_team
 
     def _find_team(self, clean_name: str, all_teams: Dict, all_aliases: Dict) -> Optional[object]:
-        """Находит команду по очищенному названию."""
-        # Поиск по алиасам
+        """
+        Находит команду по очищенному названию.
+        """
         if clean_name in all_aliases:
             return all_aliases[clean_name]
 
-        # Поиск по точному совпадению имени
         for team in all_teams.values():
             if team.name.lower() == clean_name:
                 return team
+
+        clean_name_no_brackets = re.sub(r'\s*\([^)]*\)', '', clean_name).strip()
+        if clean_name_no_brackets != clean_name:
+            if clean_name_no_brackets in all_aliases:
+                return all_aliases[clean_name_no_brackets]
+
+            for team in all_teams.values():
+                team_name_no_brackets = re.sub(r'\s*\([^)]*\)', '', team.name.lower()).strip()
+                if team_name_no_brackets == clean_name_no_brackets:
+                    return team
 
         return None
 
     def _analyze_single_match(self, home_team, away_team, season, all_matches, matches_by_league,
                               all_leagues, h_odd, d_odd, a_odd) -> Optional[Dict]:
         """
-        Анализирует один матч: определяет лигу, считает паттерны, пуассон, близнецов.
-        Использует кэшированные данные.
+        Анализирует один матч.
         """
-        # Определяем лигу
         league = self._determine_league(
             home_team, away_team, season, all_matches, matches_by_league, all_leagues
         )
@@ -401,25 +438,20 @@ class AnalyzeView(ListView):
 
         league_matches = matches_by_league.get(league.id, [])
 
-        # Анализируем исторический паттерн
         pattern_data, curr_h_form, curr_a_form = self._analyze_pattern(
             home_team, away_team, season, league_matches
         )
 
-        # Считаем Пуассон
         poisson_results, p_data = self._calculate_poisson(
             home_team, away_team, league, season, h_odd
         )
 
-        # Ищем близнецов
         twins_data, t_count = self._find_twins_matches(
             league_matches, h_odd, a_odd
         )
 
-        # Получаем историю личных встреч
         h2h_list = self._get_h2h_matches(home_team, away_team)
 
-        # Создаем объект матча для дополнительных расчетов
         m_obj = Match(
             home_team=home_team,
             away_team=away_team,
@@ -429,7 +461,6 @@ class AnalyzeView(ListView):
         )
         historical_total_insight = m_obj.get_historical_total_insight()
 
-        # Формируем результат
         return {
             'match': f"{home_team.name} - {away_team.name}",
             'league': league.name if league else "Unknown",
@@ -461,60 +492,42 @@ class AnalyzeView(ListView):
         league = None
         current_season_matches = [m for m in all_matches if m.season_id == season.id]
 
-        # 1. По личным встречам в текущем сезоне
         for match in current_season_matches:
             if ((match.home_team_id == home_team.id and match.away_team_id == away_team.id) or
                 (match.home_team_id == away_team.id and match.away_team_id == home_team.id)) and match.league:
                 league = match.league
-                print(f"Лига найдена по личным встречам в текущем сезоне: {league.name}")
                 break
 
-        # 2. По домашним матчам home_team в текущем сезоне
         if not league:
             for match in current_season_matches:
                 if match.home_team_id == home_team.id and match.league:
                     league = match.league
-                    print(f"Лига найдена по домашним матчам {home_team.name} в текущем сезоне: {league.name}")
                     break
 
-        # 3. По гостевым матчам away_team в текущем сезоне
         if not league:
             for match in current_season_matches:
                 if match.away_team_id == away_team.id and match.league:
                     league = match.league
-                    print(f"Лига найдена по гостевым матчам {away_team.name} в текущем сезоне: {league.name}")
                     break
 
-        # 4. По личным встречам в истории
         if not league:
             for match in all_matches:
                 if ((match.home_team_id == home_team.id and match.away_team_id == away_team.id) or
                     (match.home_team_id == away_team.id and match.away_team_id == home_team.id)) and match.league:
                     league = match.league
-                    print(f"Лига найдена по личным встречам в истории: {league.name}")
                     break
 
-        # 5. По домашним матчам home_team в истории
         if not league:
             for match in all_matches:
                 if match.home_team_id == home_team.id and match.league:
                     league = match.league
-                    print(f"Лига найдена по домашним матчам {home_team.name} в истории: {league.name}")
                     break
 
-        # 6. По гостевым матчам away_team в истории
         if not league:
             for match in all_matches:
                 if match.away_team_id == away_team.id and match.league:
                     league = match.league
-                    print(f"Лига найдена по гостевым матчам {away_team.name} в истории: {league.name}")
                     break
-
-        # 7. По стране
-        if not league and home_team.country:
-            league = League.objects.filter(country=home_team.country).first()
-            if league:
-                print(f"Лига найдена по стране {home_team.country}: {league.name}")
 
         return league
 
@@ -522,7 +535,6 @@ class AnalyzeView(ListView):
         """
         Анализирует исторические паттерны формы команд.
         """
-        # Формируем историю команд только из матчей текущего сезона
         current_season_matches = [m for m in league_matches if m.season_id == season.id]
         sorted_current_season_matches = sorted(current_season_matches, key=lambda x: x.date)
 
@@ -547,7 +559,6 @@ class AnalyzeView(ListView):
         curr_h_form = "".join(team_history_current.get(home_team.id, []))[-AnalysisConstants.PATTERN_FORM_LENGTH:]
         curr_a_form = "".join(team_history_current.get(away_team.id, []))[-AnalysisConstants.PATTERN_FORM_LENGTH:]
 
-        # Поиск совпадений паттернов во всей истории лиги
         all_league_matches_sorted = sorted(league_matches, key=lambda x: x.date)
         team_history_all = {}
         match_patterns_all = {}
@@ -639,7 +650,7 @@ class AnalyzeView(ListView):
         twins_matches = []
 
         for m in league_matches:
-            if m.odds_home and m.odds_away:  # Проверяем что коэффициенты есть
+            if m.odds_home and m.odds_away:
                 h_diff = abs(float(m.odds_home) - float(h_odd))
                 a_diff = abs(float(m.odds_away) - float(a_odd))
                 if h_diff <= tol and a_diff <= tol:
@@ -772,8 +783,7 @@ class AnalyzeView(ListView):
             over25_yes = round(over25_yes, 2)
             over25_no = round(over25_no, 2)
 
-        except Exception as e:
-            print(f"Ошибка расчета вероятностей Пуассона: {e}")
+        except Exception:
             return {
                 'top_scores': [],
                 'btts_yes': 0.0,

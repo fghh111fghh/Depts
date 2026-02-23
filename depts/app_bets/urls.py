@@ -6,7 +6,6 @@ from . import views
 app_name: str = 'app_bets'
 
 urlpatterns = [
-    # Главная страница приложения
     path('', views.AnalyzeView.as_view(), name='bets_maim'),
     path('autocomplete/team/', views.TeamAutocomplete.as_view(), name='team-autocomplete'),
     path('autocomplete/league/', views.LeagueAutocomplete.as_view(), name='league-autocomplete'),

@@ -1,6 +1,33 @@
 {% extends 'app_main/base.html' %}
 {% load static %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'app_bets/css/components/base.css' %}">
+{% endblock %}
+
+{% block app_bets_menu %}
+<div class="bets-menu-wrapper">
+    <div class="bets-menu-container">
+        <nav class="bets-menu-nav">
+            {% for item in bets_menu_items %}
+            <a href="{% url item.url_name %}"
+               class="bets-menu-item {% if item.is_active %}active{% endif %}">
+                {{ item.title }}
+            </a>
+            {% endfor %}
+        </nav>
+
+<!--        <div class="bets-menu-actions">-->
+<!--            <a href="{% url 'app_bets:export_excel' %}" class="bets-menu-action-btn">-->
+<!--                Excel-->
+<!--            </a>-->
+<!--            <a href="{% url 'app_bets:export_bets_excel' %}" class="bets-menu-action-btn">-->
+<!--                Экспорт-->
+<!--            </a>-->
+<!--        </div>-->
+    </div>
+</div>
+{% endblock %}
+
 {% block content %}
-fdgdfgdfgdfg
 {% endblock %}

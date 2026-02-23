@@ -2,24 +2,18 @@
 {% load static %}
 
 {% block content %}
-<link rel="stylesheet" href="{% static 'app_bets/css/styles.css' %}">
-<!-- КНОПКА ТОЛЬКО СИГНАЛЫ + ФИЛЬТРЫ + ЭКСПОРТ В ОДНОЙ СТРОКЕ -->
+<link rel="stylesheet" href="{% static 'app_bets/css/pages/bets_main.css' %}">
+
+<!-- КНОПКА ЭКСПОРТ + ФИЛЬТРЫ -->
 <div class="bets-sort-container">
     <div class="bets-actions-wrapper">
-        <a href="{% url 'app_bets:cleaned' %}" class="bets-filter-btn">
-            <i class="fa-solid fa-filter"></i> Только сигналы
-        </a>
         {% if results %}
         <a href="{% url 'app_bets:export_excel' %}" class="bets-export-btn">
             <i class="fa-solid fa-file-excel"></i> В Excel
         </a>
         {% endif %}
-        <a href="{{ records_url }}" class="bets-records-btn">
-            <i class="fa-solid fa-book"></i> Учёт ставок
-        </a>
     </div>
 
-    <!-- ФИЛЬТРЫ СОРТИРОВКИ -->
     {% if results %}
     <div class="bets-sort-wrapper">
         <span class="bets-sort-label">Сортировка:</span>
@@ -54,15 +48,14 @@
 </div>
 
 <div class="bets-main-grid">
+    <!-- ЛЕВАЯ КОЛОНКА -->
     <div class="bets-left-col">
         <div class="bets-input-pane">
             <form method="post" action=".">
                 {% csrf_token %}
-                <!-- Сохраняем сортировку в POST -->
                 <input type="hidden" name="sort" value="{{ current_sort }}">
                 <button type="submit" class="bets-btn-analyze">Рассчитать вероятность</button>
 
-                <!-- СЧЕТЧИКИ РЕЗУЛЬТАТОВ -->
                 {% if results %}
                 <div class="bets-counters">
                     <div class="bets-counters-container">
@@ -155,6 +148,7 @@
         </div>
     </div>
 
+    <!-- ПРАВАЯ КОЛОНКА (РЕЗУЛЬТАТЫ) -->
     <div class="bets-results-area">
         {% if results %}
         {% for res in results %}
@@ -186,25 +180,30 @@
                 {% endif %}
             </div>
 
-            <!-- Пуассон и Близнецы в одной строке -->
+            <!-- Пуассон и Близнецы -->
             <div class="poisson-twins-grid">
-                <!-- Левый блок - Пуассон -->
                 <div class="poisson-main-block">
                     <h4 class="poisson-title">
                         <i class="fa-solid fa-calculator"></i> Пуассон: {{ res.poisson_l }}
                     </h4>
 
-                    <!-- ТОП-5 СЧЕТОВ В ЦВЕТНЫХ КВАДРАТИКАХ -->
                     <div class="scores-list">
                         {% for s in res.poisson_top|slice:":5" %}
-                        <div class="score-rectangle">
-                            <span class="score-value">{{ s.score }}</span>
-                            <span class="prob-value">{{ s.prob|floatformat:1 }}%</span>
-                        </div>
+                            {% with score_parts=s.score|stringformat:"s" %}
+                                {% with home=score_parts|slice:":1" away=score_parts|slice:"2:" %}
+                                    <div class="score-rectangle
+                                        {% if home|add:'0' > away|add:'0' %}home-win
+                                        {% elif home|add:'0' < away|add:'0' %}away-win
+                                        {% else %}draw
+                                        {% endif %}">
+                                        <span class="score-value">{{ s.score }}</span>
+                                        <span class="prob-value">{{ s.prob|floatformat:1 }}%</span>
+                                    </div>
+                                {% endwith %}
+                            {% endwith %}
                         {% endfor %}
                     </div>
 
-                    <!-- BTTS и Тотал компактно -->
                     <div class="btts-total-container">
                         <div class="btts-box">
                             <div class="btts-label">Обе забьют</div>
@@ -223,7 +222,6 @@
                     </div>
                 </div>
 
-                <!-- Правый блок - Близнецы (кэфы) -->
                 <div class="twins-main-block">
                     <div class="twins-header">
                         <h4 class="twins-title">
@@ -247,74 +245,70 @@
                             <span class="twins-prob-value p2">{{ res.twins_data.p2 }}%</span>
                         </div>
                         {% else %}
-                        <div class="twins-no-data">
-                            Нет данных по близнецам
-                        </div>
+                        <div class="twins-no-data">Нет данных по близнецам</div>
                         {% endif %}
                     </div>
                 </div>
             </div>
 
-            <!-- Исторический анализ тотала (Байес) -->
-{% if res.historical_total %}
-<div class="historical-total-block">
-    <div class="historical-total-header">
-        <span class="historical-total-title">
-            <i class="fa-solid fa-chart-simple"></i> Исторический анализ
-        </span>
-        <span class="historical-total-label">Тотал больше 2,5</span>
-        <span class="historical-total-value">{{ res.historical_total.over_25 }}%</span>
-    </div>
-</div>
-{% endif %}
-
-           <!-- Исторический шаблон -->
-<div class="pattern-block">
-    <div class="pattern-header">
-        <span class="pattern-title">
-            <i class="fa-solid fa-clock-rotate-left"></i> Исторический шаблон (серия x4)
-        </span>
-        {% if res.pattern_data and res.pattern_data.count %}
-            <span class="pattern-count">Найдено: {{ res.pattern_data.count }}</span>
-        {% endif %}
-    </div>
-
-    <div class="pattern-content">
-        <!-- Квадратики слева (из текущих форм команд) -->
-        <div class="pattern-badges-row">
-            {% for char in res.current_h_form %}
-                {% if char == 'В' %}
-                    <span class="p-badge v-win">В</span>
-                {% elif char == 'П' %}
-                    <span class="p-badge v-loss">П</span>
-                {% elif char == 'Н' %}
-                    <span class="p-badge v-draw">Н</span>
-                {% endif %}
-            {% endfor %}
-            <span class="p-separator">—</span>
-            {% for char in res.current_a_form %}
-                {% if char == 'В' %}
-                    <span class="p-badge v-win">В</span>
-                {% elif char == 'П' %}
-                    <span class="p-badge v-loss">П</span>
-                {% elif char == 'Н' %}
-                    <span class="p-badge v-draw">Н</span>
-                {% endif %}
-            {% endfor %}
-        </div>
-
-        <!-- Проценты или Нет данных справа -->
-        <div class="pattern-percents">
-            {% if res.pattern_data and res.pattern_data.p1 is not None %}
-                <span class="pattern-percent-item p1">П1 {{ res.pattern_data.p1 }}%</span>
-                <span class="pattern-percent-item x">X {{ res.pattern_data.x }}%</span>
-                <span class="pattern-percent-item p2">П2 {{ res.pattern_data.p2 }}%</span>
-            {% else %}
-                <span class="pattern-no-data">Нет данных</span>
+            <!-- Исторический анализ -->
+            {% if res.historical_total %}
+            <div class="historical-total-block">
+                <div class="historical-total-header">
+                    <span class="historical-total-title">
+                        <i class="fa-solid fa-chart-simple"></i> Исторический анализ
+                    </span>
+                    <span class="historical-total-label">Тотал больше 2,5</span>
+                    <span class="historical-total-value">{{ res.historical_total.over_25 }}%</span>
+                </div>
+            </div>
             {% endif %}
-        </div>
-    </div>
-</div>
+
+            <!-- Исторический шаблон -->
+            <div class="pattern-block">
+                <div class="pattern-header">
+                    <span class="pattern-title">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Исторический шаблон (серия x4)
+                    </span>
+                    {% if res.pattern_data and res.pattern_data.count %}
+                    <span class="pattern-count">Найдено: {{ res.pattern_data.count }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="pattern-content">
+                    <div class="pattern-badges-row">
+                        {% for char in res.current_h_form %}
+                            {% if char == 'В' %}
+                                <span class="p-badge v-win">В</span>
+                            {% elif char == 'П' %}
+                                <span class="p-badge v-loss">П</span>
+                            {% elif char == 'Н' %}
+                                <span class="p-badge v-draw">Н</span>
+                            {% endif %}
+                        {% endfor %}
+                        <span class="p-separator">—</span>
+                        {% for char in res.current_a_form %}
+                            {% if char == 'В' %}
+                                <span class="p-badge v-win">В</span>
+                            {% elif char == 'П' %}
+                                <span class="p-badge v-loss">П</span>
+                            {% elif char == 'Н' %}
+                                <span class="p-badge v-draw">Н</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <div class="pattern-percents">
+                        {% if res.pattern_data and res.pattern_data.p1 is not None %}
+                            <span class="pattern-percent-item p1">П1 {{ res.pattern_data.p1 }}%</span>
+                            <span class="pattern-percent-item x">X {{ res.pattern_data.x }}%</span>
+                            <span class="pattern-percent-item p2">П2 {{ res.pattern_data.p2 }}%</span>
+                        {% else %}
+                            <span class="pattern-no-data">Нет данных</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
 
             <!-- Личные встречи -->
             <div class="h2h-block">
@@ -322,29 +316,27 @@
                     <span class="h2h-title">
                         <i class="fa-solid fa-history"></i> Личные встречи (в этом статусе)
                     </span>
-                    <span class="h2h-total">
-                        Найдено: {{ res.h2h_total }}
-                    </span>
+                    <span class="h2h-total">Найдено: {{ res.h2h_total }}</span>
                 </div>
 
-                <div class="h2h-list">
+                <div class="h2h-grid">
                     {% for h in res.h2h_list|slice:":5" %}
-                    <div class="h2h-item">
+                    <div class="h2h-card">
                         <span class="h2h-date">{{ h.date }}</span>
-                        <span class="h2h-score
-                            {% with score_parts=h.score|stringformat:" s" %}
-                        {% with home=score_parts|slice:":1" away=score_parts|slice:"2:" %}
-                        {% if home|add:"0" > away|add:"0" %}win
-                        {% elif home|add:"0" < away|add:"0" %}loss
-                        {% else %}draw
-                        {% endif %}
+                        {% with score_parts=h.score|stringformat:"s" %}
+                            {% with home=score_parts|slice:":1" away=score_parts|slice:"2:" %}
+                                <span class="h2h-score
+                                    {% if home|add:'0' > away|add:'0' %}win
+                                    {% elif home|add:'0' < away|add:'0' %}loss
+                                    {% else %}draw
+                                    {% endif %}">
+                                    {{ h.score }}
+                                </span>
+                            {% endwith %}
                         {% endwith %}
-                        {% endwith %}">
-                        {{ h.score }}
-                        </span>
                     </div>
                     {% empty %}
-                    <span class="h2h-empty">Игр в таком статусе не найдено</span>
+                    <div class="h2h-empty">Игр в таком статусе не найдено</div>
                     {% endfor %}
                 </div>
             </div>
