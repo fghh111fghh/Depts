@@ -638,44 +638,61 @@
     color: var(--bets-warning);
 }
 
-/* BTTS и Тотал */
+/* BTTS, Тотал и Исторический анализ - три квадрата */
 .btts-total-container {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 10px;
+    margin-top: 15px;
 }
 
-.btts-box, .total-box {
+.btts-box, .total-box, .historical-box {
     background: white;
     border-radius: 12px;
     padding: 12px;
     border: 1px solid var(--bets-border);
+    text-align: center;
+    transition: all 0.2s ease;
 }
 
-.btts-label, .total-label {
-    font-size: 0.75rem;
+.btts-box:hover, .total-box:hover, .historical-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    border-color: var(--bets-primary);
+}
+
+.btts-label, .total-label, .historical-label {
+    font-size: 0.7rem;
     font-weight: 800;
     color: var(--bets-text-muted);
     text-transform: uppercase;
     margin-bottom: 8px;
+    letter-spacing: 0.3px;
 }
 
-.btts-values, .total-values {
+.btts-values, .total-values, .historical-values {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 4px;
 }
 
-.btts-yes, .total-yes {
+.btts-yes, .total-yes, .historical-yes {
     color: var(--bets-success);
-    font-weight: 800;
-    font-size: 0.95rem;
+    font-weight: 900;
+    font-size: 1.1rem;
 }
 
-.btts-no, .total-no {
+.btts-no, .total-no, .historical-no {
     color: var(--bets-danger);
-    font-weight: 800;
-    font-size: 0.95rem;
+    font-weight: 900;
+    font-size: 1.1rem;
+}
+
+.historical-no-data {
+    color: var(--bets-text-muted);
+    font-style: italic;
+    font-size: 0.85rem;
+    padding: 8px 0;
 }
 
 /* Близнецы */
@@ -773,46 +790,6 @@
     color: var(--bets-text-muted);
     font-style: italic;
     font-size: 0.85rem;
-}
-
-/* Исторический анализ */
-.historical-total-block {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 16px;
-    padding: 15px 20px;
-    margin-bottom: 20px;
-    color: white;
-}
-
-.historical-total-header {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    flex-wrap: wrap;
-}
-
-.historical-total-title {
-    font-weight: 800;
-    font-size: 0.9rem;
-    opacity: 0.9;
-}
-
-.historical-total-title i {
-    margin-right: 6px;
-}
-
-.historical-total-label {
-    flex: 1;
-    font-weight: 700;
-    font-size: 0.9rem;
-}
-
-.historical-total-value {
-    font-weight: 900;
-    font-size: 1.4rem;
-    background: rgba(255,255,255,0.2);
-    padding: 4px 12px;
-    border-radius: 30px;
 }
 
 /* Исторический шаблон */

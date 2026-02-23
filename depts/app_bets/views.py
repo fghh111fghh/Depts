@@ -1038,7 +1038,7 @@ class UploadCSVView(View):
             return render(request, self.template_name, context)
 
     def sync_from_folder(self, request, context):
-        import_data_dir = 'import_data'
+        import_data_dir = os.path.join(settings.BASE_DIR, 'import_data')
 
         try:
             if not os.path.exists(import_data_dir):
@@ -1066,6 +1066,7 @@ class UploadCSVView(View):
             for csv_file_name in csv_files:
                 file_path = os.path.join(import_data_dir, csv_file_name)
                 result = self.process_csv_file(file_path)
+
                 total_added += result['added']
                 total_skipped += result['skipped']
                 total_errors += result['errors']
@@ -1119,8 +1120,6 @@ class UploadCSVView(View):
         except Exception as e:
             context['import_status'] = 'error'
             context['import_message'] = f'Ошибка синхронизации: {str(e)}'
-            import traceback
-            traceback.print_exc()
 
         return render(request, self.template_name, context)
 
@@ -1350,7 +1349,7 @@ class UploadCSVView(View):
             current_unknown = self.request.session.get('unknown_teams', [])
             new_unknown = list(set([item['name'] for item in unknown_teams_list]))
             self.request.session['unknown_teams'] = list(set(current_unknown + new_unknown))
-        print(unknown_teams_list)
+
         return {
             'added': count,
             'skipped': skipped,

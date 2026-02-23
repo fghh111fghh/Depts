@@ -204,6 +204,7 @@
                         {% endfor %}
                     </div>
 
+                    <!-- BTTS, Тотал и Исторический анализ - три квадрата -->
                     <div class="btts-total-container">
                         <div class="btts-box">
                             <div class="btts-label">Обе забьют</div>
@@ -217,6 +218,17 @@
                             <div class="total-values">
                                 <div><span class="total-yes">{{ res.poisson_over25.yes|floatformat:1 }}%</span></div>
                                 <div><span class="total-no">{{ res.poisson_over25.no|floatformat:1 }}%</span></div>
+                            </div>
+                        </div>
+                        <div class="historical-box">
+                            <div class="historical-label">История ТБ>2.5</div>
+                            <div class="historical-values">
+                                {% if res.historical_total %}
+                                <div><span class="historical-yes">{{ res.historical_total.over_25 }}%</span></div>
+                                <div><span class="historical-no">{{ res.historical_total.under_25 }}%</span></div>
+                                {% else %}
+                                <div><span class="historical-no-data">Нет данных</span></div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -250,19 +262,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Исторический анализ -->
-            {% if res.historical_total %}
-            <div class="historical-total-block">
-                <div class="historical-total-header">
-                    <span class="historical-total-title">
-                        <i class="fa-solid fa-chart-simple"></i> Исторический анализ
-                    </span>
-                    <span class="historical-total-label">Тотал больше 2,5</span>
-                    <span class="historical-total-value">{{ res.historical_total.over_25 }}%</span>
-                </div>
-            </div>
-            {% endif %}
 
             <!-- Исторический шаблон -->
             <div class="pattern-block">
