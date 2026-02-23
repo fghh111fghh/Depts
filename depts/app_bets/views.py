@@ -16,12 +16,11 @@
 - all_teams: QuerySet всех команд для выпадающего списка
 """
 import csv
-import logging
 import os
 import pickle
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 import openpyxl
 import pandas as pd
 from django.conf import settings
@@ -29,13 +28,13 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.core.cache import cache
 from django.db import transaction
 from django.db.models import F, Q, Sum, DecimalField
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
-from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.timezone import make_aware, get_current_timezone
 from django.views import View
@@ -46,660 +45,750 @@ from django.views.decorators.cache import cache_page
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView, CreateView, ListView
 from openpyxl.styles import Font, PatternFill, Alignment
-
+from dal import autocomplete
 from app_bets.constants import Outcome, ParsingConstants, AnalysisConstants, Messages
 from app_bets.forms import BetForm
 from app_bets.models import Team, TeamAlias, Season, Match, League, Bet, Sport, Country, Bank
 
-# Настройка логгера для мониторинга
-logger = logging.getLogger(__name__)
 
-class AnalyzeView(TemplateView):
-    template_name = 'app_bets/base.html'
+class AnalyzeView(ListView):
+    """
+    Отображает список проанализированных матчей на основе загруженного текста.
+    """
+    template_name = 'app_bets/bets_main.html'
+    context_object_name = 'results'
+    paginate_by = 20
 
-# class AnalyzeView(View):
-#     template_name = 'app_bets/bets_main.html'
-#
-#     def get(self, request):
-#         results = request.session.get('results', [])
-#         raw_text = request.session.get('raw_text', '')
-#         unknown_teams = request.session.get('unknown_teams', [])
-#         original_results = request.session.get('original_results', [])
-#
-#         current_sort = request.GET.get('sort') or request.session.get('current_sort', 'default')
-#         request.session['current_sort'] = current_sort
-#
-#         if results:
-#             if current_sort == 'default':
-#                 if original_results:
-#                     results[:] = [dict(r) for r in original_results]
-#             elif current_sort == 'btts_desc':
-#                 results.sort(key=lambda x: x['poisson_btts']['yes'], reverse=True)
-#             elif current_sort == 'over25_desc':
-#                 results.sort(key=lambda x: x['poisson_over25']['yes'], reverse=True)
-#             elif current_sort == 'twins_p1_desc':
-#                 results.sort(
-#                     key=lambda x: max(
-#                         x.get('twins_data', {}).get('p1', 0) if x.get('twins_data') else 0,
-#                         x.get('twins_data', {}).get('p2', 0) if x.get('twins_data') else 0
-#                     ),
-#                     reverse=True
-#                 )
-#             elif current_sort == 'pattern_p1_desc':
-#                 results.sort(
-#                     key=lambda x: max(
-#                         x.get('pattern_data', {}).get('p1', 0) if x.get('pattern_data') else 0,
-#                         x.get('pattern_data', {}).get('p2', 0) if x.get('pattern_data') else 0
-#                     ),
-#                     reverse=True
-#                 )
-#
-#         all_teams = Team.objects.all().order_by('name')
-#
-#         return render(request, self.template_name, {
-#             'results': results,
-#             'raw_text': raw_text,
-#             'unknown_teams': sorted(unknown_teams),
-#             'all_teams': all_teams,
-#             'current_sort': current_sort,
-#         })
-#
-#     @staticmethod
-#     def clean_team_name(name: str) -> str:
-#         if not name:
-#             return ""
-#         try:
-#             name = unicodedata.normalize('NFKC', str(name))
-#             name = re.sub(ParsingConstants.TIME_REGEX, '', name)
-#             name = re.sub(r'[^\w\s\d\-\']', ' ', name)
-#             name = re.sub(r'^\d+\s+|\s+\d+$', '', name)
-#             name = re.sub(r'[\-\–\—]+', ' ', name)
-#             name = ' '.join(name.split())
-#             return name.strip().lower()
-#         except Exception as e:
-#             logger.warning(f"Ошибка очистки названия команды '{name}': {e}")
-#             return str(name).strip().lower() if name else ""
-#
-#     @staticmethod
-#     def get_poisson_probs(l_home: float, l_away: float) -> Dict:
-#         probs = []
-#         btts_yes = 0.0
-#         btts_no = 0.0
-#         over25_yes = 0.0
-#         over25_no = 0.0
-#
-#         try:
-#             l_home = max(float(l_home), AnalysisConstants.POISSON_MIN_LAMBDA)
-#             l_away = max(float(l_away), AnalysisConstants.POISSON_MIN_LAMBDA)
-#
-#             exp_home = math.exp(-l_home)
-#             exp_away = math.exp(-l_away)
-#
-#             max_goals = AnalysisConstants.POISSON_MAX_GOALS
-#             factorials = [math.factorial(i) for i in range(max_goals + 1)]
-#             home_powers = [l_home ** i for i in range(max_goals + 1)]
-#             away_powers = [l_away ** i for i in range(max_goals + 1)]
-#
-#             for h in range(max_goals + 1):
-#                 p_h = (exp_home * home_powers[h]) / factorials[h]
-#                 for a in range(max_goals + 1):
-#                     p_a = (exp_away * away_powers[a]) / factorials[a]
-#                     probability = p_h * p_a * 100
-#
-#                     if probability > AnalysisConstants.MIN_PROBABILITY:
-#                         probs.append({
-#                             'score': f"{h}:{a}",
-#                             'prob': round(probability, 2)
-#                         })
-#
-#                     if h > 0 and a > 0:
-#                         btts_yes += probability
-#                     else:
-#                         btts_no += probability
-#
-#                     if (h + a) > 2.5:
-#                         over25_yes += probability
-#                     else:
-#                         over25_no += probability
-#
-#             top_scores = sorted(probs, key=lambda x: x['prob'], reverse=True)[:5]
-#
-#             total_btss = btts_yes + btts_no
-#             total_over = over25_yes + over25_no
-#
-#             if total_btss > 0:
-#                 btts_yes = (btts_yes / total_btss) * 100
-#                 btts_no = (btts_no / total_btss) * 100
-#
-#             if total_over > 0:
-#                 over25_yes = (over25_yes / total_over) * 100
-#                 over25_no = (over25_no / total_over) * 100
-#
-#             btts_yes = round(btts_yes, 2)
-#             btts_no = round(btts_no, 2)
-#             over25_yes = round(over25_yes, 2)
-#             over25_no = round(over25_no, 2)
-#
-#         except Exception as e:
-#             logger.error(f"Ошибка расчета вероятностей Пуассона: {e}")
-#             return {
-#                 'top_scores': [],
-#                 'btts_yes': 0.0,
-#                 'btts_no': 0.0,
-#                 'over25_yes': 0.0,
-#                 'over25_no': 0.0
-#             }
-#
-#         return {
-#             'top_scores': top_scores,
-#             'btts_yes': btts_yes,
-#             'btts_no': btts_no,
-#             'over25_yes': over25_yes,
-#             'over25_no': over25_no
-#         }
-#
-#     def get_team_smart(self, name: str) -> Optional['Team']:
-#         clean_name = self.clean_team_name(name)
-#         if not clean_name:
-#             return None
-#
-#         team = Team.objects.filter(name__iexact=clean_name).first()
-#         if team:
-#             return team
-#
-#         alias = TeamAlias.objects.filter(name__iexact=clean_name).select_related('team').first()
-#         if alias:
-#             return alias.team
-#
-#         return None
-#
-#     def _extract_team_names(self, lines: List[str], odds_index: int) -> List[str]:
-#         names = []
-#         search_depth = min(ParsingConstants.MAX_SEARCH_DEPTH, odds_index)
-#
-#         for j in range(odds_index - 1, odds_index - search_depth - 1, -1):
-#             if j < 0:
-#                 break
-#
-#             row = lines[j].strip()
-#
-#             if not row:
-#                 continue
-#             if row == '-':
-#                 continue
-#             if re.match(ParsingConstants.TIME_REGEX, row):
-#                 continue
-#             if row.lower() in ParsingConstants.SKIP_KEYWORDS:
-#                 continue
-#             if any(keyword in row.lower() for keyword in ParsingConstants.LEAGUE_KEYWORDS):
-#                 continue
-#
-#             clean_name = self.clean_team_name(row)
-#             if (clean_name and
-#                     len(clean_name) >= AnalysisConstants.MIN_TEAM_NAME_LENGTH and
-#                     not re.match(ParsingConstants.DIGITS_ONLY_REGEX, clean_name) and
-#                     clean_name not in ParsingConstants.BLACKLIST):
-#
-#                 names.append(row)
-#                 if len(names) == 2:
-#                     break
-#
-#         return names
-#
-#     def post(self, request):
-#         """
-#         Основной метод обработки POST-запроса для анализа матчей.
-#         """
-#
-#         # --- ПОЛУЧЕНИЕ ПАРАМЕТРОВ ---
-#         current_sort = request.POST.get('sort') or request.GET.get('sort') or request.session.get('current_sort',
-#                                                                                                   'default')
-#         request.session['current_sort'] = current_sort
-#
-#         raw_text = request.POST.get('matches_text', '')
-#
-#         # --- ОБРАБОТКА СОЗДАНИЯ АЛИАСА ---
-#         if 'create_alias' in request.POST:
-#             alias_raw = request.POST.get('alias_name', '')
-#             t_id = request.POST.get('team_id')
-#             if alias_raw and t_id:
-#                 try:
-#                     clean_n = self.clean_team_name(alias_raw)
-#                     with transaction.atomic():
-#                         TeamAlias.objects.update_or_create(
-#                             name=clean_n,
-#                             defaults={'team_id': t_id}
-#                         )
-#                 except Exception as e:
-#                     logger.error(f"Ошибка сохранения алиаса: {e}")
-#
-#         # --- ИНИЦИАЛИЗАЦИЯ ---
-#         results = []
-#         unknown_teams = set()
-#         season = Season.objects.filter(is_current=True).first() or Season.objects.order_by('-start_date').first()
-#
-#         lines = [l.strip() for l in raw_text.split('\n') if l.strip()]
-#
-#         if not lines:
-#             request.session['results'] = results
-#             request.session['raw_text'] = raw_text
-#             request.session['unknown_teams'] = list(unknown_teams)
-#             request.session['current_sort'] = current_sort
-#             request.session['original_results'] = []
-#             return render(request, self.template_name, {
-#                 'results': results,
-#                 'raw_text': raw_text,
-#                 'unknown_teams': sorted(list(unknown_teams)),
-#                 'all_teams': Team.objects.all().order_by('name'),
-#                 'current_sort': current_sort,
-#             })
-#
-#         # --- ЗАГРУЗКА ДАННЫХ ДЛЯ ОПТИМИЗАЦИИ ---
-#         all_matches = list(Match.objects.filter(
-#             home_score_reg__isnull=False
-#         ).select_related(
-#             'home_team', 'away_team', 'league', 'season'
-#         ).order_by('date'))
-#
-#         # Индексация матчей по лиге для быстрого доступа
-#         matches_by_league = {}
-#         for match in all_matches:
-#             if match.league_id not in matches_by_league:
-#                 matches_by_league[match.league_id] = []
-#             matches_by_league[match.league_id].append(match)
-#
-#         # Кэширование команд, алиасов и лиг
-#         all_teams = {team.id: team for team in Team.objects.all()}
-#         all_aliases = {}
-#         for alias in TeamAlias.objects.all().select_related('team'):
-#             all_aliases[alias.name] = alias.team
-#         all_leagues = {league.id: league for league in League.objects.all()}
-#
-#         # --- ПАРСИНГ И АНАЛИЗ МАТЧЕЙ ---
-#         skip_to = -1
-#         for i, line in enumerate(lines):
-#             if i <= skip_to:
-#                 continue
-#
-#             if re.match(ParsingConstants.ODDS_REGEX, line):
-#                 try:
-#                     # Парсинг коэффициентов
-#                     h_odd = Decimal(line.replace(',', '.')).quantize(Decimal(Messages.DECIMAL_FORMAT))
-#                     d_odd = Decimal(lines[i + 1].replace(',', '.')).quantize(Decimal(Messages.DECIMAL_FORMAT))
-#                     a_odd = Decimal(lines[i + 2].replace(',', '.')).quantize(Decimal(Messages.DECIMAL_FORMAT))
-#                     skip_to = i + 2
-#
-#                     # Извлечение названий команд
-#                     names = self._extract_team_names(lines, i)
-#
-#                     if len(names) == 2:
-#                         away_raw, home_raw = names[0], names[1]
-#
-#                         # Поиск команд
-#                         home_team = None
-#                         away_team = None
-#
-#                         clean_home = self.clean_team_name(home_raw)
-#                         clean_away = self.clean_team_name(away_raw)
-#
-#                         # Поиск по алиасам
-#                         if clean_home in all_aliases:
-#                             home_team = all_aliases[clean_home]
-#                         else:
-#                             # Поиск по точному совпадению имени
-#                             for team in all_teams.values():
-#                                 if team.name.lower() == clean_home:
-#                                     home_team = team
-#                                     break
-#
-#                         if clean_away in all_aliases:
-#                             away_team = all_aliases[clean_away]
-#                         else:
-#                             for team in all_teams.values():
-#                                 if team.name.lower() == clean_away:
-#                                     away_team = team
-#                                     break
-#
-#                         if home_team and away_team:
-#                             # --- ОПРЕДЕЛЕНИЕ ЛИГИ (по текущему сезону) ---
-#                             league = None
-#
-#                             # 1. Сначала ищем матчи между этими командами в ТЕКУЩЕМ сезоне
-#                             current_season_matches = [m for m in all_matches if m.season_id == season.id]
-#                             for match in current_season_matches:
-#                                 if ((match.home_team_id == home_team.id and match.away_team_id == away_team.id) or
-#                                     (
-#                                             match.home_team_id == away_team.id and match.away_team_id == home_team.id)) and match.league:
-#                                     league = match.league
-#                                     logger.info(f"Лига найдена по личным встречам в текущем сезоне: {league.name}")
-#                                     break
-#
-#                             # 2. Если не нашли, ищем матчи home_team в текущем сезоне
-#                             if not league:
-#                                 for match in current_season_matches:
-#                                     if match.home_team_id == home_team.id and match.league:
-#                                         league = match.league
-#                                         logger.info(
-#                                             f"Лига найдена по домашним матчам {home_team.name} в текущем сезоне: {league.name}")
-#                                         break
-#
-#                             # 3. Если не нашли, ищем матчи away_team в текущем сезоне
-#                             if not league:
-#                                 for match in current_season_matches:
-#                                     if match.away_team_id == away_team.id and match.league:
-#                                         league = match.league
-#                                         logger.info(
-#                                             f"Лига найдена по гостевым матчам {away_team.name} в текущем сезоне: {league.name}")
-#                                         break
-#
-#                             # 4. Если все еще не нашли, ищем в истории (любой сезон)
-#                             if not league:
-#                                 for match in all_matches:
-#                                     if ((match.home_team_id == home_team.id and match.away_team_id == away_team.id) or
-#                                         (
-#                                                 match.home_team_id == away_team.id and match.away_team_id == home_team.id)) and match.league:
-#                                         league = match.league
-#                                         logger.info(f"Лига найдена по личным встречам в истории: {league.name}")
-#                                         break
-#
-#                             # 5. Если не нашли, ищем по домашним матчам home_team в истории
-#                             if not league:
-#                                 for match in all_matches:
-#                                     if match.home_team_id == home_team.id and match.league:
-#                                         league = match.league
-#                                         logger.info(
-#                                             f"Лига найдена по домашним матчам {home_team.name} в истории: {league.name}")
-#                                         break
-#
-#                             # 6. Если не нашли, ищем по гостевым матчам away_team в истории
-#                             if not league:
-#                                 for match in all_matches:
-#                                     if match.away_team_id == away_team.id and match.league:
-#                                         league = match.league
-#                                         logger.info(
-#                                             f"Лига найдена по гостевым матчам {away_team.name} в истории: {league.name}")
-#                                         break
-#
-#                             # 7. Если ничего не нашли, пробуем по стране
-#                             if not league:
-#                                 league = League.objects.filter(country=home_team.country).first()
-#                                 if league:
-#                                     logger.info(f"Лига найдена по стране {home_team.country}: {league.name}")
-#
-#                             if not league:
-#                                 unknown_teams.add(home_raw.strip())
-#                                 unknown_teams.add(away_raw.strip())
-#                                 continue
-#
-#                             league_matches = matches_by_league.get(league.id, [])
-#
-#                             # --- ИСТОРИЧЕСКИЙ ПАТТЕРН (только текущий сезон) ---
-#                             # Формируем историю команд только из матчей текущего сезона
-#                             current_season_matches = [m for m in league_matches if m.season_id == season.id]
-#                             sorted_current_season_matches = sorted(current_season_matches, key=lambda x: x.date)
-#
-#                             team_history_current = {}
-#
-#                             for m in sorted_current_season_matches:
-#                                 h_id, a_id = m.home_team_id, m.away_team_id
-#
-#                                 # Определение результата для каждой команды
-#                                 if m.home_score_reg == m.away_score_reg:
-#                                     res_h = Outcome.DRAW  # Н
-#                                     res_a = Outcome.DRAW  # Н
-#                                 elif m.home_score_reg > m.away_score_reg:
-#                                     res_h = Outcome.WIN  # В
-#                                     res_a = Outcome.LOSE  # П
-#                                 else:
-#                                     res_h = Outcome.LOSE  # П
-#                                     res_a = Outcome.WIN  # В
-#
-#                                 team_history_current.setdefault(h_id, []).append(res_h)
-#                                 team_history_current.setdefault(a_id, []).append(res_a)
-#
-#                             # Получение последних 4 матчей для каждой команды
-#                             curr_h_form = "".join(team_history_current.get(home_team.id, []))[
-#                                           -AnalysisConstants.PATTERN_FORM_LENGTH:]
-#                             curr_a_form = "".join(team_history_current.get(away_team.id, []))[
-#                                           -AnalysisConstants.PATTERN_FORM_LENGTH:]
-#
-#                             # --- ПОИСК СОВПАДЕНИЙ ПАТТЕРНОВ (вся история лиги) ---
-#                             # Строим историю команд за все время для поиска паттернов
-#                             all_league_matches_sorted = sorted(league_matches, key=lambda x: x.date)
-#                             team_history_all = {}
-#                             match_patterns_all = {}
-#
-#                             for m in all_league_matches_sorted:
-#                                 h_id, a_id = m.home_team_id, m.away_team_id
-#
-#                                 # Получаем текущие формы для этого момента в истории
-#                                 h_f = "".join(team_history_all.get(h_id, []))[-AnalysisConstants.PATTERN_FORM_LENGTH:]
-#                                 a_f = "".join(team_history_all.get(a_id, []))[-AnalysisConstants.PATTERN_FORM_LENGTH:]
-#
-#                                 # Сохраняем паттерн для этого матча
-#                                 if len(h_f) == AnalysisConstants.PATTERN_FORM_LENGTH and len(
-#                                         a_f) == AnalysisConstants.PATTERN_FORM_LENGTH:
-#                                     match_patterns_all[m.id] = (h_f, a_f)
-#
-#                                 # Добавляем результат в историю
-#                                 if m.home_score_reg == m.away_score_reg:
-#                                     res_h = Outcome.DRAW
-#                                     res_a = Outcome.DRAW
-#                                 elif m.home_score_reg > m.away_score_reg:
-#                                     res_h = Outcome.WIN
-#                                     res_a = Outcome.LOSE
-#                                 else:
-#                                     res_h = Outcome.LOSE
-#                                     res_a = Outcome.WIN
-#
-#                                 team_history_all.setdefault(h_id, []).append(res_h)
-#                                 team_history_all.setdefault(a_id, []).append(res_a)
-#
-#                             pattern_data = None
-#                             p_hw, p_dw, p_aw, p_count = 0, 0, 0, 0
-#
-#                             # Поиск матчей с таким же паттерном
-#                             if len(curr_h_form) == AnalysisConstants.PATTERN_FORM_LENGTH and len(
-#                                     curr_a_form) == AnalysisConstants.PATTERN_FORM_LENGTH:
-#                                 for m in league_matches:
-#                                     if match_patterns_all.get(m.id) == (curr_h_form, curr_a_form):
-#                                         p_count += 1
-#                                         if m.home_score_reg > m.away_score_reg:
-#                                             p_hw += 1
-#                                         elif m.home_score_reg == m.away_score_reg:
-#                                             p_dw += 1
-#                                         else:
-#                                             p_aw += 1
-#
-#                                 if p_count > 0:
-#                                     # Расчет процентов с коррекцией до 100%
-#                                     p1_pct = round(p_hw / p_count * 100)
-#                                     x_pct = round(p_dw / p_count * 100)
-#                                     p2_pct = round(p_aw / p_count * 100)
-#
-#                                     total_pct = p1_pct + x_pct + p2_pct
-#                                     if total_pct != 100:
-#                                         diff = 100 - total_pct
-#                                         max_val = max(p1_pct, x_pct, p2_pct)
-#                                         if p1_pct == max_val:
-#                                             p1_pct += diff
-#                                         elif x_pct == max_val:
-#                                             x_pct += diff
-#                                         else:
-#                                             p2_pct += diff
-#
-#                                     pattern_data = {
-#                                         'pattern': f"{curr_h_form} - {curr_a_form}",
-#                                         'count': p_count,
-#                                         'p1': p1_pct,
-#                                         'x': x_pct,
-#                                         'p2': p2_pct
-#                                     }
-#
-#                             # --- ЛИЧНЫЕ ВСТРЕЧИ (только где home_team - хозяин, away_team - гость) ---
-#                             h2h_queryset = Match.objects.filter(
-#                                 home_team=home_team,
-#                                 away_team=away_team
-#                             ).select_related(
-#                                 'home_team', 'away_team'
-#                             ).order_by('-date')[:10]
-#
-#                             h2h_list = []
-#                             for m in h2h_queryset:
-#                                 h2h_list.append({
-#                                     'date': m.date.strftime(Messages.DATE_FORMAT),
-#                                     'score': f"{m.home_score_reg}:{m.away_score_reg}"
-#                                 })
-#
-#                             # --- ПУАССОН ---
-#                             m_obj = Match(
-#                                 home_team=home_team,
-#                                 away_team=away_team,
-#                                 league=league,
-#                                 season=season,
-#                                 odds_home=h_odd
-#                             )
-#                             p_data = m_obj.calculate_poisson_lambda_last_n(AnalysisConstants.LAMBDA_LAST_N)
-#                             poisson_results = self.get_poisson_probs(p_data['home_lambda'], p_data['away_lambda'])
-#                             top_scores = poisson_results['top_scores']
-#                             historical_total_insight = m_obj.get_historical_total_insight()
-#
-#                             # --- БЛИЗНЕЦЫ ---
-#                             tol = AnalysisConstants.TWINS_TOLERANCE_SMALL
-#                             twins_matches = []
-#
-#                             for m in league_matches:
-#                                 h_diff = abs(float(m.odds_home) - float(h_odd))
-#                                 a_diff = abs(float(m.odds_away) - float(a_odd))
-#                                 if h_diff <= tol and a_diff <= tol:
-#                                     twins_matches.append(m)
-#
-#                             if not twins_matches:
-#                                 tol = AnalysisConstants.TWINS_TOLERANCE_LARGE
-#                                 for m in league_matches:
-#                                     h_diff = abs(float(m.odds_home) - float(h_odd))
-#                                     a_diff = abs(float(m.odds_away) - float(a_odd))
-#                                     if h_diff <= tol and a_diff <= tol:
-#                                         twins_matches.append(m)
-#
-#                             t_count = len(twins_matches)
-#                             twins_data = None
-#
-#                             if t_count > 0:
-#                                 hw_t = sum(1 for m in twins_matches if m.home_score_reg > m.away_score_reg)
-#                                 dw_t = sum(1 for m in twins_matches if m.home_score_reg == m.away_score_reg)
-#                                 aw_t = sum(1 for m in twins_matches if m.home_score_reg < m.away_score_reg)
-#
-#                                 total_with_results = hw_t + dw_t + aw_t
-#
-#                                 if total_with_results > 0:
-#                                     p1_pct = round(hw_t / total_with_results * 100)
-#                                     x_pct = round(dw_t / total_with_results * 100)
-#                                     p2_pct = round(aw_t / total_with_results * 100)
-#
-#                                     total_pct = p1_pct + x_pct + p2_pct
-#                                     if total_pct != 100:
-#                                         diff = 100 - total_pct
-#                                         max_val = max(p1_pct, x_pct, p2_pct)
-#                                         if p1_pct == max_val:
-#                                             p1_pct += diff
-#                                         elif x_pct == max_val:
-#                                             x_pct += diff
-#                                         else:
-#                                             p2_pct += diff
-#
-#                                     twins_data = {
-#                                         'count': t_count,
-#                                         'p1': p1_pct,
-#                                         'x': x_pct,
-#                                         'p2': p2_pct
-#                                     }
-#
-#                             # --- УДАЛЕН ВЕКТОРНЫЙ СИНТЕЗ ---
-#                             # Вердикт больше не рассчитывается
-#
-#                             # --- СОХРАНЕНИЕ РЕЗУЛЬТАТА ---
-#                             results.append({
-#                                 'match': f"{home_team.name} - {away_team.name}",
-#                                 'league': league.name if league else "Unknown",
-#                                 'poisson_l': f"{p_data['home_lambda']} : {p_data['away_lambda']}",
-#                                 'poisson_top': top_scores,
-#                                 'poisson_btts': {
-#                                     'yes': poisson_results['btts_yes'],
-#                                     'no': poisson_results['btts_no']
-#                                 },
-#                                 'poisson_over25': {
-#                                     'yes': poisson_results['over25_yes'],
-#                                     'no': poisson_results['over25_no']
-#                                 },
-#                                 'twins_count': t_count,
-#                                 'twins_data': twins_data,
-#                                 'pattern_data': pattern_data,
-#                                 'current_h_form': curr_h_form,
-#                                 'current_a_form': curr_a_form,
-#                                 'h2h_list': h2h_list,
-#                                 'h2h_total': len(h2h_list),
-#                                 'odds': (
-#                                     float(h_odd) if h_odd is not None else None,
-#                                     float(d_odd) if d_odd is not None else None,
-#                                     float(a_odd) if a_odd is not None else None
-#                                 ),
-#                                 'historical_total': historical_total_insight.get('synthetic'),
-#                                 # 'verdict' поле удалено
-#                             })
-#
-#                         else:
-#                             if not home_team:
-#                                 unknown_teams.add(home_raw.strip())
-#                             if not away_team:
-#                                 unknown_teams.add(away_raw.strip())
-#
-#                 except (IndexError, ValueError, Exception) as e:
-#                     logger.error(f"Error processing line {i}: {e}")
-#                     continue
-#
-#         # --- СОХРАНЕНИЕ РЕЗУЛЬТАТОВ В СЕССИЮ ---
-#         if results:
-#             request.session['original_results'] = [dict(r) for r in results]
-#         else:
-#             request.session['original_results'] = []
-#
-#         if results:
-#             if current_sort == 'btts_desc':
-#                 results.sort(key=lambda x: x['poisson_btts']['yes'], reverse=True)
-#             elif current_sort == 'over25_desc':
-#                 results.sort(key=lambda x: x['poisson_over25']['yes'], reverse=True)
-#             elif current_sort == 'twins_p1_desc':
-#                 results.sort(
-#                     key=lambda x: max(
-#                         x.get('twins_data', {}).get('p1', 0) if x.get('twins_data') else 0,
-#                         x.get('twins_data', {}).get('p2', 0) if x.get('twins_data') else 0
-#                     ),
-#                     reverse=True
-#                 )
-#             elif current_sort == 'pattern_p1_desc':
-#                 results.sort(
-#                     key=lambda x: max(
-#                         x.get('pattern_data', {}).get('p1', 0) if x.get('pattern_data') else 0,
-#                         x.get('pattern_data', {}).get('p2', 0) if x.get('pattern_data') else 0
-#                     ),
-#                     reverse=True
-#                 )
-#
-#         # Удалена фильтрация по verdict
-#
-#         request.session['results'] = results
-#         request.session['raw_text'] = raw_text
-#         request.session['unknown_teams'] = list(unknown_teams)
-#         request.session['current_sort'] = current_sort
-#
-#         return render(request, self.template_name, {
-#             'results': results,
-#             'raw_text': raw_text,
-#             'unknown_teams': sorted(list(unknown_teams)),
-#             'all_teams': Team.objects.all().order_by('name'),
-#             'current_sort': current_sort,
-#         })
+    def get_queryset(self):
+        """
+        Возвращает результаты из сессии (так как они не хранятся в БД).
+        Для ListView ожидается QuerySet, но мы адаптируем под список.
+        """
+        # Получаем результаты из сессии
+        results = self.request.session.get('results', [])
+
+        # Применяем сортировку
+        current_sort = self.get_current_sort()
+        results = self.sort_results(results, current_sort)
+
+        return results
+
+    def get_context_data(self, **kwargs):
+        """Добавляет дополнительные данные в контекст шаблона."""
+        context = super().get_context_data(**kwargs)
+
+        # Получаем параметры из сессии
+        context.update({
+            'raw_text': self.request.session.get('raw_text', ''),
+            'unknown_teams': sorted(self.request.session.get('unknown_teams', [])),
+            'all_teams': Team.objects.all().order_by('name'),
+            'current_sort': self.get_current_sort(),
+        })
+
+        return context
+
+    def get_current_sort(self) -> str:
+        """Возвращает текущий параметр сортировки."""
+        return self.request.GET.get('sort') or self.request.session.get('current_sort', 'default')
+
+    def sort_results(self, results: List[Dict], sort_param: str) -> List[Dict]:
+        """
+        Сортирует результаты в соответствии с параметром сортировки.
+        """
+        if not results:
+            return results
+
+        # Сохраняем оригинальные результаты для сброса
+        if sort_param == 'default':
+            results[:] = [dict(r) for r in self.request.session.get('original_results', [])]
+        elif sort_param == 'btts_desc':
+            results.sort(key=lambda x: x['poisson_btts']['yes'], reverse=True)
+        elif sort_param == 'over25_desc':
+            results.sort(key=lambda x: x['poisson_over25']['yes'], reverse=True)
+        elif sort_param == 'twins_p1_desc':
+            results.sort(
+                key=lambda x: max(
+                    x.get('twins_data', {}).get('p1', 0) if x.get('twins_data') else 0,
+                    x.get('twins_data', {}).get('p2', 0) if x.get('twins_data') else 0
+                ),
+                reverse=True
+            )
+        elif sort_param == 'pattern_p1_desc':
+            results.sort(
+                key=lambda x: max(
+                    x.get('pattern_data', {}).get('p1', 0) if x.get('pattern_data') else 0,
+                    x.get('pattern_data', {}).get('p2', 0) if x.get('pattern_data') else 0
+                ),
+                reverse=True
+            )
+
+        return results
+
+    def post(self, request, *args, **kwargs):
+        """
+        Обрабатывает POST-запрос: парсинг текста и анализ матчей.
+        """
+        # Получаем параметры
+        current_sort = request.POST.get('sort') or request.GET.get('sort') or request.session.get('current_sort',
+                                                                                                  'default')
+        request.session['current_sort'] = current_sort
+        raw_text = request.POST.get('matches_text', '')
+
+        # Обработка создания алиаса
+        if 'create_alias' in request.POST:
+            self._handle_alias_creation(request)
+
+        # Если нет текста для анализа
+        if not raw_text.strip():
+            return self._render_empty_response(request, raw_text, current_sort)
+
+        # Выполняем анализ
+        results, unknown_teams = self._analyze_matches(request, raw_text)
+
+        # Сохраняем в сессию
+        request.session['results'] = results
+        request.session['raw_text'] = raw_text
+        request.session['unknown_teams'] = list(unknown_teams)
+
+        if results:
+            request.session['original_results'] = [dict(r) for r in results]
+
+        # Применяем сортировку
+        sorted_results = self.sort_results(results, current_sort)
+
+        # Рендерим результат
+        return render(request, self.template_name, {
+            'results': sorted_results,
+            'raw_text': raw_text,
+            'unknown_teams': sorted(list(unknown_teams)),
+            'all_teams': Team.objects.all().order_by('name'),
+            'current_sort': current_sort,
+        })
+
+    def _handle_alias_creation(self, request):
+        """Создает новый алиас для команды."""
+        alias_raw = request.POST.get('alias_name', '')
+        team_id = request.POST.get('team_id')
+
+        if alias_raw and team_id:
+            try:
+                clean_name = self.clean_team_name(alias_raw)
+                with transaction.atomic():
+                    TeamAlias.objects.update_or_create(
+                        name=clean_name,
+                        defaults={'team_id': team_id}
+                    )
+            except Exception as e:
+                print(f"Ошибка сохранения алиаса: {e}")
+
+    def _render_empty_response(self, request, raw_text: str, current_sort: str):
+        """Возвращает пустой ответ, когда нет данных для анализа."""
+        return render(request, self.template_name, {
+            'results': [],
+            'raw_text': raw_text,
+            'unknown_teams': [],
+            'all_teams': Team.objects.all().order_by('name'),
+            'current_sort': current_sort,
+        })
+
+    def _load_cached_data(self):
+        """
+        Загружает данные с кэшированием в памяти.
+        Кэш обновляется раз в сутки.
+        """
+        cache_key = 'match_analysis_full_data'
+
+        # Пробуем получить из кэша
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            print("Данные загружены из кэша")
+            return cached_data
+
+        print("Загружаем данные из БД в кэш (может занять некоторое время)...")
+
+        # Загружаем все матчи с результатами
+        all_matches = list(Match.objects.filter(
+            home_score_reg__isnull=False
+        ).select_related(
+            'home_team', 'away_team', 'league', 'season'
+        ).order_by('date'))
+
+        # Индексируем матчи по лиге для быстрого доступа
+        matches_by_league = {}
+        for match in all_matches:
+            if match.league_id not in matches_by_league:
+                matches_by_league[match.league_id] = []
+            matches_by_league[match.league_id].append(match)
+
+        # Кэшируем все команды
+        all_teams = {team.id: team for team in Team.objects.all()}
+
+        # Кэшируем все алиасы
+        all_aliases = {}
+        for alias in TeamAlias.objects.all().select_related('team'):
+            all_aliases[alias.name] = alias.team
+
+        # Кэшируем все лиги
+        all_leagues = {league.id: league for league in League.objects.all()}
+
+        # Сохраняем в кэш на 24 часа (86400 секунд)
+        data = (all_matches, matches_by_league, all_teams, all_aliases, all_leagues)
+        cache.set(cache_key, data, 86400)  # 24 часа
+
+        print(f"Загружено {len(all_matches)} матчей, {len(all_teams)} команд, {len(all_leagues)} лиг")
+        return data
+
+    def _analyze_matches(self, request, raw_text: str) -> Tuple[List[Dict], set]:
+        """
+        Основной метод анализа матчей с использованием кэшированных данных.
+        """
+        results = []
+        unknown_teams = set()
+
+        # Получаем текущий сезон
+        season = Season.objects.filter(is_current=True).first() or Season.objects.order_by('-start_date').first()
+
+        # Разбиваем текст на строки
+        lines = [l.strip() for l in raw_text.split('\n') if l.strip()]
+        if not lines:
+            return results, unknown_teams
+
+        # Загружаем данные из кэша (все матчи уже здесь!)
+        all_matches, matches_by_league, all_teams_dict, all_aliases, all_leagues = self._load_cached_data()
+
+        # Парсим и анализируем
+        skip_to = -1
+        for i, line in enumerate(lines):
+            if i <= skip_to:
+                continue
+
+            if re.match(ParsingConstants.ODDS_REGEX, line):
+                try:
+                    match_data = self._parse_match_data(lines, i)
+                    if not match_data:
+                        continue
+
+                    h_odd, d_odd, a_odd, skip_to, names = match_data
+
+                    if len(names) != 2:
+                        continue
+
+                    away_raw, home_raw = names[0], names[1]
+
+                    # Ищем команды в кэшированных данных
+                    home_team, away_team = self._find_teams(
+                        home_raw, away_raw, all_teams_dict, all_aliases
+                    )
+
+                    if home_team and away_team:
+                        # Анализируем матч используя кэшированные данные
+                        result = self._analyze_single_match(
+                            home_team, away_team, season, all_matches, matches_by_league,
+                            all_leagues, h_odd, d_odd, a_odd
+                        )
+                        if result:
+                            results.append(result)
+                    else:
+                        if not home_team:
+                            unknown_teams.add(home_raw.strip())
+                        if not away_team:
+                            unknown_teams.add(away_raw.strip())
+
+                except (IndexError, ValueError, Exception) as e:
+                    print(f"Error processing line {i}: {e}")
+                    continue
+
+        return results, unknown_teams
+
+    def _parse_match_data(self, lines: List[str], index: int) -> Optional[Tuple]:
+        """Парсит коэффициенты и названия команд из строк."""
+        try:
+            h_odd = Decimal(lines[index].replace(',', '.')).quantize(Decimal(Messages.DECIMAL_FORMAT))
+            d_odd = Decimal(lines[index + 1].replace(',', '.')).quantize(Decimal(Messages.DECIMAL_FORMAT))
+            a_odd = Decimal(lines[index + 2].replace(',', '.')).quantize(Decimal(Messages.DECIMAL_FORMAT))
+            skip_to = index + 2
+
+            names = self._extract_team_names(lines, index)
+
+            return h_odd, d_odd, a_odd, skip_to, names
+        except Exception as e:
+            print(f"Ошибка парсинга данных матча: {e}")
+            return None
+
+    def _extract_team_names(self, lines: List[str], odds_index: int) -> List[str]:
+        """Извлекает названия команд из строк перед коэффициентами."""
+        names = []
+        search_depth = min(ParsingConstants.MAX_SEARCH_DEPTH, odds_index)
+
+        for j in range(odds_index - 1, odds_index - search_depth - 1, -1):
+            if j < 0:
+                break
+
+            row = lines[j].strip()
+
+            if (not row or row == '-' or
+                    re.match(ParsingConstants.TIME_REGEX, row) or
+                    row.lower() in ParsingConstants.SKIP_KEYWORDS or
+                    any(keyword in row.lower() for keyword in ParsingConstants.LEAGUE_KEYWORDS)):
+                continue
+
+            clean_name = self.clean_team_name(row)
+            if (clean_name and
+                    len(clean_name) >= AnalysisConstants.MIN_TEAM_NAME_LENGTH and
+                    not re.match(ParsingConstants.DIGITS_ONLY_REGEX, clean_name) and
+                    clean_name not in ParsingConstants.BLACKLIST):
+
+                names.append(row)
+                if len(names) == 2:
+                    break
+
+        return names
+
+    @staticmethod
+    def clean_team_name(name: str) -> str:
+        """Очищает название команды от лишних символов."""
+        if not name:
+            return ""
+        try:
+            name = unicodedata.normalize('NFKC', str(name))
+            name = re.sub(ParsingConstants.TIME_REGEX, '', name)
+            name = re.sub(r'[^\w\s\d\-\']', ' ', name)
+            name = re.sub(r'^\d+\s+|\s+\d+$', '', name)
+            name = re.sub(r'[\-\–\—]+', ' ', name)
+            name = ' '.join(name.split())
+            return name.strip().lower()
+        except Exception as e:
+            print(f"Ошибка очистки названия команды '{name}': {e}")
+            return str(name).strip().lower() if name else ""
+
+    def _find_teams(self, home_raw: str, away_raw: str, all_teams: Dict, all_aliases: Dict) -> Tuple[
+        Optional[object], Optional[object]]:
+        """Находит команды по их названиям."""
+        clean_home = self.clean_team_name(home_raw)
+        clean_away = self.clean_team_name(away_raw)
+
+        home_team = self._find_team(clean_home, all_teams, all_aliases)
+        away_team = self._find_team(clean_away, all_teams, all_aliases)
+
+        return home_team, away_team
+
+    def _find_team(self, clean_name: str, all_teams: Dict, all_aliases: Dict) -> Optional[object]:
+        """Находит команду по очищенному названию."""
+        # Поиск по алиасам
+        if clean_name in all_aliases:
+            return all_aliases[clean_name]
+
+        # Поиск по точному совпадению имени
+        for team in all_teams.values():
+            if team.name.lower() == clean_name:
+                return team
+
+        return None
+
+    def _analyze_single_match(self, home_team, away_team, season, all_matches, matches_by_league,
+                              all_leagues, h_odd, d_odd, a_odd) -> Optional[Dict]:
+        """
+        Анализирует один матч: определяет лигу, считает паттерны, пуассон, близнецов.
+        Использует кэшированные данные.
+        """
+        # Определяем лигу
+        league = self._determine_league(
+            home_team, away_team, season, all_matches, matches_by_league, all_leagues
+        )
+
+        if not league:
+            return None
+
+        league_matches = matches_by_league.get(league.id, [])
+
+        # Анализируем исторический паттерн
+        pattern_data, curr_h_form, curr_a_form = self._analyze_pattern(
+            home_team, away_team, season, league_matches
+        )
+
+        # Считаем Пуассон
+        poisson_results, p_data = self._calculate_poisson(
+            home_team, away_team, league, season, h_odd
+        )
+
+        # Ищем близнецов
+        twins_data, t_count = self._find_twins_matches(
+            league_matches, h_odd, a_odd
+        )
+
+        # Получаем историю личных встреч
+        h2h_list = self._get_h2h_matches(home_team, away_team)
+
+        # Создаем объект матча для дополнительных расчетов
+        m_obj = Match(
+            home_team=home_team,
+            away_team=away_team,
+            league=league,
+            season=season,
+            odds_home=h_odd
+        )
+        historical_total_insight = m_obj.get_historical_total_insight()
+
+        # Формируем результат
+        return {
+            'match': f"{home_team.name} - {away_team.name}",
+            'league': league.name if league else "Unknown",
+            'poisson_l': f"{p_data['home_lambda']:.2f} : {p_data['away_lambda']:.2f}",
+            'poisson_top': poisson_results['top_scores'],
+            'poisson_btts': {
+                'yes': poisson_results['btts_yes'],
+                'no': poisson_results['btts_no']
+            },
+            'poisson_over25': {
+                'yes': poisson_results['over25_yes'],
+                'no': poisson_results['over25_no']
+            },
+            'twins_count': t_count,
+            'twins_data': twins_data,
+            'pattern_data': pattern_data,
+            'current_h_form': curr_h_form,
+            'current_a_form': curr_a_form,
+            'h2h_list': h2h_list,
+            'h2h_total': len(h2h_list),
+            'odds': (float(h_odd), float(d_odd), float(a_odd)),
+            'historical_total': historical_total_insight.get('synthetic'),
+        }
+
+    def _determine_league(self, home_team, away_team, season, all_matches, matches_by_league, all_leagues):
+        """
+        Определяет лигу для пары команд.
+        """
+        league = None
+        current_season_matches = [m for m in all_matches if m.season_id == season.id]
+
+        # 1. По личным встречам в текущем сезоне
+        for match in current_season_matches:
+            if ((match.home_team_id == home_team.id and match.away_team_id == away_team.id) or
+                (match.home_team_id == away_team.id and match.away_team_id == home_team.id)) and match.league:
+                league = match.league
+                print(f"Лига найдена по личным встречам в текущем сезоне: {league.name}")
+                break
+
+        # 2. По домашним матчам home_team в текущем сезоне
+        if not league:
+            for match in current_season_matches:
+                if match.home_team_id == home_team.id and match.league:
+                    league = match.league
+                    print(f"Лига найдена по домашним матчам {home_team.name} в текущем сезоне: {league.name}")
+                    break
+
+        # 3. По гостевым матчам away_team в текущем сезоне
+        if not league:
+            for match in current_season_matches:
+                if match.away_team_id == away_team.id and match.league:
+                    league = match.league
+                    print(f"Лига найдена по гостевым матчам {away_team.name} в текущем сезоне: {league.name}")
+                    break
+
+        # 4. По личным встречам в истории
+        if not league:
+            for match in all_matches:
+                if ((match.home_team_id == home_team.id and match.away_team_id == away_team.id) or
+                    (match.home_team_id == away_team.id and match.away_team_id == home_team.id)) and match.league:
+                    league = match.league
+                    print(f"Лига найдена по личным встречам в истории: {league.name}")
+                    break
+
+        # 5. По домашним матчам home_team в истории
+        if not league:
+            for match in all_matches:
+                if match.home_team_id == home_team.id and match.league:
+                    league = match.league
+                    print(f"Лига найдена по домашним матчам {home_team.name} в истории: {league.name}")
+                    break
+
+        # 6. По гостевым матчам away_team в истории
+        if not league:
+            for match in all_matches:
+                if match.away_team_id == away_team.id and match.league:
+                    league = match.league
+                    print(f"Лига найдена по гостевым матчам {away_team.name} в истории: {league.name}")
+                    break
+
+        # 7. По стране
+        if not league and home_team.country:
+            league = League.objects.filter(country=home_team.country).first()
+            if league:
+                print(f"Лига найдена по стране {home_team.country}: {league.name}")
+
+        return league
+
+    def _analyze_pattern(self, home_team, away_team, season, league_matches):
+        """
+        Анализирует исторические паттерны формы команд.
+        """
+        # Формируем историю команд только из матчей текущего сезона
+        current_season_matches = [m for m in league_matches if m.season_id == season.id]
+        sorted_current_season_matches = sorted(current_season_matches, key=lambda x: x.date)
+
+        team_history_current = {}
+
+        for m in sorted_current_season_matches:
+            h_id, a_id = m.home_team_id, m.away_team_id
+
+            if m.home_score_reg == m.away_score_reg:
+                res_h = Outcome.DRAW
+                res_a = Outcome.DRAW
+            elif m.home_score_reg > m.away_score_reg:
+                res_h = Outcome.WIN
+                res_a = Outcome.LOSE
+            else:
+                res_h = Outcome.LOSE
+                res_a = Outcome.WIN
+
+            team_history_current.setdefault(h_id, []).append(res_h)
+            team_history_current.setdefault(a_id, []).append(res_a)
+
+        curr_h_form = "".join(team_history_current.get(home_team.id, []))[-AnalysisConstants.PATTERN_FORM_LENGTH:]
+        curr_a_form = "".join(team_history_current.get(away_team.id, []))[-AnalysisConstants.PATTERN_FORM_LENGTH:]
+
+        # Поиск совпадений паттернов во всей истории лиги
+        all_league_matches_sorted = sorted(league_matches, key=lambda x: x.date)
+        team_history_all = {}
+        match_patterns_all = {}
+
+        for m in all_league_matches_sorted:
+            h_id, a_id = m.home_team_id, m.away_team_id
+
+            h_f = "".join(team_history_all.get(h_id, []))[-AnalysisConstants.PATTERN_FORM_LENGTH:]
+            a_f = "".join(team_history_all.get(a_id, []))[-AnalysisConstants.PATTERN_FORM_LENGTH:]
+
+            if len(h_f) == AnalysisConstants.PATTERN_FORM_LENGTH and len(a_f) == AnalysisConstants.PATTERN_FORM_LENGTH:
+                match_patterns_all[m.id] = (h_f, a_f)
+
+            if m.home_score_reg == m.away_score_reg:
+                res_h = Outcome.DRAW
+                res_a = Outcome.DRAW
+            elif m.home_score_reg > m.away_score_reg:
+                res_h = Outcome.WIN
+                res_a = Outcome.LOSE
+            else:
+                res_h = Outcome.LOSE
+                res_a = Outcome.WIN
+
+            team_history_all.setdefault(h_id, []).append(res_h)
+            team_history_all.setdefault(a_id, []).append(res_a)
+
+        pattern_data = None
+        p_hw, p_dw, p_aw, p_count = 0, 0, 0, 0
+
+        if len(curr_h_form) == AnalysisConstants.PATTERN_FORM_LENGTH and len(
+                curr_a_form) == AnalysisConstants.PATTERN_FORM_LENGTH:
+            for m in league_matches:
+                if match_patterns_all.get(m.id) == (curr_h_form, curr_a_form):
+                    p_count += 1
+                    if m.home_score_reg > m.away_score_reg:
+                        p_hw += 1
+                    elif m.home_score_reg == m.away_score_reg:
+                        p_dw += 1
+                    else:
+                        p_aw += 1
+
+            if p_count > 0:
+                p1_pct = round(p_hw / p_count * 100)
+                x_pct = round(p_dw / p_count * 100)
+                p2_pct = round(p_aw / p_count * 100)
+
+                total_pct = p1_pct + x_pct + p2_pct
+                if total_pct != 100:
+                    diff = 100 - total_pct
+                    max_val = max(p1_pct, x_pct, p2_pct)
+                    if p1_pct == max_val:
+                        p1_pct += diff
+                    elif x_pct == max_val:
+                        x_pct += diff
+                    else:
+                        p2_pct += diff
+
+                pattern_data = {
+                    'pattern': f"{curr_h_form} - {curr_a_form}",
+                    'count': p_count,
+                    'p1': p1_pct,
+                    'x': x_pct,
+                    'p2': p2_pct
+                }
+
+        return pattern_data, curr_h_form, curr_a_form
+
+    def _calculate_poisson(self, home_team, away_team, league, season, h_odd):
+        """
+        Рассчитывает вероятности по Пуассону.
+        """
+        m_obj = Match(
+            home_team=home_team,
+            away_team=away_team,
+            league=league,
+            season=season,
+            odds_home=h_odd
+        )
+        p_data = m_obj.calculate_poisson_lambda_last_n(AnalysisConstants.LAMBDA_LAST_N)
+        poisson_results = self.get_poisson_probs(p_data['home_lambda'], p_data['away_lambda'])
+
+        return poisson_results, p_data
+
+    def _find_twins_matches(self, league_matches, h_odd, a_odd):
+        """
+        Находит матчи-близнецы с похожими коэффициентами.
+        """
+        tol = AnalysisConstants.TWINS_TOLERANCE_SMALL
+        twins_matches = []
+
+        for m in league_matches:
+            if m.odds_home and m.odds_away:  # Проверяем что коэффициенты есть
+                h_diff = abs(float(m.odds_home) - float(h_odd))
+                a_diff = abs(float(m.odds_away) - float(a_odd))
+                if h_diff <= tol and a_diff <= tol:
+                    twins_matches.append(m)
+
+        if not twins_matches:
+            tol = AnalysisConstants.TWINS_TOLERANCE_LARGE
+            for m in league_matches:
+                if m.odds_home and m.odds_away:
+                    h_diff = abs(float(m.odds_home) - float(h_odd))
+                    a_diff = abs(float(m.odds_away) - float(a_odd))
+                    if h_diff <= tol and a_diff <= tol:
+                        twins_matches.append(m)
+
+        t_count = len(twins_matches)
+        twins_data = None
+
+        if t_count > 0:
+            hw_t = sum(1 for m in twins_matches if m.home_score_reg > m.away_score_reg)
+            dw_t = sum(1 for m in twins_matches if m.home_score_reg == m.away_score_reg)
+            aw_t = sum(1 for m in twins_matches if m.home_score_reg < m.away_score_reg)
+
+            total_with_results = hw_t + dw_t + aw_t
+
+            if total_with_results > 0:
+                p1_pct = round(hw_t / total_with_results * 100)
+                x_pct = round(dw_t / total_with_results * 100)
+                p2_pct = round(aw_t / total_with_results * 100)
+
+                total_pct = p1_pct + x_pct + p2_pct
+                if total_pct != 100:
+                    diff = 100 - total_pct
+                    max_val = max(p1_pct, x_pct, p2_pct)
+                    if p1_pct == max_val:
+                        p1_pct += diff
+                    elif x_pct == max_val:
+                        x_pct += diff
+                    else:
+                        p2_pct += diff
+
+                twins_data = {
+                    'count': t_count,
+                    'p1': p1_pct,
+                    'x': x_pct,
+                    'p2': p2_pct
+                }
+
+        return twins_data, t_count
+
+    def _get_h2h_matches(self, home_team, away_team):
+        """
+        Получает историю личных встреч команд.
+        """
+        h2h_queryset = Match.objects.filter(
+            home_team=home_team,
+            away_team=away_team
+        ).select_related(
+            'home_team', 'away_team'
+        ).order_by('-date')[:10]
+
+        h2h_list = []
+        for m in h2h_queryset:
+            h2h_list.append({
+                'date': m.date.strftime(Messages.DATE_FORMAT),
+                'score': f"{m.home_score_reg}:{m.away_score_reg}"
+            })
+
+        return h2h_list
+
+    @staticmethod
+    def get_poisson_probs(l_home: float, l_away: float) -> Dict:
+        """
+        Рассчитывает вероятности по Пуассону для различных исходов.
+        """
+        probs = []
+        btts_yes = 0.0
+        btts_no = 0.0
+        over25_yes = 0.0
+        over25_no = 0.0
+
+        try:
+            l_home = max(float(l_home), AnalysisConstants.POISSON_MIN_LAMBDA)
+            l_away = max(float(l_away), AnalysisConstants.POISSON_MIN_LAMBDA)
+
+            exp_home = math.exp(-l_home)
+            exp_away = math.exp(-l_away)
+
+            max_goals = AnalysisConstants.POISSON_MAX_GOALS
+            factorials = [math.factorial(i) for i in range(max_goals + 1)]
+            home_powers = [l_home ** i for i in range(max_goals + 1)]
+            away_powers = [l_away ** i for i in range(max_goals + 1)]
+
+            for h in range(max_goals + 1):
+                p_h = (exp_home * home_powers[h]) / factorials[h]
+                for a in range(max_goals + 1):
+                    p_a = (exp_away * away_powers[a]) / factorials[a]
+                    probability = p_h * p_a * 100
+
+                    if probability > AnalysisConstants.MIN_PROBABILITY:
+                        probs.append({
+                            'score': f"{h}:{a}",
+                            'prob': round(probability, 2)
+                        })
+
+                    if h > 0 and a > 0:
+                        btts_yes += probability
+                    else:
+                        btts_no += probability
+
+                    if (h + a) > 2.5:
+                        over25_yes += probability
+                    else:
+                        over25_no += probability
+
+            top_scores = sorted(probs, key=lambda x: x['prob'], reverse=True)[:5]
+
+            total_btss = btts_yes + btts_no
+            total_over = over25_yes + over25_no
+
+            if total_btss > 0:
+                btts_yes = (btts_yes / total_btss) * 100
+                btts_no = (btts_no / total_btss) * 100
+
+            if total_over > 0:
+                over25_yes = (over25_yes / total_over) * 100
+                over25_no = (over25_no / total_over) * 100
+
+            btts_yes = round(btts_yes, 2)
+            btts_no = round(btts_no, 2)
+            over25_yes = round(over25_yes, 2)
+            over25_no = round(over25_no, 2)
+
+        except Exception as e:
+            print(f"Ошибка расчета вероятностей Пуассона: {e}")
+            return {
+                'top_scores': [],
+                'btts_yes': 0.0,
+                'btts_no': 0.0,
+                'over25_yes': 0.0,
+                'over25_no': 0.0
+            }
+
+        return {
+            'top_scores': top_scores,
+            'btts_yes': btts_yes,
+            'btts_no': btts_no,
+            'over25_yes': over25_yes,
+            'over25_no': over25_no
+        }
 
 @method_decorator(cache_page(60 * 60 * 24), name='dispatch')  # кэш на 24 часа
 class CleanedTemplateView(TemplateView):
@@ -1532,8 +1621,6 @@ class ExportCleanedExcelView(View):
         return response
 
 
-from dal import autocomplete
-
 class TeamAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         qs = Team.objects.all()
@@ -1542,6 +1629,7 @@ class TeamAutocomplete(autocomplete.Select2QuerySetView):
             qs = qs.filter(name__istartswith=self.q)
         return qs
 
+
 class LeagueAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         qs = League.objects.all()
@@ -1549,12 +1637,14 @@ class LeagueAutocomplete(autocomplete.Select2QuerySetView):
             qs = qs.filter(name__istartswith=self.q)
         return qs
 
+
 class SportAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         qs = Sport.objects.all()
         if self.q:
             qs = qs.filter(name__istartswith=self.q)
         return qs
+
 
 class CountryAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
@@ -1853,9 +1943,6 @@ class BetRecordsView(LoginRequiredMixin, ListView):
         }
 
         return context
-
-
-logger = logging.getLogger(__name__)
 
 
 @require_POST
