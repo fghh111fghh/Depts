@@ -1,74 +1,16 @@
 import math
-from django.db import models
+from django.db import models, transaction
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
-from django.db.models import Q, Avg, Sum, F
+from django.db.models import Q, Avg, Sum, F, Count
 from decimal import Decimal
 from django.utils.timezone import is_naive, make_aware, get_current_timezone
 from app_bets.constants import AnalysisConstants
 
 
-class Sport(models.Model):
-    """
-    Справочник видов спорта.
-    Центральный узел логики: определяет, бывает ли ничья в основное время.
-    """
-
-    class Name(models.TextChoices):
-        FOOTBALL = 'football', 'Футбол'
-        HOCKEY = 'hockey', 'Хоккей'
-        TENNIS = 'tennis', 'Теннис'
-        VOLLEYBALL = 'volleyball', 'Волейбол'
-        BASKETBALL = 'basketball', 'Баскетбол'
-
-    name = models.CharField(
-        max_length=20,
-        choices=Name.choices,
-        unique=True,
-        verbose_name="Вид спорта"
-    )
-    has_draw = models.BooleanField(
-        default=True,
-        verbose_name="Ничья в линии",
-        help_text="Определяет, принимает ли букмекер ставки на 'Х' в основное время."
-    )
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["name"]),
-        ]
-        verbose_name = "Вид спорта"
-        verbose_name_plural = "Виды спорта"
-
-    def save(self, *args, **kwargs):
-        # Автоматическая корректировка для видов спорта без ничьих
-        if self.name in [self.Name.TENNIS, self.Name.VOLLEYBALL]:
-            self.has_draw = False
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return self.get_name_display()
-
-
-class Country(models.Model):
-    """Страны для фильтрации лиг и поиска 'близнецов' по региону."""
-    name = models.CharField(max_length=100, unique=True, verbose_name="Название страны")
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["name"]),
-        ]
-        verbose_name_plural = "Страны"
-
-    def __str__(self):
-        return self.name
-
-
 class League(models.Model):
     """Лиги и чемпионаты (бывшие Tournament)."""
-    name = models.CharField(max_length=150, verbose_name="Название лиги")
-    sport = models.ForeignKey(Sport, on_delete=models.CASCADE, verbose_name="Вид спорта", related_name="sport_leagues")
-    country = models.ForeignKey(Country, on_delete=models.CASCADE, verbose_name="Страна", related_name="country_leagues")
+    name = models.CharField(max_length=150, unique=True, verbose_name="Название лиги")
     external_id = models.CharField(
         max_length=10,
         blank=True,
@@ -81,9 +23,9 @@ class League(models.Model):
         indexes = [
             models.Index(fields=["name"]),
         ]
-        unique_together = ('name', 'sport', 'country')
         verbose_name = "Лига"
         verbose_name_plural = "Лиги"
+        ordering = ['name']
 
     def get_season_averages(self, season=None):
         """
@@ -92,13 +34,12 @@ class League(models.Model):
         """
         if not season:
             season = Season.objects.filter(is_current=True).first()
-        if not season: return None # Защита если нет сезонов
 
         matches = self.matches.filter(season=season, home_score_reg__isnull=False)
         stats = matches.aggregate(
             avg_home_goals=Avg('home_score_reg'),
             avg_away_goals=Avg('away_score_reg'),
-            total_matches=models.Count('id')
+            total_matches=Count('id')
         )
         return stats
 
@@ -116,50 +57,27 @@ class League(models.Model):
 
         draws = self.matches.filter(
             season=season,
-            home_score_reg=models.F('away_score_reg')
+            home_score_reg__isnull=False,
+            away_score_reg__isnull=False,
+            home_score_reg=F('away_score_reg')
         ).count()
 
         return round((draws / total_matches) * 100, 2)
 
-    def check_round_anomaly(self, round_number, season=None):
-        """
-        Вспомогательный метод: анализирует конкретный тур на предмет отклонения от средних по лиге.
-        """
-        # 1. Получаем средние по лиге за сезон
-        league_avg = self.get_season_averages(season)
-        if not league_avg: return "NORMAL"
-        avg_total = (league_avg['avg_home_goals'] or 0) + (league_avg['avg_away_goals'] or 0)
-
-        # 2. Получаем средние за конкретный тур
-        round_matches = self.matches.filter(league=self, season=season, round_number=round_number)
-        round_avg = round_matches.aggregate(Avg('home_score_reg'), Avg('away_score_reg'))
-        round_total = (round_avg['home_score_reg__avg'] or 0) + (round_avg['away_score_reg__avg'] or 0)
-
-        # 3. Сравниваем: если в туре забили на 30% больше/меньше, чем обычно — это аномалия
-        if avg_total > 0:
-            diff = (round_total / avg_total)
-            if diff > 1.3: return "HIGH_ANOMALY"
-            if diff < 0.7: return "LOW_ANOMALY"
-
-        return "NORMAL"
-
     def __str__(self):
-        return f"{self.name} ({self.country.name})"
+        return f"{self.name}"
 
 
 class Team(models.Model):
-    """Каноническая запись команды или игрока (Мастер-запись)."""
-    name = models.CharField(max_length=100, verbose_name="Каноническое название")
-    sport = models.ForeignKey(Sport, on_delete=models.CASCADE)
-    country = models.ForeignKey(Country, on_delete=models.CASCADE)
+    """Каноническая запись команды"""
+    name = models.CharField(max_length=100, unique=True, verbose_name="Каноническое название")
 
     class Meta:
         indexes = [
             models.Index(fields=["name"]),
         ]
-        unique_together = ('name', 'sport', 'country')
-        verbose_name = "Команда / Игрок"
-        verbose_name_plural = "Команды и Игроки"
+        verbose_name = "Команда"
+        verbose_name_plural = "Команды"
 
     def __str__(self):
         return self.name
@@ -196,8 +114,8 @@ class Season(models.Model):
     """
     name = models.CharField(max_length=20, unique=True, verbose_name="Название сезона")
     is_current = models.BooleanField(default=False, verbose_name="Текущий сезон")
-    start_date = models.DateField(verbose_name="Дата начала (включительно)")
-    end_date = models.DateField(verbose_name="Дата окончания (включительно)")
+    start_date = models.DateField(verbose_name="Дата начала")
+    end_date = models.DateField(verbose_name="Дата окончания")
 
     class Meta:
         indexes = [
@@ -237,10 +155,9 @@ class Match(models.Model):
         verbose_name="Сезон",
         null=True, blank=True  # Null=True чтобы автоматика могла сработать в clean
     )
-    league = models.ForeignKey(League, on_delete=models.CASCADE, related_name="matches")
+    league = models.ForeignKey(League, on_delete=models.CASCADE,
+                               related_name="matches")
     date = models.DateTimeField(verbose_name="Дата и время")
-    round_number = models.PositiveIntegerField(null=True, blank=True, verbose_name="Тур")
-
     home_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="home_matches")
     away_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="away_matches")
 
@@ -276,18 +193,13 @@ class Match(models.Model):
         verbose_name="Кэф П2"
     )
 
-    # Технические поля для анализа
-    is_anomaly = models.BooleanField(default=False, verbose_name="Аномальный результат")
-    home_lineup = models.JSONField(null=True, blank=True, verbose_name="Состав (Дома)")
-    away_lineup = models.JSONField(null=True, blank=True, verbose_name="Состав (Гости)")
-
     class Meta:
         indexes = [
             models.Index(fields=["odds_home", "odds_away"]),
             models.Index(fields=["home_team"]),
             models.Index(fields=["away_team"]),
-            models.Index(fields=["league", "date"]),  # новый индекс
-            models.Index(fields=["home_team", "away_team"]),  # новый индекс
+            models.Index(fields=["league", "date"]),
+            models.Index(fields=["home_team", "away_team"]),
         ]
         verbose_name = "Матч"
         verbose_name_plural = "Матчи"
@@ -317,9 +229,7 @@ class Match(models.Model):
             else:
                 raise ValidationError("Не удалось определить сезон. Создайте сезон или укажите его вручную.")
 
-        # 1. Проверка принадлежности к спорту
-        if self.home_team.sport != self.league.sport or self.away_team.sport != self.league.sport:
-            raise ValidationError("Команды должны принадлежать тому же виду спорта, что и лига.")
+
         # 2. ВАЛИДАЦИЯ ДАТЫ: Проверяем, попадает ли матч в период указанного сезона
         if self.season and (self.date.date() < self.season.start_date or self.date.date() > self.season.end_date):
             raise ValidationError(
@@ -327,15 +237,6 @@ class Match(models.Model):
         # 2. Нельзя играть против самого себя
         if self.home_team == self.away_team:
             raise ValidationError("Команда не может играть сама с собой.")
-
-        # 3. Валидация ничьих и исходов
-        sport_has_draw = self.league.sport.has_draw
-
-        if not sport_has_draw:
-            if self.odds_draw is not None:
-                raise ValidationError(f"В виде спорта '{self.league.sport}' рынок ничьих отсутствует.")
-            if self.home_score_reg is not None and self.home_score_reg == self.away_score_reg:
-                raise ValidationError(f"В виде спорта '{self.league.sport}' не может быть ничейного счета.")
 
         # 4. Валидация Овертаймов / Буллитов
         if self.home_score_reg is not None and self.away_score_reg is not None:
@@ -372,8 +273,6 @@ class Match(models.Model):
         # --- КРИТИЧЕСКАЯ ЗАЩИТА ---
         if not self.league_id:
             return Match.objects.none()
-        if not self.league or not self.league.country_id:
-            return Match.objects.none()
         if not self.odds_home or not self.odds_away:
             return Match.objects.none()
 
@@ -385,7 +284,7 @@ class Match(models.Model):
             def perform_search(tol):
                 # Ищем только по П1 и П2 в пределах допуска
                 qs = Match.objects.filter(
-                    league__country_id=self.league.country_id,
+                    league=self.league,
                     odds_home__range=(h_odd - tol, h_odd + tol),
                     odds_away__range=(a_odd - tol, a_odd + tol)
                 )
@@ -419,69 +318,6 @@ class Match(models.Model):
 
     # --- МЕТОДЫ АНАЛИЗА АНОМАЛИЙ (КОРРЕКЦИЯ К СРЕДНЕМУ) ---
 
-    def get_league_trends(self, window=3):
-        """
-        Анализирует последние N туров лиги перед текущим матчем.
-        Возвращает статистику по 'верхам/низам' и количеству ничьих.
-        """
-        if not self.round_number or self.round_number <= window:
-            return None
-
-        # Берем матчи этой лиги за прошлые N туров
-        past_rounds_matches = Match.objects.filter(
-            league=self.league,
-            season=self.season,
-            round_number__range=(self.round_number - window, self.round_number - 1),
-            home_score_reg__isnull=False
-        )
-
-        total_matches = past_rounds_matches.count()
-        if total_matches == 0:
-            return None
-
-        # 1. Анализ ТБ 2.5 (Верх/Низ)
-        # Суммируем голы в каждом матче и считаем количество игр с ТБ 2.5
-        over_25_count = 0
-        draw_count = 0
-
-        for m in past_rounds_matches:
-            if (m.home_score_reg + m.away_score_reg) > 2.5:
-                over_25_count += 1
-            if m.home_score_reg == m.away_score_reg:
-                draw_count += 1
-
-        over_percentage = (over_25_count / total_matches) * 100
-        draw_percentage = (draw_count / total_matches) * 100
-
-        return {
-            'total_matches': total_matches,
-            'over_25_percent': round(over_percentage, 2),
-            'draw_percent': round(draw_percentage, 2),
-            'is_high_anomaly': over_percentage > 70,  # Условный порог аномалии "Верх"
-            'is_low_anomaly': over_percentage < 30,  # Условный порог аномалии "Низ"
-            'is_draw_anomaly': draw_percentage > 40,  # Слишком много ничьих
-        }
-
-    def get_correction_vector(self):
-        """
-        Синтезирует финальный сигнал коррекции.
-        Если прошлые туры были аномальными, возвращает направление 'отката'.
-        """
-        trends = self.get_league_trends(window=3)
-        if not trends:
-            return "Статистики недостаточно"
-
-        corrections = []
-
-        if trends['is_high_anomaly']:
-            corrections.append("ОЖИДАЕТСЯ НИЗ (после серии верховых туров)")
-        elif trends['is_low_anomaly']:
-            corrections.append("ОЖИДАЕТСЯ ВЕРХ (после серии низовых туров)")
-
-        if trends['is_draw_anomaly']:
-            corrections.append("НИЧЬЯ МАЛОВЕРОЯТНА (коррекция после избытка ничьих)")
-
-        return corrections if corrections else "В пределах нормы"
 
     def calculate_poisson_lambda(self):
         """
@@ -571,7 +407,6 @@ class Match(models.Model):
             }
 
         except Exception as e:
-            # logger.error(f"Ошибка расчета лямбда Пуассона: {e}")
             # Всегда возвращаем словарь, никогда строку!
             return {
                 'home_lambda': 1.2,
@@ -843,14 +678,6 @@ class Match(models.Model):
                 # ТОТ ЖЕ ГОСТЬ (10 баллов)
                 if match.away_team_id == self.away_team_id:
                     similarity += 10
-
-                # ПОХОЖИЙ ТУР (10 баллов)
-                if match.round_number and self.round_number:
-                    round_diff = abs(match.round_number - self.round_number)
-                    if round_diff <= 2:
-                        similarity += 10
-                    elif round_diff <= 5:
-                        similarity += 5
 
                 # СВЕЖЕСТЬ ДАННЫХ (10 баллов) - пропускаем если нет даты
                 if self.date and match.date:
@@ -1143,7 +970,7 @@ class Bank(models.Model):
             balance_before=balance_before,
             balance_after=obj.balance,
             description=description,
-            bet=bet
+            bet=bet  # Теперь передается
         )
 
         return obj.balance
@@ -1265,51 +1092,95 @@ class Bet(models.Model):
 
     def save(self, *args, **kwargs):
         """Полный контроль сохранения с обработкой изменений."""
-        from .models import Bank
-
-        # Получаем старую версию, если это обновление
-        old_profit = None
-        if self.pk:
-            try:
-                old = Bet.objects.get(pk=self.pk)
-                old_profit = old.profit
-                old_result = old.result
-            except Bet.DoesNotExist:
-                old_profit = None
-                old_result = None
-        else:
+        with transaction.atomic():
+            # Получаем старую версию, если это обновление
             old_profit = None
             old_result = None
+            old_bank_before = None
+            old_bank_after = None
+            old_stake = None
+            old_recommended_odds = None
 
-        # Устанавливаем bank_before для новой ставки
-        if not self.bank_before and not self.pk:
-            self.bank_before = Bank.get_balance()
+            if self.pk:
+                try:
+                    old = Bet.objects.get(pk=self.pk)
+                    old_profit = old.profit
+                    old_result = old.result
+                    old_bank_before = old.bank_before
+                    old_bank_after = old.bank_after
+                    old_stake = old.stake
+                    old_recommended_odds = old.recommended_odds
+                except Bet.DoesNotExist:
+                    pass
 
-        # Рассчитываем profit и bank_after
-        if self.result:
-            self.profit = self.calculate_profit()
-            if self.result == self.ResultChoices.REFUND:
-                self.bank_after = self.bank_before
-            elif self.profit is not None:
-                self.bank_after = self.bank_before + self.profit
+            # Устанавливаем bank_before для новой ставки
+            if not self.bank_before and not self.pk:
+                # Новая ставка - берем текущий баланс
+                self.bank_before = Bank.get_balance()
+            elif self.pk and old_bank_before is not None and not self.bank_before:
+                # Обновление существующей ставки - используем старый bank_before
+                self.bank_before = old_bank_before
 
-        # Сохраняем
-        super().save(*args, **kwargs)
+            # Рассчитываем profit и bank_after на основе текущих данных
+            if self.result:
+                # Пересчитываем profit с актуальными данными
+                self.profit = self.calculate_profit()
 
-        # ОБРАБОТКА БАНКА
-        # 1. Новая ставка
-        if not old_profit and self.profit and self.result != self.ResultChoices.REFUND:
-            Bank.update_balance(self.profit)
+                if self.result == self.ResultChoices.REFUND:
+                    self.bank_after = self.bank_before
+                elif self.profit is not None:
+                    self.bank_after = self.bank_before + self.profit
+            else:
+                # Если результат не указан, обнуляем profit и bank_after
+                self.profit = None
+                self.bank_after = None
 
-        # 2. Изменение существующей ставки
-        elif old_profit is not None:
-            # Откатываем старую прибыль
-            if old_profit != 0 and old_result != self.ResultChoices.REFUND:
-                Bank.update_balance(-old_profit)
+            # СОХРАНЯЕМ СНАЧАЛА
+            super().save(*args, **kwargs)
 
-            # Добавляем новую прибыль
-            if self.profit and self.result != self.ResultChoices.REFUND:
-                Bank.update_balance(self.profit)
+            # ПОТОМ ОБНОВЛЯЕМ БАНК
+            # 1. Новая ставка
+            if not old_profit and self.profit and self.result != self.ResultChoices.REFUND:
+                # Первое сохранение ставки с прибылью
+                Bank.update_balance(
+                    amount=self.profit,
+                    bet=self,
+                    transaction_type='BET_SETTLEMENT',
+                    description=f"Расчет по ставке #{self.id}: {self.get_result_display()}"
+                )
+
+            # 2. Изменение существующей ставки
+            elif old_profit is not None:
+                # Откатываем старую прибыль
+                if old_profit != 0 and old_result != self.ResultChoices.REFUND:
+                    Bank.update_balance(
+                        amount=-old_profit,
+                        bet=self,
+                        transaction_type='BET_CORRECTION',
+                        description=f"Откат предыдущего расчета ставки #{self.id} (был {old_result})"
+                    )
+
+                # Добавляем новую прибыль, если она изменилась
+                if self.profit and self.result != self.ResultChoices.REFUND:
+                    # Проверяем, изменилась ли прибыль
+                    if old_profit != self.profit or old_result != self.result:
+                        Bank.update_balance(
+                            amount=self.profit,
+                            bet=self,
+                            transaction_type='BET_SETTLEMENT',
+                            description=f"Новый расчет по ставке #{self.id}: {self.get_result_display()}"
+                        )
+
+            # 3. Если ставка была удалена (этот случай обрабатывается в delete)
+            # 4. Если ставка помечена как возврат, но ранее была прибыль/убыток
+            elif old_profit and self.result == self.ResultChoices.REFUND:
+                # Откатываем предыдущий расчет
+                Bank.update_balance(
+                    amount=-old_profit,
+                    bet=self,
+                    transaction_type='BET_CORRECTION',
+                    description=f"Возврат по ставке #{self.id}, отмена предыдущего расчета"
+                )
 
     def delete(self, *args, **kwargs):
         """Контролируемое удаление с откатом банка."""

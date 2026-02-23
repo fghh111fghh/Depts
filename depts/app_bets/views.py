@@ -48,7 +48,7 @@ from openpyxl.styles import Font, PatternFill, Alignment
 from dal import autocomplete
 from app_bets.constants import Outcome, ParsingConstants, AnalysisConstants, Messages
 from app_bets.forms import BetForm
-from app_bets.models import Team, TeamAlias, Season, Match, League, Bet, Sport, Country, Bank
+from app_bets.models import Team, TeamAlias, Season, Match, League, Bet,Bank
 
 
 class AnalyzeView(ListView):
@@ -1638,22 +1638,6 @@ class LeagueAutocomplete(autocomplete.Select2QuerySetView):
         return qs
 
 
-class SportAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        qs = Sport.objects.all()
-        if self.q:
-            qs = qs.filter(name__istartswith=self.q)
-        return qs
-
-
-class CountryAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        qs = Country.objects.all()
-        if self.q:
-            qs = qs.filter(name__istartswith=self.q)
-        return qs
-
-
 class BetCreateView(SuccessMessageMixin, CreateView):
     model = Bet
     form_class = BetForm
@@ -1924,7 +1908,6 @@ class BetRecordsView(LoginRequiredMixin, ListView):
 
         # Списки для фильтров
         context['leagues'] = League.objects.filter(bet__isnull=False).distinct().order_by('name')
-        context['sports'] = Sport.objects.filter(sport_leagues__bet__isnull=False).distinct()
 
         # Текущие значения фильтров для формы
         context['current_filters'] = {
