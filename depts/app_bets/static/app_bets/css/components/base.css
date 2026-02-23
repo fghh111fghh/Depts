@@ -1,0 +1,109 @@
+/* ====== МЕНЮ ПРИЛОЖЕНИЯ СТАВОК ====== */
+.bets-menu-wrapper {
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.bets-menu-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 50px;
+}
+
+.bets-menu-nav {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.bets-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    color: #64748b;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-radius: 30px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.bets-menu-item:hover {
+    color: #3498db;
+    background: #f8fafc;
+}
+
+.bets-menu-item.active {
+    color: white;
+    background: #3498db;
+}
+
+.bets-menu-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.bets-menu-action-btn {
+    padding: 6px 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 30px;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.bets-menu-action-btn:hover {
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .bets-menu-container {
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px 20px;
+    }
+
+    .bets-menu-nav {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .bets-menu-actions {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .bets-menu-item {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .bets-menu-nav {
+        gap: 3px;
+    }
+
+    .bets-menu-item {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+}
