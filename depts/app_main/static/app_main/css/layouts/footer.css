@@ -1,11 +1,39 @@
 /* ====== ПОДВАЛ САЙТА ====== */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main {
+    flex: 1 0 auto;
+}
+
 .main-footer {
+    flex-shrink: 0;
     background: #eee;
     padding: 30px 0;
     text-align: center;
     color: var(--text-muted);
     font-size: 0.85rem;
     border-top: 1px solid #ddd;
-    margin-top: auto;
     width: 100%;
+}
+
+.main-footer .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.main-footer p {
+    margin: 0;
+    opacity: 0.8;
+    line-height: 1.5;
 }
