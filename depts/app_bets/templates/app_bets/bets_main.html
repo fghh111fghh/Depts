@@ -271,7 +271,7 @@
                         <i class="fa-solid fa-clock-rotate-left"></i> Исторический шаблон (серия x4)
                     </span>
                     {% if res.pattern_data and res.pattern_data.count %}
-                    <span class="pattern-count">Найдено: {{ res.pattern_data.count }}</span>
+                    <span class="pattern-count">{{ res.pattern_data.count }}</span>
                     {% endif %}
                 </div>
 
@@ -316,7 +316,7 @@
                     <span class="h2h-title">
                         <i class="fa-solid fa-history"></i> Личные встречи (в этом статусе)
                     </span>
-                    <span class="h2h-total">Найдено: {{ res.h2h_total }}</span>
+                    <span class="h2h-total">{{ res.h2h_total }}</span>
                 </div>
 
                 <div class="h2h-grid">

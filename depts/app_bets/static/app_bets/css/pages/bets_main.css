@@ -1,5 +1,6 @@
 /* ====== СТИЛИ ДЛЯ ГЛАВНОЙ СТРАНИЦЫ СТАВОК ====== */
 
+/* ---------- ОСНОВНЫЕ КОНСТАНТЫ ---------- */
 :root {
     --bets-primary: #3498db;
     --bets-primary-dark: #2980b9;
@@ -554,6 +555,7 @@
     }
 }
 
+/* Пуассон */
 .poisson-main-block {
     background: var(--bets-bg-light);
     border-radius: 16px;
@@ -705,10 +707,14 @@
 .twins-count-value {
     background: var(--bets-primary);
     color: white;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 800;
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 1.2rem;
+    font-weight: 900;
+    min-width: 45px;
+    text-align: center;
+    display: inline-block;
+    box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
 }
 
 .twins-probabilities {
@@ -732,18 +738,34 @@
     font-size: 0.9rem;
 }
 
-.twins-prob-label.p1 { color: var(--bets-primary); }
-.twins-prob-label.x { color: var(--bets-warning); }
-.twins-prob-label.p2 { color: var(--bets-danger); }
+.twins-prob-label.p1 {
+    color: var(--bets-success);
+}
+
+.twins-prob-label.x {
+    color: var(--bets-warning);
+}
+
+.twins-prob-label.p2 {
+    color: var(--bets-danger);
+}
 
 .twins-prob-value {
     font-weight: 900;
     font-size: 1rem;
 }
 
-.twins-prob-value.p1 { color: var(--bets-primary); }
-.twins-prob-value.x { color: var(--bets-warning); }
-.twins-prob-value.p2 { color: var(--bets-danger); }
+.twins-prob-value.p1 {
+    color: var(--bets-success);
+}
+
+.twins-prob-value.x {
+    color: var(--bets-warning);
+}
+
+.twins-prob-value.p2 {
+    color: var(--bets-danger);
+}
 
 .twins-no-data {
     text-align: center;
@@ -824,10 +846,14 @@
 .pattern-count {
     background: var(--bets-primary);
     color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 1.2rem;
+    font-weight: 900;
+    min-width: 45px;
+    text-align: center;
+    display: inline-block;
+    box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
 }
 
 .pattern-content {
@@ -892,9 +918,17 @@
     font-size: 0.9rem;
 }
 
-.pattern-percent-item.p1 { color: var(--bets-primary); }
-.pattern-percent-item.x { color: var(--bets-warning); }
-.pattern-percent-item.p2 { color: var(--bets-danger); }
+.pattern-percent-item.p1 {
+    color: var(--bets-success);
+}
+
+.pattern-percent-item.x {
+    color: var(--bets-warning);
+}
+
+.pattern-percent-item.p2 {
+    color: var(--bets-danger);
+}
 
 .pattern-no-data {
     color: var(--bets-text-muted);
@@ -933,10 +967,14 @@
 .h2h-total {
     background: var(--bets-primary);
     color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 1.2rem;
+    font-weight: 900;
+    min-width: 45px;
+    text-align: center;
+    display: inline-block;
+    box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
 }
 
 .h2h-grid {
