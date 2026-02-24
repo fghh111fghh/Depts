@@ -14,6 +14,7 @@ urlpatterns = [
     path('export/excel/', views.ExportBetsExcelView.as_view(), name='export_excel'),
     path('export_cleaned/', views.ExportCleanedExcelView.as_view(), name='export_cleaned'),
     path('records/', views.BetRecordsView.as_view(), name='records'),
+    path('stats/', views.StatsView.as_view(), name='stats'),
     path('records/bulk-action/', views.bulk_bet_action, name='bulk_bet_action'),
     path('records/export-excel/', views.export_bets_excel, name='export_bets_excel'),
     path('bet/add/', views.BetCreateView.as_view(), name='bet_create'),

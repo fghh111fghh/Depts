@@ -809,7 +809,7 @@ class CleanedTemplateView(TemplateView):
         mapping = {}
         for league in leagues:
             mapping[league.name] = league.external_id
-            mapping[f"{league.name} ({league.country.name})"] = league.external_id
+            mapping[f"{league.name}"] = league.external_id
         return mapping
 
     def get_calibration_data(self):
@@ -1791,8 +1791,7 @@ class BetRecordsView(LoginRequiredMixin, ListView):
         queryset = Bet.objects.select_related(
             'home_team',
             'away_team',
-            'league__sport',
-            'league__country'
+            'league',
         )
 
         # Фильтры
@@ -1802,8 +1801,7 @@ class BetRecordsView(LoginRequiredMixin, ListView):
             queryset = queryset.filter(
                 Q(home_team__name__icontains=search_query) |
                 Q(away_team__name__icontains=search_query) |
-                Q(league__name__icontains=search_query) |
-                Q(league__country__name__icontains=search_query)
+                Q(league__name__icontains=search_query)
             )
 
         # Фильтр по дате начала
@@ -1830,11 +1828,6 @@ class BetRecordsView(LoginRequiredMixin, ListView):
         league_id = self.request.GET.get('league', '')
         if league_id and league_id.isdigit():
             queryset = queryset.filter(league_id=league_id)
-
-        # Фильтр по спорту
-        sport_id = self.request.GET.get('sport', '')
-        if sport_id and sport_id.isdigit():
-            queryset = queryset.filter(league__sport_id=sport_id)
 
         # Фильтр по результату
         result = self.request.GET.get('result', '')
@@ -1924,7 +1917,6 @@ class BetRecordsView(LoginRequiredMixin, ListView):
             'date_from': self.request.GET.get('date_from', ''),
             'date_to': self.request.GET.get('date_to', ''),
             'league': self.request.GET.get('league', ''),
-            'sport': self.request.GET.get('sport', ''),
             'result': self.request.GET.get('result', ''),
             'target': self.request.GET.get('target', ''),
             'min_amount': self.request.GET.get('min_amount', ''),
@@ -1935,6 +1927,10 @@ class BetRecordsView(LoginRequiredMixin, ListView):
         }
 
         return context
+
+
+class StatsView(TemplateView):
+    template_name = 'app_bets/stats.html'
 
 
 @require_POST
@@ -2022,7 +2018,7 @@ def export_bets_excel(request):
     """
     # Получаем отфильтрованный queryset как в BetRecordsView
     queryset = Bet.objects.select_related(
-        'home_team', 'away_team', 'league__sport', 'league__country'
+        'home_team', 'away_team', 'league'
     )
 
     # Применяем те же фильтры, что и в представлении
@@ -2032,8 +2028,7 @@ def export_bets_excel(request):
         queryset = queryset.filter(
             Q(home_team__name__icontains=search_query) |
             Q(away_team__name__icontains=search_query) |
-            Q(league__name__icontains=search_query) |
-            Q(league__country__name__icontains=search_query)
+            Q(league__name__icontains=search_query)
         )
 
     date_from = request.GET.get('date_from', '')

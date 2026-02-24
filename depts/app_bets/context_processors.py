@@ -22,6 +22,10 @@ BETS_MENU_ITEMS = [
         'title': 'Учет',
         'url_name': 'app_bets:records',
     },
+{
+        'title': 'Статистика',
+        'url_name': 'app_bets:stats',
+    },
 ]
 
 
