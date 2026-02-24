@@ -36,7 +36,7 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
-from django.utils.timezone import make_aware, get_current_timezone
+from django.utils.timezone import make_aware, get_current_timezone, now
 from django.views import View
 import re
 import math
@@ -637,7 +637,7 @@ class AnalyzeView(ListView):
             season=season,
             odds_home=h_odd
         )
-        p_data = m_obj.calculate_poisson_lambda_last_n(AnalysisConstants.LAMBDA_LAST_N)
+        p_data = m_obj.calculate_poisson_lambda(now())
         poisson_results = self.get_poisson_probs(p_data['home_lambda'], p_data['away_lambda'])
 
         return poisson_results, p_data
@@ -856,7 +856,7 @@ class CleanedTemplateView(TemplateView):
                 league=league,
                 season=None
             )
-            lambdas = temp_match.calculate_poisson_lambda_last_n(n=n)
+            lambdas = temp_match.calculate_poisson_lambda(now())
             if 'error' in lambdas:
                 continue
             over_prob = self.poisson_over_prob(lambdas['home_lambda'], lambdas['away_lambda'])
