@@ -9,34 +9,34 @@
     <div class="bets-actions-wrapper">
         {% if results %}
         <a href="{% url 'app_bets:export_excel' %}" class="bets-export-btn">
-            <i class="fa-solid fa-file-excel"></i> В Excel
+            <i class="fa-solid fa-file-excel"></i> {{ action_buttons.EXPORT_EXCEL }}
         </a>
         {% endif %}
     </div>
 
     {% if results %}
     <div class="bets-sort-wrapper">
-        <span class="bets-sort-label">Сортировка:</span>
+        <span class="bets-sort-label">{{ header_titles.SORT_LABEL }}</span>
         <form method="get" action="." class="bets-sort-form">
             <button type="submit" name="sort" value="default"
                     class="bets-sort-btn {% if current_sort == 'default' or not current_sort %}active{% endif %}">
-                По умолч.
+                {{ header_titles.DEFAULT_SORT }}
             </button>
             <button type="submit" name="sort" value="btts_desc"
                     class="bets-sort-btn {% if current_sort == 'btts_desc' %}active{% endif %}">
-                ОЗ ↓
+                {{ header_titles.BTTS_DESC }}
             </button>
             <button type="submit" name="sort" value="over25_desc"
                     class="bets-sort-btn {% if current_sort == 'over25_desc' %}active{% endif %}">
-                б2.5 ↓
+                {{ header_titles.OVER25_DESC }}
             </button>
             <button type="submit" name="sort" value="twins_p1_desc"
                     class="bets-sort-btn {% if current_sort == 'twins_p1_desc' %}active{% endif %}">
-                Близнецы ↓
+                {{ header_titles.TWINS_DESC }}
             </button>
             <button type="submit" name="sort" value="pattern_p1_desc"
                     class="bets-sort-btn {% if current_sort == 'pattern_p1_desc' %}active{% endif %}">
-                История ↓
+                {{ header_titles.PATTERN_DESC }}
             </button>
         </form>
     </div>
@@ -44,7 +44,7 @@
 </div>
 
 <div class="ds-header-block">
-    <h1><i class="fa-solid fa-microchip"></i> Векторный Анализ</h1>
+    <h1><i class="fa-solid fa-microchip"></i> {{ header_titles.VECTOR_ANALYSIS }}</h1>
 </div>
 
 <div class="bets-main-grid">
@@ -54,14 +54,14 @@
             <form method="post" action=".">
                 {% csrf_token %}
                 <input type="hidden" name="sort" value="{{ current_sort }}">
-                <button type="submit" class="bets-btn-analyze">Рассчитать вероятность</button>
+                <button type="submit" class="bets-btn-analyze">{{ action_buttons.CALCULATE }}</button>
 
                 {% if results %}
                 <div class="bets-counters">
                     <div class="bets-counters-container">
                         <div class="bets-counter-item">
                             <i class="fa-solid fa-calculator bets-counter-icon calculator"></i>
-                            <span class="bets-counter-label">Рассчитано матчей:</span>
+                            <span class="bets-counter-label">{{ counter_labels.MATCHES_CALCULATED }}</span>
                             <span class="bets-counter-value blue">{{ results|length }}</span>
                         </div>
 
@@ -69,7 +69,7 @@
                         <div class="bets-counter-divider"></div>
                         <div class="bets-counter-item">
                             <i class="fa-solid fa-graduation-cap bets-counter-icon graduation"></i>
-                            <span class="bets-counter-label">Привязать команды:</span>
+                            <span class="bets-counter-label">{{ counter_labels.LEARN_TEAMS }}</span>
                             <span class="bets-counter-value orange">{{ unknown_teams|length }}</span>
                         </div>
                         {% endif %}
@@ -77,21 +77,16 @@
                 </div>
                 {% endif %}
 
-                <label class="bets-input-label">Ввод данных:</label>
+                <label class="bets-input-label">{{ input_labels.DATA_INPUT }}</label>
                 <textarea name="matches_text" class="bets-textarea" rows="18"
-                          placeholder="Пример формата:
-Реал Овьедо
-Малага
-2.10
-3.10
-3.80">{{ raw_text }}</textarea>
+                          placeholder="{{ input_labels.PLACEHOLDER }}">{{ raw_text }}</textarea>
             </form>
         </div>
 
         {% if unknown_teams %}
         <div class="bets-unknown-section">
             <h4 class="bets-unknown-title">
-                <i class="fa-solid fa-graduation-cap"></i> Обучение системы
+                <i class="fa-solid fa-graduation-cap"></i> {{ learning_section.TITLE }}
                 <span class="bets-unknown-badge">{{ unknown_teams|length }}</span>
             </h4>
             {% for name in unknown_teams %}
@@ -102,13 +97,13 @@
                 <input type="hidden" name="sort" value="{{ current_sort }}">
                 <div class="bets-alias-name">{{ name }}</div>
                 <select name="team_id" required class="bets-alias-select">
-                    <option value="">-- выбери из базы --</option>
+                    <option value="">{{ learning_section.SELECT_TEAM }}</option>
                     {% for team in all_teams %}
                     <option value="{{ team.id }}">{{ team.name }}</option>
                     {% endfor %}
                 </select>
                 <button type="submit" name="create_alias" class="bets-alias-btn">
-                    Сохранить привязку
+                    {{ action_buttons.SAVE_ALIAS }}
                 </button>
             </form>
             {% endfor %}
@@ -119,27 +114,27 @@
             <form method="post" action="{% url 'app_bets:upload_csv' %}">
                 {% csrf_token %}
                 <label class="bets-csv-label">
-                    <i class="fa-solid fa-folder-open"></i> Локальная папка (import_data):
+                    <i class="fa-solid fa-folder-open"></i> {{ csv_section.LABEL }}
                 </label>
                 <p class="bets-csv-description">
-                    Положить CSV файлы в папку import_data и нажать кнопку.
+                    {{ csv_section.DESCRIPTION }}
                 </p>
                 <button type="submit" name="sync_files" class="bets-csv-btn">
-                    Синхронизировать базу
+                    {{ action_buttons.SYNC_DB }}
                 </button>
 
                 {% if import_message %}
                 <div class="bets-import-result {{ import_status }}">
                     <h4 class="bets-import-title {{ import_status }}">
-                        <i class="fa-solid fa-file-import"></i> Результат импорта
+                        <i class="fa-solid fa-file-import"></i> {{ import_results.TITLE }}
                     </h4>
                     <pre class="bets-import-message">{{ import_message }}</pre>
                     {% if import_added > 0 or import_skipped > 0 or import_errors > 0 %}
                     <div class="bets-import-details">
-                        <i class="fa-solid fa-chart-bar"></i> Детали:
-                        Добавлено: <strong>{{ import_added }}</strong>,
-                        Пропущено: <strong>{{ import_skipped }}</strong>,
-                        Ошибок: <strong>{{ import_errors }}</strong>
+                        <i class="fa-solid fa-chart-bar"></i> {{ import_results.DETAILS }}
+                        {{ import_results.ADDED }} <strong>{{ import_added }}</strong>,
+                        {{ import_results.SKIPPED }} <strong>{{ import_skipped }}</strong>,
+                        {{ import_results.ERRORS }} <strong>{{ import_errors }}</strong>
                     </div>
                     {% endif %}
                 </div>
@@ -163,17 +158,17 @@
                 {% if res.odds %}
                 <div class="odds-line">
                     <div class="odd-box-line">
-                        <div class="odd-label-line">P1</div>
+                        <div class="odd-label-line">{{ odds_labels.P1 }}</div>
                         <div class="odd-value-line">{{ res.odds.0|default:"-"|floatformat:2 }}</div>
                     </div>
                     <div class="odd-sep-line">|</div>
                     <div class="odd-box-line">
-                        <div class="odd-label-line">X</div>
+                        <div class="odd-label-line">{{ odds_labels.X }}</div>
                         <div class="odd-value-line">{{ res.odds.1|default:"-"|floatformat:2 }}</div>
                     </div>
                     <div class="odd-sep-line">|</div>
                     <div class="odd-box-line">
-                        <div class="odd-label-line">P2</div>
+                        <div class="odd-label-line">{{ odds_labels.P2 }}</div>
                         <div class="odd-value-line">{{ res.odds.2|default:"-"|floatformat:2 }}</div>
                     </div>
                 </div>
@@ -184,7 +179,7 @@
             <div class="poisson-twins-grid">
                 <div class="poisson-main-block">
                     <h4 class="poisson-title">
-                        <i class="fa-solid fa-calculator"></i> Пуассон: {{ res.poisson_l }}
+                        <i class="fa-solid fa-calculator"></i> {{ analysis_labels.POISSON }} {{ res.poisson_l }}
                     </h4>
 
                     <div class="scores-list">
@@ -207,27 +202,27 @@
                     <!-- BTTS, Тотал и Исторический анализ - три квадрата -->
                     <div class="btts-total-container">
                         <div class="btts-box">
-                            <div class="btts-label">Обе забьют</div>
+                            <div class="btts-label">{{ analysis_labels.BTTS }}</div>
                             <div class="btts-values">
                                 <div><span class="btts-yes">{{ res.poisson_btts.yes|floatformat:1 }}%</span></div>
                                 <div><span class="btts-no">{{ res.poisson_btts.no|floatformat:1 }}%</span></div>
                             </div>
                         </div>
                         <div class="total-box">
-                            <div class="total-label">Тотал > 2.5</div>
+                            <div class="total-label">{{ analysis_labels.TOTAL_OVER }}</div>
                             <div class="total-values">
                                 <div><span class="total-yes">{{ res.poisson_over25.yes|floatformat:1 }}%</span></div>
                                 <div><span class="total-no">{{ res.poisson_over25.no|floatformat:1 }}%</span></div>
                             </div>
                         </div>
                         <div class="historical-box">
-                            <div class="historical-label">История ТБ>2.5</div>
+                            <div class="historical-label">{{ analysis_labels.HISTORICAL_TOTAL }}</div>
                             <div class="historical-values">
                                 {% if res.historical_total %}
                                 <div><span class="historical-yes">{{ res.historical_total.over_25 }}%</span></div>
                                 <div><span class="historical-no">{{ res.historical_total.under_25 }}%</span></div>
                                 {% else %}
-                                <div><span class="historical-no-data">Нет данных</span></div>
+                                <div><span class="historical-no-data">{{ analysis_labels.NO_DATA }}</span></div>
                                 {% endif %}
                             </div>
                         </div>
@@ -237,7 +232,7 @@
                 <div class="twins-main-block">
                     <div class="twins-header">
                         <h4 class="twins-title">
-                            <i class="fa-solid fa-copy"></i> Близнецы (кэфы)
+                            <i class="fa-solid fa-copy"></i> {{ analysis_labels.TWINS }}
                         </h4>
                         <span class="twins-count-value">{{ res.twins_count }}</span>
                     </div>
@@ -245,19 +240,19 @@
                     <div class="twins-probabilities">
                         {% if res.twins_data %}
                         <div class="twins-prob-item p1">
-                            <span class="twins-prob-label p1">П1</span>
+                            <span class="twins-prob-label p1">{{ odds_labels.P1 }}</span>
                             <span class="twins-prob-value p1">{{ res.twins_data.p1 }}%</span>
                         </div>
                         <div class="twins-prob-item x">
-                            <span class="twins-prob-label x">X</span>
+                            <span class="twins-prob-label x">{{ odds_labels.X }}</span>
                             <span class="twins-prob-value x">{{ res.twins_data.x }}%</span>
                         </div>
                         <div class="twins-prob-item p2">
-                            <span class="twins-prob-label p2">П2</span>
+                            <span class="twins-prob-label p2">{{ odds_labels.P2 }}</span>
                             <span class="twins-prob-value p2">{{ res.twins_data.p2 }}%</span>
                         </div>
                         {% else %}
-                        <div class="twins-no-data">Нет данных по близнецам</div>
+                        <div class="twins-no-data">{{ analysis_labels.NO_TWINS_DATA }}</div>
                         {% endif %}
                     </div>
                 </div>
@@ -267,11 +262,10 @@
             <div class="pattern-block">
                 <div class="pattern-header">
                     <span class="pattern-title">
-                        <i class="fa-solid fa-clock-rotate-left"></i> Исторический шаблон (серия x4)
+                        <i class="fa-solid fa-clock-rotate-left"></i> {{ analysis_labels.HISTORICAL_PATTERN }}
                     </span>
-                    {% if res.pattern_data and res.pattern_data.count %}
-                    <span class="pattern-count">{{ res.pattern_data.count }}</span>
-                    {% endif %}
+                    <!-- Всегда показываем счетчик, даже если 0 -->
+                    <span class="pattern-count">{{ res.pattern_data.count|default:"0" }}</span>
                 </div>
 
                 <div class="pattern-content">
@@ -299,11 +293,11 @@
 
                     <div class="pattern-percents">
                         {% if res.pattern_data and res.pattern_data.p1 is not None %}
-                            <span class="pattern-percent-item p1">П1 {{ res.pattern_data.p1 }}%</span>
-                            <span class="pattern-percent-item x">X {{ res.pattern_data.x }}%</span>
-                            <span class="pattern-percent-item p2">П2 {{ res.pattern_data.p2 }}%</span>
+                            <span class="pattern-percent-item p1">{{ odds_labels.P1 }} {{ res.pattern_data.p1 }}%</span>
+                            <span class="pattern-percent-item x">{{ odds_labels.X }} {{ res.pattern_data.x }}%</span>
+                            <span class="pattern-percent-item p2">{{ odds_labels.P2 }} {{ res.pattern_data.p2 }}%</span>
                         {% else %}
-                            <span class="pattern-no-data">Нет данных</span>
+                            <span class="pattern-no-data">{{ analysis_labels.NO_PATTERN_DATA }}</span>
                         {% endif %}
                     </div>
                 </div>
@@ -313,9 +307,9 @@
             <div class="h2h-block">
                 <div class="h2h-header">
                     <span class="h2h-title">
-                        <i class="fa-solid fa-history"></i> Личные встречи (в этом статусе)
+                        <i class="fa-solid fa-history"></i> {{ analysis_labels.H2H_TITLE }}
                     </span>
-                    <span class="h2h-total">{{ res.h2h_total }}</span>
+                    <span class="h2h-total">{{ res.h2h_total|default:"0" }}</span>
                 </div>
 
                 <div class="h2h-grid">
@@ -335,7 +329,7 @@
                         {% endwith %}
                     </div>
                     {% empty %}
-                    <div class="h2h-empty">Игр в таком статусе не найдено</div>
+                    <div class="h2h-empty">{{ analysis_labels.NO_H2H_DATA }}</div>
                     {% endfor %}
                 </div>
             </div>
@@ -344,7 +338,7 @@
         {% else %}
         <div class="no-results">
             <i class="fa-solid fa-futbol no-results-icon"></i>
-            <p class="no-results-text">Введите данные матча для начала анализа</p>
+            <p class="no-results-text">{{ empty_state.TEXT }}</p>
         </div>
         {% endif %}
     </div>
