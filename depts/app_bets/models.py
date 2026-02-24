@@ -230,7 +230,6 @@ class Match(models.Model):
             else:
                 raise ValidationError("Не удалось определить сезон. Создайте сезон или укажите его вручную.")
 
-
         # 2. ВАЛИДАЦИЯ ДАТЫ: Проверяем, попадает ли матч в период указанного сезона
         if self.season and (self.date.date() < self.season.start_date or self.date.date() > self.season.end_date):
             raise ValidationError(
@@ -317,17 +316,19 @@ class Match(models.Model):
             home_score_reg__isnull=False
         ).order_by('-date')[:limit]
 
-    # --- МЕТОДЫ АНАЛИЗА АНОМАЛИЙ (КОРРЕКЦИЯ К СРЕДНЕМУ) ---
-
-
-    def calculate_poisson_lambda(self, date):
+    def calculate_poisson_lambda(self, date, last_n=7):
         """
         Рассчитывает ожидаемое кол-во голов (лямбда) для хозяев и гостей.
-        Условие: расчет только если у каждой команды >= 3 игр в сезоне.
+        Использует последние N матчей (минимум 3, максимум last_n)
+
+        Args:
+            date: дата, до которой собирать статистику
+            last_n: количество последних матчей для анализа (по умолчанию 7)
         """
         try:
-            # 1. Получаем данные лиги за сезон
+            # 1. Получаем данные лиги за сезон ДО указанной даты
             league_stats = self.league.get_season_averages(date, self.season)
+
             if not league_stats or league_stats['total_matches'] == 0:
                 return {
                     'home_lambda': 1.2,
@@ -341,42 +342,55 @@ class Match(models.Model):
             l_avg_home_conceded = l_avg_away_goals
             l_avg_away_conceded = l_avg_home_goals
 
-            # 2. Собираем статистику Хозяев
-            home_team_matches = Match.objects.filter(
+            # 2. Собираем статистику Хозяев (последние N матчей ДО даты)
+            home_matches_qs = Match.objects.filter(
                 league=self.league,
                 season=self.season,
                 home_team=self.home_team,
-                home_score_reg__isnull=False
-            )
+                home_score_reg__isnull=False,
+                date__lt=date
+            ).order_by('-date')
 
-            # 3. Собираем статистику Гостей
-            away_team_matches = Match.objects.filter(
+            home_count = home_matches_qs.count()
+            home_team_matches = list(home_matches_qs[:last_n])
+
+            # 3. Собираем статистику Гостей (последние N матчей ДО даты)
+            away_matches_qs = Match.objects.filter(
                 league=self.league,
                 season=self.season,
                 away_team=self.away_team,
-                away_score_reg__isnull=False
-            )
+                away_score_reg__isnull=False,
+                date__lt=date
+            ).order_by('-date')
+
+            away_count = away_matches_qs.count()
+            away_team_matches = list(away_matches_qs[:last_n])
 
             # Проверка на минимальное количество игр
-            if home_team_matches.count() < 3 or away_team_matches.count() < 3:
-                # Возвращаем дефолтные значения вместо строки!
+            if len(home_team_matches) < 3 or len(away_team_matches) < 3:
                 return {
                     'home_lambda': 1.2,
                     'away_lambda': 1.0,
-                    'error': f'Недостаточно данных: хозяева {home_team_matches.count()}, гости {away_team_matches.count()}'
+                    'error': f'Недостаточно данных: хозяева {len(home_team_matches)}, гости {len(away_team_matches)}'
                 }
 
             # Агрегация
-            h_agg = home_team_matches.aggregate(s=Sum('home_score_reg'), c=Sum('away_score_reg'))
-            a_agg = away_team_matches.aggregate(s=Sum('away_score_reg'), c=Sum('home_score_reg'))
+            h_agg = {
+                's': sum(m.home_score_reg for m in home_team_matches),
+                'c': sum(m.away_score_reg for m in home_team_matches)
+            }
+            a_agg = {
+                's': sum(m.away_score_reg for m in away_team_matches),
+                'c': sum(m.home_score_reg for m in away_team_matches)
+            }
 
             # Статистика Хозяев дома
-            h_avg_scored = Decimal(str(h_agg['s'] or 0)) / home_team_matches.count()
-            h_avg_conceded = Decimal(str(h_agg['c'] or 0)) / home_team_matches.count()
+            h_avg_scored = Decimal(str(h_agg['s'] or 0)) / len(home_team_matches)
+            h_avg_conceded = Decimal(str(h_agg['c'] or 0)) / len(home_team_matches)
 
             # Статистика Гостей в гостях
-            a_avg_scored = Decimal(str(a_agg['s'] or 0)) / away_team_matches.count()
-            a_avg_conceded = Decimal(str(a_agg['c'] or 0)) / away_team_matches.count()
+            a_avg_scored = Decimal(str(a_agg['s'] or 0)) / len(away_team_matches)
+            a_avg_conceded = Decimal(str(a_agg['c'] or 0)) / len(away_team_matches)
 
             # Защита от нулевых значений
             h_avg_scored = max(h_avg_scored, Decimal('0.5'))
@@ -404,16 +418,20 @@ class Match(models.Model):
 
             return {
                 'home_lambda': round(lambda_home, 2),
-                'away_lambda': round(lambda_away, 2)
+                'away_lambda': round(lambda_away, 2),
+                'matches_used': {
+                    'home': len(home_team_matches),
+                    'away': len(away_team_matches)
+                }
             }
 
         except Exception as e:
-            # Всегда возвращаем словарь, никогда строку!
             return {
                 'home_lambda': 1.2,
                 'away_lambda': 1.0,
                 'error': str(e)
             }
+
 
     def get_poisson_probabilities(self, max_goals=5):
         """
@@ -451,7 +469,6 @@ class Match(models.Model):
                 prob_matrix[score] = round((prob_matrix[score] / total_prob) * 100, 2)
 
         return prob_matrix
-
 
     def get_historical_pattern_report(self, window=4):
         """
@@ -516,13 +533,14 @@ class Match(models.Model):
             'pattern': f"{home_form} vs {away_form}",
             'matches_count': total,
             'outcomes': {
-                'P1': round(h_wins/total*100, 1),
-                'X': round(draws/total*100, 1),
-                'P2': round(a_wins/total*100, 1),
+                'P1': round(h_wins / total * 100, 1),
+                'X': round(draws / total * 100, 1),
+                'P2': round(a_wins / total * 100, 1),
             },
             'avg_goals': round(sum(m.home_score_reg + m.away_score_reg for m in matches_found) / total, 2),
-            'history': [f"{m.date.strftime('%d.%m.%Y')}: {m.home_team.name} {m.home_score_reg}:{m.away_score_reg} {m.away_team.name}"
-                        for m in matches_found]
+            'history': [
+                f"{m.date.strftime('%d.%m.%Y')}: {m.home_team.name} {m.home_score_reg}:{m.away_score_reg} {m.away_team.name}"
+                for m in matches_found]
         }
 
     def get_vector_synthesis(self):
@@ -981,7 +999,8 @@ class Bet(models.Model):
 
     stake = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Сумма ставки")
     bank_before = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Банк до ставки")
-    bank_after = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, verbose_name="Банк после ставки")
+    bank_after = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True,
+                                     verbose_name="Банк после ставки")
 
     result = models.CharField(
         max_length=6,
