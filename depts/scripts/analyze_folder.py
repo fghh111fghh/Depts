@@ -13,16 +13,6 @@ from collections import defaultdict
 MIN_MATCHES = 3
 MAX_MATCHES = 7
 
-# Причины пропуска
-SKIP_REASONS = {
-    'NO_SCORE': 'Нет счета',
-    'NO_ODDS': 'Нет коэффициентов',
-    'INSUFFICIENT_HISTORY': 'Недостаточно истории',
-    'INVALID_DATE': 'Некорректная дата',
-    'ENCODING_ERROR': 'Ошибка кодировки',
-    'OTHER': 'Другая ошибка'
-}
-
 PROBABILITY_BINS = [
     (0, 5), (5, 10), (10, 15), (15, 20), (20, 25),
     (25, 30), (30, 35), (35, 40), (40, 45), (45, 50),
@@ -73,48 +63,24 @@ def detect_delimiter(file_path):
 def detect_encoding(file_path):
     """Определяет кодировку файла"""
     with open(file_path, 'rb') as f:
-        raw_data = f.read(10000)  # Читаем первые 10000 байт
+        raw_data = f.read(10000)
         result = chardet.detect(raw_data)
         return result['encoding']
 
 
 def get_odds_from_row(row, odds_type):
     """
-    Ищет коэффициент в различных колонках (максимально расширенный поиск)
-
-    Args:
-        row: строка CSV
-        odds_type: тип коэффициента ('H' - П1, 'D' - ничья, 'A' - П2, 'OVER' - ТБ2.5)
-
-    Returns:
-        float or None
+    Ищет коэффициент в различных колонках
     """
-    # Максимально расширенный список всех возможных колонок с коэффициентами
     odds_mapping = {
         'H': [
-            # Основные букмекеры
             'B365H', 'BWH', 'IWH', 'LBH', 'PSH', 'WHH', 'SJH', 'VCH',
-            # Средние и максимальные
             'AvgH', 'MaxH', 'BbAvH', 'BbMxH',
-            # Другие варианты
             'BFH', 'BFEH', 'PSCH', 'BWCH', 'BFCH', 'WHCH', '1XBH', 'MaxCH', 'AvgCH'
         ],
-        'D': [
-            'B365D', 'BWD', 'IWD', 'LBD', 'PSD', 'WHD', 'SJD', 'VCD',
-            'AvgD', 'MaxD', 'BbAvD', 'BbMxD',
-            'BFD', 'BFED', 'PSCD', 'BWCD', 'BFCD', 'WHCD', '1XBD', 'MaxCD', 'AvgCD'
-        ],
-        'A': [
-            'B365A', 'BWA', 'IWA', 'LBA', 'PSA', 'WHA', 'SJA', 'VCA',
-            'AvgA', 'MaxA', 'BbAvA', 'BbMxA',
-            'BFA', 'BFEA', 'PSCA', 'BWCA', 'BFCA', 'WHCA', '1XBA', 'MaxCA', 'AvgCA'
-        ],
         'OVER': [
-            # Основные
             'B365>2.5', 'P>2.5', 'Max>2.5', 'Avg>2.5',
-            # BetBrain
             'BbMx>2.5', 'BbAv>2.5',
-            # Другие
             'BFE>2.5', 'BFEC>2.5', 'PC>2.5', 'MaxC>2.5', 'AvgC>2.5'
         ],
         'UNDER': [
@@ -200,17 +166,14 @@ def calculate_poisson_lambda_from_history(home_history, away_history, league_avg
         if len(home_history) < MIN_MATCHES or len(away_history) < MIN_MATCHES:
             return None
 
-        # Защита от нулевых значений
         l_avg_home_goals = max(league_avg_home, 1.0)
         l_avg_away_goals = max(league_avg_away, 0.8)
         l_avg_home_conceded = l_avg_away_goals
         l_avg_away_conceded = l_avg_home_goals
 
-        # Берем последние MAX_MATCHES матчей
         home_recent = home_history[-MAX_MATCHES:] if len(home_history) > MAX_MATCHES else home_history
         away_recent = away_history[-MAX_MATCHES:] if len(away_history) > MAX_MATCHES else away_history
 
-        # Статистика хозяев
         h_avg_scored = sum(m['home_score'] for m in home_recent) / len(home_recent)
         h_avg_conceded = sum(m['away_score'] for m in home_recent) / len(home_recent)
         h_avg_scored = max(h_avg_scored, 0.5)
@@ -218,7 +181,6 @@ def calculate_poisson_lambda_from_history(home_history, away_history, league_avg
         home_attack = h_avg_scored / l_avg_home_goals
         home_defense = h_avg_conceded / l_avg_home_conceded
 
-        # Статистика гостей
         a_avg_scored = sum(m['away_score'] for m in away_recent) / len(away_recent)
         a_avg_conceded = sum(m['home_score'] for m in away_recent) / len(away_recent)
         a_avg_scored = max(a_avg_scored, 0.3)
@@ -241,269 +203,6 @@ def calculate_poisson_lambda_from_history(home_history, away_history, league_avg
         return None
 
 
-def analyze_csv_file(file_path):
-    """
-    Анализирует один CSV файл (полная версия из предыдущего скрипта)
-    """
-    print(f"\n--- Анализ файла: {os.path.basename(file_path)} ---")
-
-    # Детальная статистика по пропускам
-    skip_stats = defaultdict(int)
-
-    # Проверяем существование файла
-    if not os.path.exists(file_path):
-        print(f"❌ Файл не найден")
-        return None
-
-    # Определяем кодировку
-    try:
-        encoding = detect_encoding(file_path)
-        print(f"📄 Кодировка: {encoding}")
-    except:
-        encoding = 'utf-8-sig'
-        print(f"📄 Используем кодировку по умолчанию: {encoding}")
-
-    # Определяем разделитель
-    try:
-        delimiter = detect_delimiter(file_path)
-        print(f"📊 Разделитель: '{delimiter}'")
-    except Exception as e:
-        print(f"❌ Ошибка определения разделителя: {e}")
-        skip_stats['ENCODING_ERROR'] += 1
-        return {
-            'file_name': os.path.basename(file_path),
-            'total_matches': 0,
-            'analyzed': 0,
-            'skipped': 0,
-            'errors': 1,
-            'skip_stats': dict(skip_stats),
-            'predictions': [],
-            'stats': {}
-        }
-
-    # Загружаем все данные из файла
-    all_matches = []
-
-    try:
-        with open(file_path, mode='r', encoding=encoding, errors='replace') as f:
-            reader = csv.DictReader(f, delimiter=delimiter)
-
-            fieldnames = reader.fieldnames
-            if not fieldnames:
-                print("❌ Файл пуст или не содержит заголовков")
-                skip_stats['OTHER'] += 1
-                return {
-                    'file_name': os.path.basename(file_path),
-                    'total_matches': 0,
-                    'analyzed': 0,
-                    'skipped': 0,
-                    'errors': 1,
-                    'skip_stats': dict(skip_stats),
-                    'predictions': [],
-                    'stats': {}
-                }
-
-            print(f"📋 Найдено колонок: {len(fieldnames)}")
-
-            # Проверяем наличие обязательных колонок (только дата и команды)
-            required_cols = ['Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG']
-            missing_cols = [col for col in required_cols if col not in fieldnames]
-
-            if missing_cols:
-                print(f"❌ Отсутствуют обязательные колонки: {missing_cols}")
-                skip_stats['OTHER'] += 1
-                return {
-                    'file_name': os.path.basename(file_path),
-                    'total_matches': 0,
-                    'analyzed': 0,
-                    'skipped': 0,
-                    'errors': 1,
-                    'skip_stats': dict(skip_stats),
-                    'predictions': [],
-                    'stats': {}
-                }
-
-            # Загружаем все строки
-            for row in reader:
-                date_str = row.get('Date', '').strip()
-                dt = parse_date(date_str)
-                if not dt:
-                    skip_stats['INVALID_DATE'] += 1
-                    continue
-
-                # Получаем коэффициенты из разных колонок
-                odds_h = get_odds_from_row(row, 'H')
-                odds_d = get_odds_from_row(row, 'D')
-                odds_a = get_odds_from_row(row, 'A')
-                odds_over = get_odds_from_row(row, 'OVER')
-                odds_under = get_odds_from_row(row, 'UNDER')
-
-                # Если нашли хотя бы один коэффициент для тотала
-                if odds_over is None and odds_under is not None:
-                    # Конвертируем UNDER в OVER (1/UNDER)
-                    try:
-                        odds_over = 1.0 / odds_under
-                    except:
-                        pass
-
-                all_matches.append({
-                    'date': dt,
-                    'date_str': date_str,
-                    'home_team': row.get('HomeTeam', '').strip(),
-                    'away_team': row.get('AwayTeam', '').strip(),
-                    'fthg': safe_int(row.get('FTHG')),
-                    'ftag': safe_int(row.get('FTAG')),
-                    'odds_h': odds_h,
-                    'odds_d': odds_d,
-                    'odds_a': odds_a,
-                    'odds_over': odds_over,
-                    'odds_under': odds_under
-                })
-
-            # Сортируем по дате
-            all_matches.sort(key=lambda x: x['date'])
-
-    except Exception as e:
-        print(f"❌ Ошибка при чтении файла: {e}")
-        skip_stats['ENCODING_ERROR'] += 1
-        return {
-            'file_name': os.path.basename(file_path),
-            'total_matches': 0,
-            'analyzed': 0,
-            'skipped': 0,
-            'errors': 1,
-            'skip_stats': dict(skip_stats),
-            'predictions': [],
-            'stats': {}
-        }
-
-    total_rows = len(all_matches)
-    print(f"📊 Загружено строк: {total_rows}")
-
-    # Результаты анализа
-    stats = defaultdict(lambda: {'hits': 0, 'total': 0})
-    predictions = []
-
-    analyzed = 0
-    errors = 0
-
-    # Обрабатываем с конца (последние матчи первыми)
-    for idx in range(total_rows - 1, -1, -1):
-        match = all_matches[idx]
-
-        try:
-            if match['fthg'] is None or match['ftag'] is None:
-                skip_stats['NO_SCORE'] += 1
-                continue
-
-            total_goals = match['fthg'] + match['ftag']
-
-            if not match['odds_h'] or not match['odds_over']:
-                skip_stats['NO_ODDS'] += 1
-                continue
-
-            # Получаем историю команд из ПРОШЛЫХ матчей
-            home_history = []
-            away_history = []
-
-            for prev_idx in range(idx):
-                prev_match = all_matches[prev_idx]
-                if prev_match['fthg'] is not None and prev_match['ftag'] is not None:
-                    if prev_match['home_team'] == match['home_team']:
-                        home_history.append({
-                            'home_score': prev_match['fthg'],
-                            'away_score': prev_match['ftag']
-                        })
-                    if prev_match['away_team'] == match['away_team']:
-                        away_history.append({
-                            'home_score': prev_match['fthg'],
-                            'away_score': prev_match['ftag']
-                        })
-
-            # Средние по лиге
-            all_prev_matches = all_matches[:idx]
-            if all_prev_matches:
-                all_home_goals = [m['fthg'] for m in all_prev_matches if m['fthg'] is not None]
-                all_away_goals = [m['ftag'] for m in all_prev_matches if m['ftag'] is not None]
-                league_avg_home = sum(all_home_goals) / len(all_home_goals) if all_home_goals else 1.2
-                league_avg_away = sum(all_away_goals) / len(all_away_goals) if all_away_goals else 1.0
-            else:
-                league_avg_home = 1.2
-                league_avg_away = 1.0
-
-            # Рассчитываем лямбды
-            lambda_result = calculate_poisson_lambda_from_history(
-                home_history, away_history,
-                league_avg_home, league_avg_away
-            )
-
-            if lambda_result is None:
-                skip_stats['INSUFFICIENT_HISTORY'] += 1
-                continue
-
-            lambda_home = lambda_result['home_lambda']
-            lambda_away = lambda_result['away_lambda']
-
-            # Получаем вероятность
-            probs = get_poisson_probs(lambda_home, lambda_away)
-            over25_prob = probs['over25_yes']
-
-            # Определяем блоки
-            odds_h_bin = get_odds_bin(match['odds_h'])
-            odds_over_bin = get_odds_bin(match['odds_over'])
-            prob_bin = get_probability_bin(over25_prob)
-
-            # Ключ для статистики
-            key = (odds_h_bin, odds_over_bin, prob_bin)
-
-            # Обновляем статистику
-            stats[key]['total'] += 1
-            if total_goals > 2.5:
-                stats[key]['hits'] += 1
-
-            predictions.append({
-                'date': match['date_str'],
-                'home_team': match['home_team'],
-                'away_team': match['away_team'],
-                'fthg': match['fthg'],
-                'ftag': match['ftag'],
-                'total_goals': total_goals,
-                'odds_h': match['odds_h'],
-                'odds_over': match['odds_over'],
-                'odds_h_bin': odds_h_bin,
-                'odds_over_bin': odds_over_bin,
-                'over25_prob': over25_prob,
-                'prob_bin': prob_bin,
-                'hit': total_goals > 2.5
-            })
-
-            analyzed += 1
-
-        except Exception as e:
-            print(f"❌ Ошибка при обработке строки: {e}")
-            skip_stats['OTHER'] += 1
-            errors += 1
-
-    total_skipped = sum(skip_stats.values())
-
-    print(f"   ✅ Проанализировано: {analyzed}")
-    print(f"   ⚠️ Пропущено: {total_skipped}")
-    for reason, count in skip_stats.items():
-        if count > 0:
-            print(f"      - {SKIP_REASONS[reason]}: {count}")
-
-    return {
-        'file_name': os.path.basename(file_path),
-        'total_matches': total_rows,
-        'analyzed': analyzed,
-        'skipped': total_skipped,
-        'errors': errors,
-        'skip_stats': dict(skip_stats),
-        'predictions': predictions,
-        'stats': dict(stats)
-    }
-
-
 def analyze_folder(folder_path):
     """
     Анализирует все CSV файлы в указанной папке
@@ -512,233 +211,278 @@ def analyze_folder(folder_path):
     print(f"АНАЛИЗ ПАПКИ: {folder_path}")
     print("=" * 80)
 
-    # Проверяем существование папки
     if not os.path.exists(folder_path) or not os.path.isdir(folder_path):
         print(f"❌ Папка не найдена: {folder_path}")
-        return None
+        return None, None
 
-    # Находим все CSV файлы в папке
     csv_files = list(Path(folder_path).glob('*.csv'))
 
     if not csv_files:
         print(f"❌ В папке нет CSV файлов")
-        return None
+        return None, None
 
     print(f"📁 Найдено CSV файлов: {len(csv_files)}")
 
-    # Общая статистика по всем файлам в папке
-    folder_stats = {
-        'folder_name': os.path.basename(folder_path),
-        'folder_path': folder_path,
-        'total_files': len(csv_files),
-        'processed_files': 0,
-        'files_with_errors': 0,
-        'total_matches': 0,
-        'total_analyzed': 0,
-        'total_skipped': 0,
-        'total_errors': 0,
-        'files': [],
-        'combined_stats': defaultdict(lambda: {'hits': 0, 'total': 0}),
-        'combined_skip_stats': defaultdict(int),
-        'predictions': []
-    }
+    league_name = os.path.basename(folder_path)
+    all_stats = {}
 
-    # Обрабатываем каждый файл
     for csv_file in sorted(csv_files):
-        print(f"\n{'=' * 60}")
-        print(f"ОБРАБОТКА ФАЙЛА: {csv_file.name}")
-        print('=' * 60)
+        print(f"\n--- Анализ файла: {csv_file.name} ---")
 
-        file_result = analyze_csv_file(str(csv_file))
+        try:
+            encoding = detect_encoding(str(csv_file))
+            print(f"   📄 Кодировка: {encoding}")
+        except:
+            encoding = 'utf-8-sig'
+            print(f"   📄 Используем кодировку по умолчанию: {encoding}")
 
-        if file_result:
-            folder_stats['processed_files'] += 1
-            folder_stats['total_matches'] += file_result['total_matches']
-            folder_stats['total_analyzed'] += file_result['analyzed']
-            folder_stats['total_skipped'] += file_result['skipped']
-            folder_stats['total_errors'] += file_result['errors']
+        try:
+            delimiter = detect_delimiter(str(csv_file))
+            print(f"   📊 Разделитель: '{delimiter}'")
+        except Exception as e:
+            print(f"   ❌ Ошибка определения разделителя: {e}")
+            continue
 
-            if file_result['errors'] > 0:
-                folder_stats['files_with_errors'] += 1
+        all_matches = []
 
-            folder_stats['files'].append({
-                'file_name': file_result['file_name'],
-                'total_matches': file_result['total_matches'],
-                'analyzed': file_result['analyzed'],
-                'skipped': file_result['skipped'],
-                'errors': file_result['errors'],
-                'skip_stats': file_result.get('skip_stats', {})
-            })
+        try:
+            with open(csv_file, mode='r', encoding=encoding, errors='replace') as f:
+                reader = csv.DictReader(f, delimiter=delimiter)
 
-            # Объединяем статистику по пропускам
-            for reason, count in file_result.get('skip_stats', {}).items():
-                folder_stats['combined_skip_stats'][reason] += count
+                fieldnames = reader.fieldnames
+                if not fieldnames:
+                    print("   ❌ Файл пуст или не содержит заголовков")
+                    continue
 
-            # Объединяем статистику по блокам
-            for key, data in file_result['stats'].items():
-                folder_stats['combined_stats'][key]['total'] += data['total']
-                folder_stats['combined_stats'][key]['hits'] += data['hits']
+                required_cols = ['Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG']
+                missing_cols = [col for col in required_cols if col not in fieldnames]
 
-            # Сохраняем последние предсказания
-            folder_stats['predictions'].extend(file_result['predictions'][-10:])
+                if missing_cols:
+                    print(f"   ❌ Отсутствуют обязательные колонки: {missing_cols}")
+                    continue
 
-    # Ограничим предсказания
-    if len(folder_stats['predictions']) > 100:
-        folder_stats['predictions'] = folder_stats['predictions'][-100:]
+                for row in reader:
+                    date_str = row.get('Date', '').strip()
+                    dt = parse_date(date_str)
+                    if not dt:
+                        continue
 
-    return folder_stats
+                    odds_h = get_odds_from_row(row, 'H')
+                    odds_over = get_odds_from_row(row, 'OVER')
+
+                    if odds_over is None:
+                        odds_under = get_odds_from_row(row, 'UNDER')
+                        if odds_under is not None and odds_under > 0:
+                            odds_over = 1.0 / odds_under
+
+                    if odds_h is not None and odds_over is not None:
+                        all_matches.append({
+                            'date': dt,
+                            'date_str': date_str,
+                            'home_team': row.get('HomeTeam', '').strip(),
+                            'away_team': row.get('AwayTeam', '').strip(),
+                            'fthg': safe_int(row.get('FTHG')),
+                            'ftag': safe_int(row.get('FTAG')),
+                            'odds_h': odds_h,
+                            'odds_over': odds_over
+                        })
+
+                all_matches.sort(key=lambda x: x['date'])
+
+        except Exception as e:
+            print(f"   ❌ Ошибка при чтении файла: {e}")
+            continue
+
+        total_rows = len(all_matches)
+        print(f"   📊 Загружено матчей с коэффициентами: {total_rows}")
+
+        file_stats = {}
+        analyzed = 0
+
+        for idx in range(total_rows - 1, -1, -1):
+            match = all_matches[idx]
+
+            try:
+                if match['fthg'] is None or match['ftag'] is None:
+                    continue
+
+                total_goals = match['fthg'] + match['ftag']
+
+                home_history = []
+                away_history = []
+
+                for prev_idx in range(idx):
+                    prev_match = all_matches[prev_idx]
+                    if prev_match['fthg'] is not None and prev_match['ftag'] is not None:
+                        if prev_match['home_team'] == match['home_team']:
+                            home_history.append({
+                                'home_score': prev_match['fthg'],
+                                'away_score': prev_match['ftag']
+                            })
+                        if prev_match['away_team'] == match['away_team']:
+                            away_history.append({
+                                'home_score': prev_match['fthg'],
+                                'away_score': prev_match['ftag']
+                            })
+
+                all_prev_matches = all_matches[:idx]
+                if all_prev_matches:
+                    all_home_goals = [m['fthg'] for m in all_prev_matches if m['fthg'] is not None]
+                    all_away_goals = [m['ftag'] for m in all_prev_matches if m['ftag'] is not None]
+                    league_avg_home = sum(all_home_goals) / len(all_home_goals) if all_home_goals else 1.2
+                    league_avg_away = sum(all_away_goals) / len(all_away_goals) if all_away_goals else 1.0
+                else:
+                    league_avg_home = 1.2
+                    league_avg_away = 1.0
+
+                lambda_result = calculate_poisson_lambda_from_history(
+                    home_history, away_history,
+                    league_avg_home, league_avg_away
+                )
+
+                if lambda_result is None:
+                    continue
+
+                lambda_home = lambda_result['home_lambda']
+                lambda_away = lambda_result['away_lambda']
+
+                probs = get_poisson_probs(lambda_home, lambda_away)
+                over25_prob = probs['over25_yes']
+
+                odds_h_bin = get_odds_bin(match['odds_h'])
+                odds_over_bin = get_odds_bin(match['odds_over'])
+                prob_bin = get_probability_bin(over25_prob)
+
+                key = (odds_h_bin, odds_over_bin, prob_bin)
+
+                if key not in file_stats:
+                    file_stats[key] = {'total': 0, 'hits': 0}
+
+                file_stats[key]['total'] += 1
+                if total_goals > 2.5:
+                    file_stats[key]['hits'] += 1
+
+                analyzed += 1
+
+            except Exception:
+                continue
+
+        print(f"   ✅ Проанализировано: {analyzed}")
+
+        # Объединяем статистику из файла в общую
+        for key, data in file_stats.items():
+            if key not in all_stats:
+                all_stats[key] = {'total': 0, 'hits': 0}
+            all_stats[key]['total'] += data['total']
+            all_stats[key]['hits'] += data['hits']
+
+    return league_name, all_stats
 
 
-def print_folder_stats(stats):
-    """Выводит статистику по папке"""
-    print("\n" + "=" * 80)
-    print(f"СТАТИСТИКА ПО ПАПКЕ: {stats['folder_name']}")
-    print("=" * 80)
-
-    print(f"\n📊 ОБЩАЯ СТАТИСТИКА:")
-    print(f"   Всего файлов: {stats['total_files']}")
-    print(f"   Обработано файлов: {stats['processed_files']}")
-    print(f"   Файлов с ошибками: {stats['files_with_errors']}")
-    print(f"   Всего матчей: {stats['total_matches']}")
-    print(f"   ✅ Проанализировано: {stats['total_analyzed']}")
-    print(f"   ⚠️ Пропущено: {stats['total_skipped']}")
-    print(f"   ❌ Ошибок: {stats['total_errors']}")
-
-    if stats['total_matches'] > 0:
-        analyzed_percent = (stats['total_analyzed'] / stats['total_matches']) * 100
-        print(f"\n📈 Процент проанализированных: {analyzed_percent:.1f}%")
-
-    print("\n📊 ПРИЧИНЫ ПРОПУСКА:")
-    total_skipped = stats['total_skipped']
-    for reason_code, reason_name in SKIP_REASONS.items():
-        count = stats['combined_skip_stats'].get(reason_code, 0)
-        if count > 0:
-            percent = (count / total_skipped) * 100 if total_skipped > 0 else 0
-            print(f"   {reason_name}: {count} ({percent:.1f}%)")
-
-    print("\n" + "=" * 80)
-    print("СТАТИСТИКА ПО ФАЙЛАМ:")
-    print("=" * 80)
-
-    for f in stats['files']:
-        analyzed_percent = (f['analyzed'] / f['total_matches']) * 100 if f['total_matches'] > 0 else 0
-        error_mark = " ❌" if f['errors'] > 0 else ""
-        print(f"{f['file_name']}{error_mark}: {f['analyzed']}/{f['total_matches']} = {analyzed_percent:.1f}%")
-
-        # Детали по пропускам для файла
-        if f.get('skip_stats'):
-            for reason, count in f['skip_stats'].items():
-                if count > 0:
-                    print(f"      - {SKIP_REASONS[reason]}: {count}")
-
-    if stats['combined_stats']:
-        print("\n" + "=" * 80)
-        print("ОБЪЕДИНЕННАЯ СТАТИСТИКА ПО БЛОКАМ")
-        print("=" * 80)
-
-        def sort_key(key):
-            odds_h_bin, odds_over_bin, prob_bin = key
-            odds_h_val = float(odds_h_bin.split('-')[0]) if odds_h_bin and '-' in odds_h_bin else 0
-            odds_over_val = float(odds_over_bin.split('-')[0]) if odds_over_bin and '-' in odds_over_bin else 0
-            prob_val = int(prob_bin.split('-')[0]) if prob_bin != '95-100%' else 95
-            return (odds_h_val, odds_over_val, prob_val)
-
-        sorted_keys = sorted(stats['combined_stats'].keys(), key=sort_key)
-
-        total_analyzed = 0
-        for key in sorted_keys:
-            data = stats['combined_stats'][key]
-            if data['total'] > 0:
-                odds_h_bin, odds_over_bin, prob_bin = key
-                hit_rate = (data['hits'] / data['total']) * 100
-                print(
-                    f"П1:{odds_h_bin} | ТБ:{odds_over_bin} | {prob_bin}: {data['hits']}/{data['total']} = {hit_rate:.1f}%")
-                total_analyzed += data['total']
-
-        print(f"\n📊 Всего учтено в статистике: {total_analyzed} матчей")
-
-
-def find_first_csv_file():
-    """Находит первый попавшийся CSV файл в папке ../all_matches/"""
+def save_stats(league_name, stats):
+    """Сохраняет статистику в PKL файл"""
     base_dir = Path(__file__).parent.parent
-    all_matches_dir = base_dir / 'all_matches'
+    output_dir = base_dir / 'analysis_results'
+    output_dir.mkdir(exist_ok=True)
 
-    if not all_matches_dir.exists():
-        print(f"❌ Папка не найдена: {all_matches_dir}")
-        return None
+    # Формируем имя файла
+    safe_name = league_name.replace(' ', '_').replace('/', '_')
+    output_file = output_dir / f"{safe_name}_stats.pkl"
 
-    for league_dir in all_matches_dir.iterdir():
-        if league_dir.is_dir():
-            return str(league_dir)
+    # Создаем структуру {название_лиги: статистика}
+    data_to_save = {league_name: stats}
 
-    print("❌ В папке all_matches нет подпапок с лигами")
-    return None
+    with open(output_file, 'wb') as f:
+        pickle.dump(data_to_save, f)
+
+    print(f"\n💾 Результаты сохранены в: {output_file}")
+    return output_file
+
+
+def print_stats(league_name, stats):
+    """Выводит статистику в консоль"""
+    print("\n" + "=" * 80)
+    print(f"СТАТИСТИКА ПО ЛИГЕ: {league_name}")
+    print("=" * 80)
+
+    total_matches = sum(data['total'] for data in stats.values())
+    print(f"\n📊 Всего проанализировано матчей: {total_matches}")
+
+    if total_matches == 0:
+        print("❌ Нет данных для анализа")
+        return
+
+    print("\n📊 СТАТИСТИКА ПО БЛОКАМ:")
+    print("-" * 80)
+
+    # Сортируем блоки по убыванию количества матчей
+    sorted_blocks = sorted(stats.items(), key=lambda x: x[1]['total'], reverse=True)
+
+    for key, data in sorted_blocks:
+        odds_h_bin, odds_over_bin, prob_bin = key
+        hit_rate = (data['hits'] / data['total']) * 100
+        print(f"П1:{odds_h_bin} | ТБ:{odds_over_bin} | {prob_bin}: {data['hits']}/{data['total']} = {hit_rate:.1f}%")
+
+    print(f"\n📊 Всего уникальных блоков: {len(stats)}")
+
+
+def read_and_print_pkl(pkl_file):
+    """Читает PKL файл и выводит его содержимое"""
+    print("\n" + "=" * 80)
+    print(f"ЧТЕНИЕ ФАЙЛА: {pkl_file}")
+    print("=" * 80)
+
+    try:
+        with open(pkl_file, 'rb') as f:
+            data = pickle.load(f)
+
+        print("✅ Файл успешно загружен")
+
+        # Выводим содержимое
+        if isinstance(data, dict):
+            for league_name, stats in data.items():
+                print_stats(league_name, stats)
+        else:
+            print(f"❌ Неожиданный формат данных: {type(data)}")
+
+    except Exception as e:
+        print(f"❌ Ошибка при чтении файла: {e}")
 
 
 def main():
-    import argparse
+    print("\n" + "🚀" * 10)
+    print("ЗАПУСК АНАЛИЗА")
+    print("🚀" * 10 + "\n")
 
-    parser = argparse.ArgumentParser(description='Анализ CSV файлов в папке')
-    parser.add_argument('folder', nargs='?', default=None, help='Путь к папке с CSV файлами')
+    # Путь к папке с данными (относительно скрипта)
+    base_dir = Path(__file__).parent.parent
+    target_folder = base_dir / 'all_matches' / 'АПЛ Англия'
 
-    args = parser.parse_args()
+    print(f"📁 Целевая папка: {target_folder}")
 
-    # Если папка не указана, ищем ../all_matches/первую_попавшуюся_папку
-    if not args.folder:
-        args.folder = find_first_csv_file()
-        if args.folder:
-            print(f"📁 Выбрана папка: {args.folder}")
-        else:
-            print("❌ Не удалось найти папку для анализа")
-            return
+    # Проверяем существование папки
+    if not target_folder.exists():
+        print(f"❌ Папка не найдена: {target_folder}")
+        return
 
     # Анализируем папку
-    stats = analyze_folder(args.folder)
+    league_name, stats = analyze_folder(str(target_folder))
 
-    if stats and stats['processed_files'] > 0:
+    if stats:
         # Выводим статистику
-        print_folder_stats(stats)
+        print_stats(league_name, stats)
 
-        # Сохраняем результаты
-        base_dir = Path(__file__).parent.parent
-        output_dir = base_dir / 'analysis_results'
-        output_dir.mkdir(exist_ok=True)
+        # Сохраняем в PKL
+        pkl_file = save_stats(league_name, stats)
 
-        folder_name = stats['folder_name'].replace(' ', '_').replace('/', '_')
-        output_file = output_dir / f"{folder_name}_analysis.pkl"
+        # Читаем и выводим сохраненный файл
+        read_and_print_pkl(pkl_file)
 
-        # Преобразуем ключи для сохранения
-        save_stats = {}
-        for key, value in stats['combined_stats'].items():
-            odds_h_bin, odds_over_bin, prob_bin = key
-            str_key = (str(odds_h_bin), str(odds_over_bin), str(prob_bin))
-            save_stats[str_key] = value
-
-        stats_for_save = {
-            'folder_name': stats['folder_name'],
-            'folder_path': stats['folder_path'],
-            'total_files': stats['total_files'],
-            'processed_files': stats['processed_files'],
-            'files_with_errors': stats['files_with_errors'],
-            'total_matches': stats['total_matches'],
-            'total_analyzed': stats['total_analyzed'],
-            'total_skipped': stats['total_skipped'],
-            'total_errors': stats['total_errors'],
-            'skip_stats': dict(stats['combined_skip_stats']),
-            'files': stats['files'],
-            'combined_stats': save_stats,
-            'predictions': stats['predictions']
-        }
-
-        with open(output_file, 'wb') as f:
-            pickle.dump(stats_for_save, f)
-
-        print(f"\n💾 Результаты сохранены в: {output_file}")
         print("\n" + "🎯" * 10)
-        print("АНАЛИЗ ПАПКИ ЗАВЕРШЕН")
+        print("РАБОТА ЗАВЕРШЕНА")
         print("🎯" * 10)
     else:
-        print("\n❌ НЕ УДАЛОСЬ ОБРАБОТАТЬ НИ ОДИН ФАЙЛ")
+        print("\n❌ НЕ УДАЛОСЬ ПОЛУЧИТЬ СТАТИСТИКУ")
 
 
 if __name__ == "__main__":
