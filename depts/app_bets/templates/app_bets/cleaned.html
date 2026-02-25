@@ -5,7 +5,6 @@
 <link rel="stylesheet" href="{% static 'app_bets/css/pages/cleaned.css' %}">
 
 <div class="cl-header">
-    <h1><i class="fa-solid fa-chart-line"></i> Сигналы (EV > {{ min_ev }}%)</h1>
     <p class="cl-header-description">Найдено матчей с положительным математическим ожиданием: {{ total_analyzed }}</p>
 </div>
 
@@ -48,42 +47,49 @@
     {% elif analysis_results %}
         {% for res in analysis_results %}
         <div class="cl-match-card">
-    <!-- Первая строка: время, матч и заголовки коэффициентов -->
-    <div class="cl-row-top">
-        <div class="cl-match-info">
-            <span class="cl-match-time">{{ res.time }}</span>
-            <span class="cl-match-name">{{ res.match }}</span>
-        </div>
-        <div class="cl-odds-headers">
-            <span class="cl-odds-header">ТБ 2.5</span>
-            <span class="cl-odds-sep">|</span>
-            <span class="cl-odds-header">ТМ 2.5</span>
-        </div>
-        <div class="cl-prediction">
-            <span class="cl-prediction-text">{{ res.target }}</span>
-        </div>
-    </div>
+            <!-- Основной контент (левая часть + правый блок) -->
+            <div class="cl-content-wrapper">
+                <!-- Левая часть с информацией -->
+                <div class="cl-left-content">
+                    <!-- Первая строка: время, матч, заголовки -->
+                    <div class="cl-row-top">
+                        <div class="cl-match-info">
+                            <span class="cl-match-time">{{ res.time }}</span>
+                            <span class="cl-match-name">{{ res.match }}</span>
+                        </div>
+                        <div class="cl-odds-headers">
+                            <span class="cl-odds-header">ТБ 2.5</span>
+                            <span class="cl-odds-sep">|</span>
+                            <span class="cl-odds-header">ТМ 2.5</span>
+                        </div>
+                    </div>
 
-    <!-- Вторая строка: лига, значения коэффициентов и EV -->
-    <div class="cl-row-middle">
-        <div class="cl-league">{{ res.league }}</div>
-        <div class="cl-odds-values">
-            <span class="cl-odds-value">{{ res.odds_over|floatformat:2 }}</span>
-            <span class="cl-odds-sep">|</span>
-            <span class="cl-odds-value">{{ res.odds_under|floatformat:2 }}</span>
-        </div>
-        <div class="cl-ev">
-            <span class="cl-ev-value">EV +{{ res.ev }}%</span>
-        </div>
-    </div>
+                    <!-- Вторая строка: лига и коэффициенты -->
+                    <div class="cl-row-middle">
+                        <div class="cl-league">{{ res.league }}</div>
+                        <div class="cl-odds-values">
+                            <span class="cl-odds-value">{{ res.odds_over|floatformat:2 }}</span>
+                            <span class="cl-odds-sep">|</span>
+                            <span class="cl-odds-value">{{ res.odds_under|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                </div>
 
-    <!-- Третья строка: кнопка -->
-    <div class="cl-row-bottom">
-        <a href="..." class="cl-account-btn">
-            <i class="fa-solid fa-book"></i> Учесть ставку
-        </a>
-    </div>
-</div>
+                <!-- Правый цветной блок на две строки -->
+                <div class="cl-right-block {% if 'ТБ' in res.target %}cl-right-green{% else %}cl-right-red{% endif %}">
+                    <span class="cl-right-target">{{ res.target }}</span>
+                    <span class="cl-right-sep">|</span>
+                    <span class="cl-right-ev">EV +{{ res.ev }}%</span>
+                </div>
+            </div>
+
+            <!-- Третья строка: кнопка (прижата вправо) -->
+            <div class="cl-row-bottom">
+                <a href="..." class="cl-account-btn">
+                    <i class="fa-solid fa-book"></i> Учесть ставку
+                </a>
+            </div>
+        </div>
         {% endfor %}
     {% else %}
         <div class="cl-no-results">
