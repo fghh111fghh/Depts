@@ -800,7 +800,7 @@ class AnalyzeView(ListView):
             'over25_no': over25_no
         }
 
-@method_decorator(cache_page(60 * 60 * 24), name='dispatch')  # кэш на 24 часа
+# @method_decorator(cache_page(60 * 60 * 24), name='dispatch')  # кэш на 24 часа
 class CleanedTemplateView(TemplateView):
     """
     Представление для анализа матчей из Excel файла с использованием калибровочных данных.

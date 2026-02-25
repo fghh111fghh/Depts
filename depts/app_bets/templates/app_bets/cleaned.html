@@ -47,11 +47,11 @@
     {% elif analysis_results %}
         {% for res in analysis_results %}
         <div class="cl-match-card">
-            <!-- Основной контент (левая часть + правый блок) -->
+            <!-- Контейнер для левой части и правого блока -->
             <div class="cl-content-wrapper">
                 <!-- Левая часть с информацией -->
                 <div class="cl-left-content">
-                    <!-- Первая строка: время, матч, заголовки -->
+                    <!-- Первая строка: время, матч, заголовки кэфов, заголовок выборки -->
                     <div class="cl-row-top">
                         <div class="cl-match-info">
                             <span class="cl-match-time">{{ res.time }}</span>
@@ -62,9 +62,11 @@
                             <span class="cl-odds-sep">|</span>
                             <span class="cl-odds-header">ТМ 2.5</span>
                         </div>
+                        <!-- Заголовок выборки в первой строке -->
+                        <div class="cl-sample-header">Выборка</div>
                     </div>
 
-                    <!-- Вторая строка: лига и коэффициенты -->
+                    <!-- Вторая строка: лига, значения кэфов, значение выборки -->
                     <div class="cl-row-middle">
                         <div class="cl-league">{{ res.league }}</div>
                         <div class="cl-odds-values">
@@ -72,6 +74,8 @@
                             <span class="cl-odds-sep">|</span>
                             <span class="cl-odds-value">{{ res.odds_under|floatformat:2 }}</span>
                         </div>
+                        <!-- Значение выборки во второй строке -->
+                        <div class="cl-sample-value">{{ res.hits }} / {{ res.total }}</div>
                     </div>
                 </div>
 

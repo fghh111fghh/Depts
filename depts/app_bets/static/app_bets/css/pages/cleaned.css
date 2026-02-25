@@ -131,29 +131,30 @@
 /* Контейнер для левой части и правого блока */
 .cl-content-wrapper {
     display: flex;
-    align-items: center; /* Вертикальное выравнивание */
+    align-items: center;
     gap: 15px;
     margin-bottom: 12px;
 }
 
 /* Левая часть (информация о матче) */
 .cl-left-content {
-    flex: 1; /* Занимает все доступное место */
+    flex: 1;
 }
 
 /* Первая строка */
 .cl-row-top {
     display: flex;
     align-items: center;
-    height: 32px; /* Уменьшил высоту */
+    height: 32px;
     margin-bottom: 2px;
+    width: 100%;
 }
 
 .cl-match-info {
     display: flex;
     align-items: center;
     gap: 12px;
-    width: 60%; /* Фиксированная ширина */
+    width: 45%;
 }
 
 .cl-match-time {
@@ -177,7 +178,7 @@
     display: flex;
     align-items: center;
     gap: 15px;
-    width: 40%; /* Фиксированная ширина */
+    width: 30%;
     justify-content: center;
 }
 
@@ -200,19 +201,32 @@
     color: #4a5568;
 }
 
+/* Заголовок выборки в первой строке - ЦЕНТРИРОВАН */
+.cl-sample-header {
+    width: 25%;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    white-space: nowrap;
+}
+
 /* Вторая строка */
 .cl-row-middle {
     display: flex;
     align-items: center;
-    height: 32px; /* Уменьшил высоту */
+    height: 32px;
+    width: 100%;
 }
 
 .cl-league {
-    width: 60%; /* Совпадает с шириной match-info */
+    width: 45%;
     font-size: 0.95rem;
     color: var(--text-secondary);
     font-weight: 500;
-    padding-left: 67px; /* Под временем */
+    padding-left: 67px;
     white-space: nowrap;
 }
 
@@ -220,7 +234,7 @@
     display: flex;
     align-items: center;
     gap: 15px;
-    width: 40%; /* Совпадает с шириной odds-headers */
+    width: 30%;
     justify-content: center;
 }
 
@@ -230,18 +244,28 @@
     color: var(--text-primary);
 }
 
-/* ПРАВИЛЬНЫЙ ПРАВЫЙ БЛОК - одна строка, компактный */
+/* Значение выборки во второй строке - ЦЕНТРИРОВАНО */
+.cl-sample-value {
+    width: 25%;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Правый цветной блок */
 .cl-right-block {
-    flex: 0 0 auto; /* Не растягивается */
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     background: linear-gradient(135deg, var(--accent-green), var(--accent-green-dark));
     color: white;
-    border-radius: 30px; /* Уменьшил скругление */
-    height: 40px; /* Сильно уменьшил высоту */
-    padding: 0 16px; /* Только горизонтальные отступы */
+    border-radius: 30px;
+    height: 40px;
+    padding: 0 16px;
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
     white-space: nowrap;
 }
@@ -253,7 +277,7 @@
 
 .cl-right-target, .cl-right-ev {
     font-weight: 900;
-    font-size: 1rem; /* Уменьшил шрифт */
+    font-size: 1rem;
     line-height: 1;
 }
 
@@ -263,7 +287,7 @@
     line-height: 1;
 }
 
-/* Третья строка - кнопка прижата вправо */
+/* Третья строка - кнопка */
 .cl-row-bottom {
     display: flex;
     justify-content: flex-end;
@@ -274,7 +298,7 @@
 .cl-account-btn {
     background: transparent;
     color: var(--text-muted);
-    padding: 6px 20px; /* Уменьшил отступы */
+    padding: 6px 20px;
     border-radius: 30px;
     text-decoration: none;
     font-weight: 600;
@@ -320,6 +344,25 @@
 }
 
 /* ====== АДАПТИВНОСТЬ ====== */
+@media (max-width: 992px) {
+    .cl-match-info {
+        width: 40%;
+    }
+
+    .cl-odds-headers {
+        width: 25%;
+    }
+
+    .cl-odds-values {
+        width: 25%;
+    }
+
+    .cl-sample-header,
+    .cl-sample-value {
+        width: 20%;
+    }
+}
+
 @media (max-width: 768px) {
     .cl-content-wrapper {
         flex-direction: column;
@@ -332,19 +375,26 @@
         margin-top: 10px;
     }
 
+    .cl-row-top, .cl-row-middle {
+        flex-wrap: wrap;
+        height: auto;
+        gap: 5px;
+    }
+
     .cl-match-info,
-    .cl-league {
+    .cl-league,
+    .cl-odds-headers,
+    .cl-odds-values,
+    .cl-sample-header,
+    .cl-sample-value {
         width: 100%;
+        padding-left: 0;
+        text-align: left;
+        justify-content: flex-start;
     }
 
     .cl-league {
         padding-left: 0;
-    }
-
-    .cl-odds-headers,
-    .cl-odds-values {
-        width: 100%;
-        justify-content: flex-start;
     }
 
     .cl-controls {
@@ -381,6 +431,10 @@
     }
 
     .cl-right-target, .cl-right-ev {
+        font-size: 0.9rem;
+    }
+
+    .cl-sample-value {
         font-size: 0.9rem;
     }
 }
