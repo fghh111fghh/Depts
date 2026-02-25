@@ -2,8 +2,9 @@
 :root {
     --dark-bg-primary: #0a0c10;
     --dark-bg-secondary: #14181f;
-    --dark-bg-card: #1a1f2b;
-    --dark-bg-elevated: #232936;
+    --dark-bg-card-start: #1a1f2b;
+    --dark-bg-card-end: #232936;
+    --dark-bg-elevated: #2d3442;
 
     --accent-blue: #3b82f6;
     --accent-blue-light: #60a5fa;
@@ -66,7 +67,7 @@
     padding: 6px 14px;
     border: 1px solid var(--border-dark);
     border-radius: 30px;
-    background: var(--dark-bg-card);
+    background: var(--dark-bg-card-start);
     color: var(--text-muted);
     font-weight: 600;
     font-size: 0.9rem;
@@ -114,18 +115,38 @@
     gap: 12px;
 }
 
+/* Карточки с градиентным фоном */
 .cl-match-card {
-    background: var(--dark-bg-card);
+    background: linear-gradient(135deg, var(--dark-bg-card-start) 0%, var(--dark-bg-card-end) 100%);
     border-radius: 20px;
     padding: 16px 20px;
     border: 1px solid var(--border-dark);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    overflow: hidden;
 }
 
+/* Эффект свечения при наведении */
 .cl-match-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6);
-    border-color: var(--accent-blue);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--accent-blue);
+}
+
+/* Верхняя акцентная полоска */
+.cl-match-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-green), var(--accent-purple));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.cl-match-card:hover::before {
+    opacity: 0.5;
 }
 
 /* Контейнер для левой части и правого блока */
@@ -201,7 +222,7 @@
     color: #4a5568;
 }
 
-/* Заголовок выборки в первой строке - ЦЕНТРИРОВАН */
+/* Заголовок выборки в первой строке */
 .cl-sample-header {
     width: 25%;
     font-size: 0.8rem;
@@ -244,7 +265,7 @@
     color: var(--text-primary);
 }
 
-/* Значение выборки во второй строке - ЦЕНТРИРОВАНО */
+/* Значение выборки во второй строке */
 .cl-sample-value {
     width: 25%;
     font-size: 1rem;
@@ -319,7 +340,7 @@
 .cl-no-results {
     text-align: center;
     padding: 60px 20px;
-    background: var(--dark-bg-card);
+    background: linear-gradient(135deg, var(--dark-bg-card-start), var(--dark-bg-card-end));
     border-radius: 20px;
     border: 2px dashed var(--border-dark);
 }
