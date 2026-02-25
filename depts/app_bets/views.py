@@ -891,16 +891,13 @@ class CleanedTemplateView(TemplateView):
         pkl_path = os.path.join(settings.BASE_DIR, 'analysis_results', 'all_leagues_complete_stats.pkl')
 
         if not os.path.exists(pkl_path):
-            print(f"❌ Файл калибровки не найден: {pkl_path}")
             return None
 
         try:
             with open(pkl_path, 'rb') as f:
                 data = pickle.load(f)
-            print(f"✅ Загружены калибровочные данные для {len(data)} лиг")
             return data
         except Exception as e:
-            print(f"❌ Ошибка загрузки калибровочных данных: {e}")
             return None
 
     def get_matches_from_excel(self):
@@ -921,7 +918,6 @@ class CleanedTemplateView(TemplateView):
         excel_path = os.path.join(settings.BASE_DIR, 'for_analyze_matches.xlsx')
 
         if not os.path.exists(excel_path):
-            print(f"❌ Excel файл не найден: {excel_path}")
             return None
 
         try:
@@ -929,15 +925,10 @@ class CleanedTemplateView(TemplateView):
             required = ['Время', 'Хозяева', 'Гости', 'П1', 'ТБ2,5', 'ТМ2,5']
 
             if not all(col in df.columns for col in required):
-                print(f"❌ В Excel отсутствуют необходимые колонки")
-                print(f"   Имеются: {list(df.columns)}")
-                print(f"   Требуются: {required}")
                 return None
 
-            print(f"✅ Загружено {len(df)} матчей из Excel")
             return df
         except Exception as e:
-            print(f"❌ Ошибка загрузки Excel: {e}")
             return None
 
     def find_team(self, name):
@@ -962,33 +953,25 @@ class CleanedTemplateView(TemplateView):
             # Очищаем имя от лишних пробелов
             clean_name = " ".join(name.split()).lower()
 
-            print(f"   🔍 Поиск команды: '{name}'")
-
             # 1. Поиск по точному каноническому имени (приоритет)
             team = Team.objects.filter(name=name).first()
             if team:
-                print(f"   ✅ Команда найдена по точному имени: {team.name}")
                 return team
 
             # 2. Поиск по алиасам (если точного имени нет)
             alias = TeamAlias.objects.filter(name=clean_name).select_related('team').first()
             if alias:
-                print(f"   ✅ Команда найдена по алиасу: {name} -> {alias.team.name}")
                 return alias.team
 
             # 3. Поиск по частичному совпадению (запасной вариант)
             team = Team.objects.filter(name__icontains=name).first()
             if team:
-                print(f"   ⚠️ Команда найдена по частичному совпадению: {name} -> {team.name}")
                 # Создаем алиас для будущего использования
                 TeamAlias.objects.get_or_create(name=clean_name, team=team)
                 return team
-
-            print(f"   ❌ Команда не найдена: {name}")
             return None
 
         except Exception as e:
-            print(f"   ❌ Ошибка при поиске команды {name}: {e}")
             return None
 
     def get_league_for_team(self, team):
@@ -1009,10 +992,8 @@ class CleanedTemplateView(TemplateView):
         ).select_related('league').order_by('-date').first()
 
         if last_match:
-            print(f"   ✅ Лига определена: {last_match.league.name}")
             return last_match.league
         else:
-            print(f"   ⚠️ У команды {team.name} нет матчей в БД")
             return None
 
     def calculate_poisson_for_match(self, home_team, away_team, league):
@@ -1028,8 +1009,6 @@ class CleanedTemplateView(TemplateView):
             if not current_season:
                 current_season = Season.objects.order_by('-start_date').first()
 
-            print(f"   📅 Используем сезон: {current_season.name if current_season else 'None'}")
-
             # Создаем временный объект Match с правильным сезоном
             temp_match = Match(
                 home_team=home_team,
@@ -1043,7 +1022,6 @@ class CleanedTemplateView(TemplateView):
             lambda_result = temp_match.calculate_poisson_lambda(date=now(), last_n=7)
 
             if 'error' in lambda_result:
-                print(f"   ⚠️ Ошибка расчета Пуассона: {lambda_result.get('error')}")
                 # В AnalyzeView при ошибке используются дефолтные значения
                 lambda_home = 1.2
                 lambda_away = 1.0
@@ -1055,8 +1033,6 @@ class CleanedTemplateView(TemplateView):
             probs = AnalyzeView.get_poisson_probs(lambda_home, lambda_away)
             over_prob = probs['over25_yes']
 
-            print(f"   📊 Лямбды: {lambda_home:.2f} : {lambda_away:.2f}, ТБ={over_prob:.1f}%")
-
             return {
                 'home_lambda': lambda_home,
                 'away_lambda': lambda_away,
@@ -1065,7 +1041,6 @@ class CleanedTemplateView(TemplateView):
             }
 
         except Exception as e:
-            print(f"❌ Ошибка расчета Пуассона: {e}")
             import traceback
             traceback.print_exc()
             return None
@@ -1088,7 +1063,6 @@ class CleanedTemplateView(TemplateView):
                    'prob', 'total', 'hits', 'interval' или None если нет данных
         """
         if league_name not in calib_data:
-            print(f"   ⚠️ Лига '{league_name}' не найдена в калибровочных данных")
             return None, None
 
         league_stats = calib_data[league_name]
@@ -1100,8 +1074,6 @@ class CleanedTemplateView(TemplateView):
 
         key = (p1_bin, tb_bin, prob_bin)
 
-        print(f"   🔍 Поиск ключа: П1:{p1_bin} | ТБ:{tb_bin} | {prob_bin}")
-
         if key in league_stats:
             stats = league_stats[key]
             total = stats['total']
@@ -1110,9 +1082,6 @@ class CleanedTemplateView(TemplateView):
 
             over_prob = (hits_over / total) * 100 if total > 0 else 0
             under_prob = (hits_under / total) * 100 if total > 0 else 0
-
-            print(
-                f"   ✅ Найдено: total={total}, ТБ={hits_over} ({over_prob:.1f}%), ТМ={hits_under} ({under_prob:.1f}%)")
 
             over_data = {
                 'prob': over_prob,
@@ -1130,11 +1099,6 @@ class CleanedTemplateView(TemplateView):
 
             return over_data, under_data
         else:
-            print(f"   ❌ Точный ключ не найден")
-            # Покажем несколько похожих ключей для отладки
-            similar = 0
-            for k in list(league_stats.keys())[:3]:
-                print(f"      Доступный ключ: {k[0]} | {k[1]} | {k[2]}")
             return None, None
 
     def get_context_data(self, **kwargs):
@@ -1181,10 +1145,6 @@ class CleanedTemplateView(TemplateView):
         MIN_EV = 7  # Минимальное EV в процентах
         MIN_TOTAL = 3  # Минимальное количество матчей в выборке
 
-        print(f"\n{'=' * 60}")
-        print("НАЧАЛО АНАЛИЗА МАТЧЕЙ")
-        print('=' * 60)
-
         for idx, row in excel_df.iterrows():
             try:
                 # Парсим время
@@ -1200,17 +1160,8 @@ class CleanedTemplateView(TemplateView):
                 odds_over = float(row['ТБ2,5']) if not pd.isna(row['ТБ2,5']) else None
                 odds_under = float(row['ТМ2,5']) if not pd.isna(row['ТМ2,5']) else None
 
-                print(f"\n{'=' * 60}")
-                print(f"МАТЧ #{idx + 1}: {home_name} vs {away_name}")
-                print(f"{'=' * 60}")
-                print(f"   Время: {time_str}")
-                print(f"   Кэф П1: {odds_h}")
-                print(f"   Кэф ТБ2.5: {odds_over}")
-                print(f"   Кэф ТМ2.5: {odds_under}")
-
                 # Проверяем наличие всех коэффициентов
                 if not odds_h or not odds_over or not odds_under:
-                    print(f"   ❌ Отсутствуют коэффициенты")
                     continue
 
                 # Находим команды
@@ -1218,31 +1169,22 @@ class CleanedTemplateView(TemplateView):
                 away_team = self.find_team(away_name)
 
                 if not home_team:
-                    print(f"   ❌ Не найдена команда хозяев: {home_name}")
                     continue
                 if not away_team:
-                    print(f"   ❌ Не найдена команда гостей: {away_name}")
                     continue
 
                 # Определяем лигу
                 league = self.get_league_for_team(home_team) or self.get_league_for_team(away_team)
                 if not league:
-                    print(f"   ❌ Не удалось определить лигу")
                     continue
-
-                print(f"   ✅ Лига: {league.name}")
 
                 # Рассчитываем Пуассон
                 poisson_result = self.calculate_poisson_for_match(home_team, away_team, league)
                 if not poisson_result:
-                    print(f"   ❌ Не удалось рассчитать Пуассон")
                     continue
 
                 over_prob = poisson_result['over_prob']
                 under_prob = poisson_result['under_prob']
-
-                print(f"   📊 Пуассон: ТБ={over_prob:.1f}%, ТМ={under_prob:.1f}%")
-                print(f"   📊 Лямбды: {poisson_result['home_lambda']:.2f} : {poisson_result['away_lambda']:.2f}")
 
                 # Находим калибровку
                 over_data, under_data = self.find_calibration(
@@ -1254,10 +1196,7 @@ class CleanedTemplateView(TemplateView):
                     ev_over = (over_data['prob'] / 100.0) * odds_over - 1
                     ev_over_percent = ev_over * 100
 
-                    print(f"   💰 EV ТБ: {ev_over_percent:.1f}% (на основе {over_data['hits']}/{over_data['total']})")
-
                     if ev_over_percent > MIN_EV:
-                        print(f"   ✅ ТБ ПРОХОДИТ! EV={ev_over_percent:.1f}%")
                         analysis_results.append({
                             'time': time_str,
                             'time_sort': time_str,  # для сортировки по времени
@@ -1291,10 +1230,7 @@ class CleanedTemplateView(TemplateView):
                     ev_under = (under_data['prob'] / 100.0) * odds_under - 1
                     ev_under_percent = ev_under * 100
 
-                    print(f"   💰 EV ТМ: {ev_under_percent:.1f}% (на основе {under_data['hits']}/{under_data['total']})")
-
                     if ev_under_percent > MIN_EV:
-                        print(f"   ✅ ТМ ПРОХОДИТ! EV={ev_under_percent:.1f}%")
                         analysis_results.append({
                             'time': time_str,
                             'time_sort': time_str,
@@ -1324,7 +1260,6 @@ class CleanedTemplateView(TemplateView):
                         })
 
             except Exception as e:
-                print(f"❌ Ошибка при обработке строки {idx}: {e}")
                 import traceback
                 traceback.print_exc()
                 continue
@@ -1352,10 +1287,6 @@ class CleanedTemplateView(TemplateView):
         context['analysis_results'] = analysis_results
         context['total_analyzed'] = len(analysis_results)
         context['min_ev'] = MIN_EV
-
-        print(f"\n{'=' * 60}")
-        print(f"ИТОГО: найдено {len(analysis_results)} сигналов с EV > {MIN_EV}% и total >= {MIN_TOTAL}")
-        print('=' * 60)
 
         return context
 
