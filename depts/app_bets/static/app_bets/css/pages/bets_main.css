@@ -1,21 +1,51 @@
-/* ====== СТИЛИ ДЛЯ ГЛАВНОЙ СТРАНИЦЫ СТАВОК ====== */
+/* ====== ТЁМНАЯ ТЕМА ДЛЯ ГЛАВНОЙ СТРАНИЦЫ СТАВОК ====== */
 
 /* ---------- ОСНОВНЫЕ КОНСТАНТЫ ---------- */
 :root {
-    --bets-primary: #3498db;
-    --bets-primary-dark: #2980b9;
-    --bets-success: #2ecc71;
-    --bets-success-dark: #27ae60;
-    --bets-danger: #e74c3c;
-    --bets-warning: #f39c12;
-    --bets-info: #3498db;
-    --bets-text: #0f172a;
-    --bets-text-muted: #64748b;
-    --bets-border: #e2e8f0;
-    --bets-bg-light: #f8fafc;
-    --bets-bg-white: #ffffff;
-    --bets-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    --bets-radius: 8px;
+    --dark-bg-primary: #0a0c10;
+    --dark-bg-secondary: #14181f;
+    --dark-bg-card: #1a1f2b;
+    --dark-bg-elevated: #232936;
+    --dark-bg-light: #2d3442;
+
+    --accent-green: #10b981;
+    --accent-green-dark: #059669;
+    --accent-green-light: #34d399;
+
+    --accent-red: #ef4444;
+    --accent-red-dark: #dc2626;
+    --accent-red-light: #f87171;
+
+    --accent-yellow: #f59e0b;
+    --accent-yellow-dark: #d97706;
+    --accent-yellow-light: #fbbf24;
+
+    --accent-blue: #3b82f6;
+    --accent-blue-dark: #2563eb;
+    --accent-blue-light: #60a5fa;
+
+    --accent-purple: #8b5cf6;
+
+    --text-primary: #ffffff;
+    --text-secondary: #e2e8f0;
+    --text-muted: #94a3b8;
+    --text-dark: #1e293b;
+
+    --border-dark: #2d3748;
+    --border-light: #4a5568;
+
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-glow-green: 0 4px 15px rgba(16, 185, 129, 0.3);
+    --shadow-glow-red: 0 4px 15px rgba(239, 68, 68, 0.3);
+    --shadow-glow-yellow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    --shadow-glow-blue: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+body {
+    background: var(--dark-bg-primary);
+    color: var(--text-primary);
 }
 
 /* ---------- СОРТИРОВКА ---------- */
@@ -26,7 +56,7 @@
     flex-wrap: wrap;
     gap: 20px;
     padding: 20px 0;
-    border-bottom: 2px solid var(--bets-border);
+    border-bottom: 2px solid var(--border-dark);
     margin-bottom: 25px;
 }
 
@@ -47,15 +77,15 @@
     font-size: 0.9rem;
     text-decoration: none;
     transition: all 0.2s ease;
-    border: 2px solid transparent;
-    background: var(--bets-success);
+    border: 1px solid transparent;
+    background: linear-gradient(135deg, var(--accent-green), var(--accent-green-dark));
     color: white;
+    box-shadow: var(--shadow-glow-green);
 }
 
 .bets-export-btn:hover {
-    background: var(--bets-success-dark);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);
 }
 
 .bets-sort-wrapper {
@@ -67,9 +97,10 @@
 
 .bets-sort-label {
     font-weight: 800;
-    color: var(--bets-text-muted);
+    color: var(--text-muted);
     font-size: 0.85rem;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .bets-sort-form {
@@ -80,10 +111,10 @@
 
 .bets-sort-btn {
     padding: 8px 16px;
-    border: 1px solid var(--bets-border);
+    border: 1px solid var(--border-dark);
     border-radius: 30px;
-    background: white;
-    color: var(--bets-text-muted);
+    background: var(--dark-bg-card);
+    color: var(--text-muted);
     font-weight: 600;
     font-size: 0.85rem;
     cursor: pointer;
@@ -91,15 +122,16 @@
 }
 
 .bets-sort-btn:hover {
-    background: var(--bets-bg-light);
-    border-color: var(--bets-primary);
-    color: var(--bets-primary);
+    border-color: var(--accent-blue);
+    color: var(--text-primary);
+    background: var(--dark-bg-elevated);
 }
 
 .bets-sort-btn.active {
-    background: var(--bets-primary);
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
     color: white;
-    border-color: var(--bets-primary);
+    border-color: transparent;
+    box-shadow: var(--shadow-glow-blue);
 }
 
 /* ---------- ЗАГОЛОВОК ---------- */
@@ -110,13 +142,13 @@
 
 .ds-header-block h1 {
     font-size: 2.2rem;
-    color: var(--bets-text);
+    color: var(--text-primary);
     font-weight: 900;
     letter-spacing: -0.5px;
 }
 
 .ds-header-block h1 i {
-    color: var(--bets-primary);
+    color: var(--accent-blue);
     margin-right: 10px;
 }
 
@@ -148,17 +180,18 @@
 }
 
 .bets-input-pane {
-    background: white;
+    background: var(--dark-bg-card);
     border-radius: 20px;
     padding: 25px;
-    box-shadow: var(--bets-shadow);
-    border: 1px solid var(--bets-border);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-dark);
+    backdrop-filter: blur(10px);
 }
 
 .bets-btn-analyze {
     width: 100%;
     padding: 16px;
-    background: var(--bets-success);
+    background: linear-gradient(135deg, var(--accent-green), var(--accent-green-dark));
     color: white;
     border: none;
     border-radius: 12px;
@@ -169,20 +202,20 @@
     transition: all 0.3s ease;
     margin-bottom: 20px;
     text-transform: uppercase;
+    box-shadow: var(--shadow-glow-green);
 }
 
 .bets-btn-analyze:hover {
-    background: var(--bets-success-dark);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(46, 204, 113, 0.3);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5);
 }
 
 .bets-counters {
-    background: var(--bets-bg-light);
+    background: var(--dark-bg-elevated);
     border-radius: 16px;
     padding: 20px;
     margin-bottom: 20px;
-    border: 1px solid var(--bets-border);
+    border: 1px solid var(--border-dark);
 }
 
 .bets-counters-container {
@@ -208,19 +241,19 @@
 }
 
 .bets-counter-icon.calculator {
-    background: rgba(52, 152, 219, 0.1);
-    color: var(--bets-primary);
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--accent-blue);
 }
 
 .bets-counter-icon.graduation {
-    background: rgba(243, 156, 18, 0.1);
-    color: var(--bets-warning);
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--accent-yellow);
 }
 
 .bets-counter-label {
     flex: 1;
     font-weight: 600;
-    color: var(--bets-text-muted);
+    color: var(--text-muted);
     font-size: 0.9rem;
 }
 
@@ -230,53 +263,59 @@
 }
 
 .bets-counter-value.blue {
-    color: var(--bets-primary);
+    color: var(--accent-blue);
 }
 
 .bets-counter-value.orange {
-    color: var(--bets-warning);
+    color: var(--accent-yellow);
 }
 
 .bets-counter-divider {
     height: 1px;
-    background: var(--bets-border);
+    background: var(--border-dark);
     margin: 5px 0;
 }
 
 .bets-input-label {
     display: block;
     font-weight: 800;
-    color: var(--bets-text);
+    color: var(--text-secondary);
     margin-bottom: 10px;
     font-size: 0.9rem;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .bets-textarea {
     width: 100%;
     padding: 15px;
-    border: 2px solid var(--bets-border);
+    border: 2px solid var(--border-dark);
     border-radius: 12px;
     font-family: monospace;
     font-size: 0.9rem;
     resize: vertical;
     outline: none;
     transition: all 0.2s ease;
-    background: white;
+    background: var(--dark-bg-secondary);
+    color: var(--text-primary);
 }
 
 .bets-textarea:focus {
-    border-color: var(--bets-primary);
-    box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1);
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+}
+
+.bets-textarea::placeholder {
+    color: var(--text-muted);
 }
 
 /* ---------- НЕИЗВЕСТНЫЕ КОМАНДЫ ---------- */
 .bets-unknown-section {
-    background: white;
+    background: var(--dark-bg-card);
     border-radius: 20px;
     padding: 25px;
-    box-shadow: var(--bets-shadow);
-    border: 1px solid var(--bets-border);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-dark);
 }
 
 .bets-unknown-title {
@@ -284,18 +323,23 @@
     align-items: center;
     gap: 10px;
     margin: 0 0 20px 0;
-    color: var(--bets-warning);
+    color: var(--accent-yellow);
     font-size: 1.1rem;
     font-weight: 800;
 }
 
+.bets-unknown-title i {
+    color: var(--accent-yellow);
+}
+
 .bets-unknown-badge {
-    background: var(--bets-warning);
-    color: white;
+    background: var(--accent-yellow);
+    color: var(--text-dark);
     padding: 4px 10px;
     border-radius: 20px;
     font-size: 0.8rem;
     margin-left: auto;
+    font-weight: 700;
 }
 
 .bets-alias-form {
@@ -303,35 +347,41 @@
     flex-direction: column;
     gap: 10px;
     padding: 15px;
-    border: 1px solid var(--bets-border);
+    border: 1px solid var(--border-dark);
     border-radius: 12px;
     margin-bottom: 15px;
-    background: var(--bets-bg-light);
+    background: var(--dark-bg-elevated);
 }
 
 .bets-alias-name {
     font-weight: 800;
-    color: var(--bets-text);
+    color: var(--text-primary);
     padding: 5px 0;
-    border-bottom: 1px dashed var(--bets-border);
+    border-bottom: 1px dashed var(--border-light);
 }
 
 .bets-alias-select {
     padding: 10px;
-    border: 2px solid var(--bets-border);
+    border: 2px solid var(--border-dark);
     border-radius: 8px;
     font-size: 0.9rem;
     outline: none;
-    background: white;
+    background: var(--dark-bg-secondary);
+    color: var(--text-primary);
 }
 
 .bets-alias-select:focus {
-    border-color: var(--bets-primary);
+    border-color: var(--accent-blue);
+}
+
+.bets-alias-select option {
+    background: var(--dark-bg-secondary);
+    color: var(--text-primary);
 }
 
 .bets-alias-btn {
     padding: 12px;
-    background: var(--bets-primary);
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
     color: white;
     border: none;
     border-radius: 8px;
@@ -342,28 +392,36 @@
 }
 
 .bets-alias-btn:hover {
-    background: var(--bets-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow-blue);
 }
 
 /* ---------- CSV СЕКЦИЯ ---------- */
 .bets-csv-section {
-    background: white;
+    background: var(--dark-bg-card);
     border-radius: 20px;
     padding: 25px;
-    box-shadow: var(--bets-shadow);
-    border: 1px solid var(--bets-border);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-dark);
 }
 
 .bets-csv-label {
     display: block;
     font-weight: 800;
-    color: var(--bets-text);
+    color: var(--text-secondary);
     margin-bottom: 10px;
     font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bets-csv-label i {
+    color: var(--accent-blue);
+    margin-right: 6px;
 }
 
 .bets-csv-description {
-    color: var(--bets-text-muted);
+    color: var(--text-muted);
     font-size: 0.85rem;
     margin-bottom: 15px;
     line-height: 1.4;
@@ -372,7 +430,7 @@
 .bets-csv-btn {
     width: 100%;
     padding: 14px;
-    background: var(--bets-info);
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
     color: white;
     border: none;
     border-radius: 12px;
@@ -381,30 +439,31 @@
     cursor: pointer;
     transition: all 0.2s ease;
     margin-bottom: 20px;
+    box-shadow: var(--shadow-glow-blue);
 }
 
 .bets-csv-btn:hover {
-    background: var(--bets-primary-dark);
     transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
 .bets-import-result {
     padding: 15px;
     border-radius: 12px;
-    background: var(--bets-bg-light);
+    background: var(--dark-bg-elevated);
     border-left: 4px solid transparent;
 }
 
 .bets-import-result.success {
-    border-left-color: var(--bets-success);
+    border-left-color: var(--accent-green);
 }
 
 .bets-import-result.error {
-    border-left-color: var(--bets-danger);
+    border-left-color: var(--accent-red);
 }
 
 .bets-import-result.warning {
-    border-left-color: var(--bets-warning);
+    border-left-color: var(--accent-yellow);
 }
 
 .bets-import-title {
@@ -416,26 +475,34 @@
     font-weight: 800;
 }
 
-.bets-import-title.success { color: var(--bets-success); }
-.bets-import-title.error { color: var(--bets-danger); }
-.bets-import-title.warning { color: var(--bets-warning); }
+.bets-import-title.success {
+    color: var(--accent-green);
+}
+
+.bets-import-title.error {
+    color: var(--accent-red);
+}
+
+.bets-import-title.warning {
+    color: var(--accent-yellow);
+}
 
 .bets-import-message {
     font-size: 0.85rem;
-    color: var(--bets-text-muted);
+    color: var(--text-muted);
     margin-bottom: 10px;
     white-space: pre-wrap;
 }
 
 .bets-import-details {
     font-size: 0.85rem;
-    color: var(--bets-text);
+    color: var(--text-secondary);
     padding-top: 10px;
-    border-top: 1px solid var(--bets-border);
+    border-top: 1px solid var(--border-dark);
 }
 
 .bets-import-details strong {
-    color: var(--bets-primary);
+    color: var(--accent-blue);
 }
 
 /* ---------- ПРАВАЯ КОЛОНКА ---------- */
@@ -448,35 +515,55 @@
 .no-results {
     text-align: center;
     padding: 60px 20px;
-    background: white;
+    background: var(--dark-bg-card);
     border-radius: 20px;
-    border: 2px dashed var(--bets-border);
+    border: 2px dashed var(--border-dark);
 }
 
 .no-results-icon {
     font-size: 4rem;
-    color: var(--bets-text-muted);
+    color: var(--text-muted);
     margin-bottom: 20px;
     opacity: 0.3;
 }
 
 .no-results-text {
-    color: var(--bets-text-muted);
+    color: var(--text-secondary);
     font-size: 1.2rem;
 }
 
 /* ---------- КАРТОЧКА РЕЗУЛЬТАТА ---------- */
 .bets-result-card {
-    background: white;
+    background: var(--dark-bg-card);
     border-radius: 20px;
     padding: 25px;
-    box-shadow: var(--bets-shadow);
-    border: 1px solid var(--bets-border);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-dark);
     transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
 }
 
 .bets-result-card:hover {
-    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    transform: translateY(-4px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6);
+    border-color: var(--accent-blue);
+}
+
+.bets-result-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-green), var(--accent-purple));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.bets-result-card:hover::before {
+    opacity: 0.5;
 }
 
 /* Верхняя строка */
@@ -488,7 +575,7 @@
     gap: 15px;
     margin-bottom: 20px;
     padding-bottom: 15px;
-    border-bottom: 2px solid var(--bets-border);
+    border-bottom: 2px solid var(--border-dark);
 }
 
 .match-title-line {
@@ -498,14 +585,14 @@
 .match-name-large {
     font-size: 1.3rem;
     font-weight: 900;
-    color: var(--bets-text);
+    color: var(--text-primary);
     display: block;
     margin-bottom: 4px;
 }
 
 .league-line {
     font-size: 0.85rem;
-    color: var(--bets-text-muted);
+    color: var(--text-muted);
     font-weight: 600;
 }
 
@@ -513,9 +600,10 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    background: var(--bets-bg-light);
+    background: var(--dark-bg-elevated);
     padding: 10px 15px;
     border-radius: 30px;
+    border: 1px solid var(--border-dark);
 }
 
 .odd-box-line {
@@ -526,18 +614,18 @@
 .odd-label-line {
     font-size: 0.65rem;
     font-weight: 800;
-    color: var(--bets-text-muted);
+    color: var(--text-muted);
     text-transform: uppercase;
 }
 
 .odd-value-line {
     font-weight: 900;
-    color: var(--bets-text);
+    color: var(--text-primary);
     font-size: 1rem;
 }
 
 .odd-sep-line {
-    color: var(--bets-border);
+    color: var(--border-light);
     font-weight: 800;
 }
 
@@ -557,20 +645,21 @@
 
 /* Пуассон */
 .poisson-main-block {
-    background: var(--bets-bg-light);
+    background: var(--dark-bg-elevated);
     border-radius: 16px;
     padding: 20px;
+    border: 1px solid var(--border-dark);
 }
 
 .poisson-title {
     margin: 0 0 15px 0;
     font-size: 0.95rem;
-    color: var(--bets-text);
+    color: var(--text-secondary);
     font-weight: 800;
 }
 
 .poisson-title i {
-    color: var(--bets-primary);
+    color: var(--accent-blue);
     margin-right: 6px;
 }
 
@@ -585,8 +674,8 @@
 .score-rectangle {
     flex: 1;
     min-width: 50px;
-    background: white;
-    border: 1px solid var(--bets-border);
+    background: var(--dark-bg-card);
+    border: 1px solid var(--border-dark);
     border-radius: 8px;
     padding: 8px 4px;
     text-align: center;
@@ -595,28 +684,28 @@
 
 .score-rectangle:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .score-rectangle.home-win {
-    border-left: 4px solid var(--bets-success);
-    background: linear-gradient(to right, rgba(46, 204, 113, 0.05), white);
+    border-left: 4px solid var(--accent-green);
+    background: linear-gradient(to right, rgba(16, 185, 129, 0.1), var(--dark-bg-card));
 }
 
 .score-rectangle.away-win {
-    border-left: 4px solid var(--bets-danger);
-    background: linear-gradient(to right, rgba(231, 76, 60, 0.05), white);
+    border-left: 4px solid var(--accent-red);
+    background: linear-gradient(to right, rgba(239, 68, 68, 0.1), var(--dark-bg-card));
 }
 
 .score-rectangle.draw {
-    border-left: 4px solid var(--bets-warning);
-    background: linear-gradient(to right, rgba(243, 156, 18, 0.05), white);
+    border-left: 4px solid var(--accent-yellow);
+    background: linear-gradient(to right, rgba(245, 158, 11, 0.1), var(--dark-bg-card));
 }
 
 .score-value {
     display: block;
     font-weight: 800;
-    color: var(--bets-text);
+    color: var(--text-primary);
     font-size: 0.9rem;
 }
 
@@ -627,15 +716,15 @@
 }
 
 .score-rectangle.home-win .prob-value {
-    color: var(--bets-success);
+    color: var(--accent-green-light);
 }
 
 .score-rectangle.away-win .prob-value {
-    color: var(--bets-danger);
+    color: var(--accent-red-light);
 }
 
 .score-rectangle.draw .prob-value {
-    color: var(--bets-warning);
+    color: var(--accent-yellow-light);
 }
 
 /* BTTS, Тотал и Исторический анализ - три квадрата */
@@ -647,24 +736,24 @@
 }
 
 .btts-box, .total-box, .historical-box {
-    background: white;
+    background: var(--dark-bg-card);
     border-radius: 12px;
     padding: 12px;
-    border: 1px solid var(--bets-border);
+    border: 1px solid var(--border-dark);
     text-align: center;
     transition: all 0.2s ease;
 }
 
 .btts-box:hover, .total-box:hover, .historical-box:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-    border-color: var(--bets-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-color: var(--accent-blue);
 }
 
 .btts-label, .total-label, .historical-label {
     font-size: 0.7rem;
     font-weight: 800;
-    color: var(--bets-text-muted);
+    color: var(--text-muted);
     text-transform: uppercase;
     margin-bottom: 8px;
     letter-spacing: 0.3px;
@@ -677,19 +766,19 @@
 }
 
 .btts-yes, .total-yes, .historical-yes {
-    color: var(--bets-success);
+    color: var(--accent-green);
     font-weight: 900;
     font-size: 1.1rem;
 }
 
 .btts-no, .total-no, .historical-no {
-    color: var(--bets-danger);
+    color: var(--accent-red);
     font-weight: 900;
     font-size: 1.1rem;
 }
 
 .historical-no-data {
-    color: var(--bets-text-muted);
+    color: var(--text-muted);
     font-style: italic;
     font-size: 0.85rem;
     padding: 8px 0;
@@ -697,9 +786,10 @@
 
 /* Близнецы */
 .twins-main-block {
-    background: var(--bets-bg-light);
+    background: var(--dark-bg-elevated);
     border-radius: 16px;
     padding: 20px;
+    border: 1px solid var(--border-dark);
 }
 
 .twins-header {
@@ -712,17 +802,17 @@
 .twins-title {
     margin: 0;
     font-size: 0.95rem;
-    color: var(--bets-text);
+    color: var(--text-secondary);
     font-weight: 800;
 }
 
 .twins-title i {
-    color: var(--bets-info);
+    color: var(--accent-blue);
     margin-right: 6px;
 }
 
 .twins-count-value {
-    background: var(--bets-primary);
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
     color: white;
     padding: 6px 14px;
     border-radius: 30px;
@@ -731,7 +821,7 @@
     min-width: 45px;
     text-align: center;
     display: inline-block;
-    box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
+    box-shadow: var(--shadow-glow-blue);
 }
 
 .twins-probabilities {
@@ -745,9 +835,9 @@
     justify-content: space-between;
     align-items: center;
     padding: 8px 12px;
-    background: white;
+    background: var(--dark-bg-card);
     border-radius: 8px;
-    border: 1px solid var(--bets-border);
+    border: 1px solid var(--border-dark);
 }
 
 .twins-prob-label {
@@ -756,15 +846,15 @@
 }
 
 .twins-prob-label.p1 {
-    color: var(--bets-success);
+    color: var(--accent-green);
 }
 
 .twins-prob-label.x {
-    color: var(--bets-warning);
+    color: var(--accent-yellow);
 }
 
 .twins-prob-label.p2 {
-    color: var(--bets-danger);
+    color: var(--accent-red);
 }
 
 .twins-prob-value {
@@ -773,31 +863,32 @@
 }
 
 .twins-prob-value.p1 {
-    color: var(--bets-success);
+    color: var(--accent-green);
 }
 
 .twins-prob-value.x {
-    color: var(--bets-warning);
+    color: var(--accent-yellow);
 }
 
 .twins-prob-value.p2 {
-    color: var(--bets-danger);
+    color: var(--accent-red);
 }
 
 .twins-no-data {
     text-align: center;
     padding: 15px;
-    color: var(--bets-text-muted);
+    color: var(--text-muted);
     font-style: italic;
     font-size: 0.85rem;
 }
 
 /* Исторический шаблон */
 .pattern-block {
-    background: var(--bets-bg-light);
+    background: var(--dark-bg-elevated);
     border-radius: 16px;
     padding: 20px;
     margin-bottom: 20px;
+    border: 1px solid var(--border-dark);
 }
 
 .pattern-header {
@@ -811,17 +902,17 @@
 
 .pattern-title {
     font-weight: 800;
-    color: var(--bets-text);
+    color: var(--text-secondary);
     font-size: 0.9rem;
 }
 
 .pattern-title i {
-    color: var(--bets-info);
+    color: var(--accent-blue);
     margin-right: 6px;
 }
 
 .pattern-count {
-    background: var(--bets-primary);
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
     color: white;
     padding: 6px 14px;
     border-radius: 30px;
@@ -830,7 +921,7 @@
     min-width: 45px;
     text-align: center;
     display: inline-block;
-    box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
+    box-shadow: var(--shadow-glow-blue);
 }
 
 .pattern-content {
@@ -856,31 +947,31 @@
     border-radius: 8px;
     font-weight: 900;
     font-size: 0.9rem;
-    background: white;
-    border: 1px solid var(--bets-border);
+    background: var(--dark-bg-card);
+    border: 1px solid var(--border-dark);
 }
 
 .p-badge.v-win {
-    background: var(--bets-success);
+    background: var(--accent-green);
     color: white;
-    border-color: var(--bets-success);
+    border-color: var(--accent-green);
 }
 
 .p-badge.v-loss {
-    background: var(--bets-danger);
+    background: var(--accent-red);
     color: white;
-    border-color: var(--bets-danger);
+    border-color: var(--accent-red);
 }
 
 .p-badge.v-draw {
-    background: var(--bets-warning);
+    background: var(--accent-yellow);
     color: white;
-    border-color: var(--bets-warning);
+    border-color: var(--accent-yellow);
 }
 
 .p-separator {
     font-weight: 900;
-    color: var(--bets-text-muted);
+    color: var(--text-muted);
     margin: 0 5px;
 }
 
@@ -896,29 +987,30 @@
 }
 
 .pattern-percent-item.p1 {
-    color: var(--bets-success);
+    color: var(--accent-green);
 }
 
 .pattern-percent-item.x {
-    color: var(--bets-warning);
+    color: var(--accent-yellow);
 }
 
 .pattern-percent-item.p2 {
-    color: var(--bets-danger);
+    color: var(--accent-red);
 }
 
 .pattern-no-data {
-    color: var(--bets-text-muted);
+    color: var(--text-muted);
     font-style: italic;
     font-size: 0.85rem;
 }
 
 /* Личные встречи */
 .h2h-block {
-    background: var(--bets-bg-light);
+    background: var(--dark-bg-elevated);
     border-radius: 16px;
     padding: 20px;
     margin-top: 20px;
+    border: 1px solid var(--border-dark);
 }
 
 .h2h-header {
@@ -932,17 +1024,17 @@
 
 .h2h-title {
     font-weight: 800;
-    color: var(--bets-text);
+    color: var(--text-secondary);
     font-size: 0.9rem;
 }
 
 .h2h-title i {
-    color: var(--bets-info);
+    color: var(--accent-blue);
     margin-right: 6px;
 }
 
 .h2h-total {
-    background: var(--bets-primary);
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
     color: white;
     padding: 6px 14px;
     border-radius: 30px;
@@ -951,7 +1043,7 @@
     min-width: 45px;
     text-align: center;
     display: inline-block;
-    box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
+    box-shadow: var(--shadow-glow-blue);
 }
 
 .h2h-grid {
@@ -964,26 +1056,25 @@
 .h2h-card {
     flex: 0 0 auto;
     min-width: 70px;
-    background: white;
-    border: 1px solid var(--bets-border);
+    background: var(--dark-bg-card);
+    border: 1px solid var(--border-dark);
     border-radius: 10px;
     padding: 10px 8px;
     text-align: center;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
 .h2h-card:hover {
     transform: translateY(-2px);
-    border-color: var(--bets-primary);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    border-color: var(--accent-blue);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .h2h-date {
     display: block;
     font-size: 0.75rem;
     font-weight: 600;
-    color: var(--bets-text-muted);
+    color: var(--text-muted);
     margin-bottom: 6px;
     white-space: nowrap;
 }
@@ -998,28 +1089,44 @@
 }
 
 .h2h-score.win {
-    background: var(--bets-success);
+    background: var(--accent-green);
     color: white;
 }
 
 .h2h-score.loss {
-    background: var(--bets-danger);
+    background: var(--accent-red);
     color: white;
 }
 
 .h2h-score.draw {
-    background: var(--bets-warning);
+    background: var(--accent-yellow);
     color: white;
 }
 
 .h2h-empty {
     text-align: center;
     padding: 20px;
-    color: var(--bets-text-muted);
+    color: var(--text-muted);
     font-style: italic;
     font-size: 0.85rem;
     width: 100%;
-    background: white;
+    background: var(--dark-bg-card);
     border-radius: 10px;
-    border: 1px dashed var(--bets-border);
+    border: 1px dashed var(--border-dark);
+}
+
+/* Анимация появления */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bets-result-card {
+    animation: fadeIn 0.4s ease forwards;
 }
