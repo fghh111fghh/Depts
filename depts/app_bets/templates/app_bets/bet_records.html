@@ -54,10 +54,6 @@
         </div>
 
         <div class="action-group ml-auto" style="display: flex; gap: 10px;">
-            <a href="{% url 'app_bets:cleaned' %}" class="btn-signals">
-                <i class="fa-solid fa-chart-line"></i> Сигналы
-                <span class="badge">анализ</span>
-            </a>
             <a href="{% url 'app_bets:export_bets_excel' %}?{{ request.GET.urlencode }}" class="btn btn-excel">
                 📊 Excel
             </a>

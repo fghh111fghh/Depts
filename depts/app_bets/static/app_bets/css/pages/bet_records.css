@@ -1,191 +1,69 @@
+/* ====== ТЁМНАЯ ТЕМА ДЛЯ СТРАНИЦЫ ЗАПИСЕЙ СТАВОК ====== */
+
 :root {
-    --primary: #2c3e50;
-    --success: #27ae60;
-    --danger: #e74c3c;
-    --warning: #f39c12;
-    --info: #3498db;
-    --light: #f8f9fa;
-    --dark: #343a40;
-    --border: #dee2e6;
-    --text-muted: #6c757d;
-    --gradient-start: #667eea;
-    --gradient-end: #764ba2;
+    --dark-bg-primary: #0a0c10;
+    --dark-bg-secondary: #14181f;
+    --dark-bg-card: #1a1f2b;
+    --dark-bg-elevated: #232936;
+    --dark-bg-light: #2d3442;
+    
+    --accent-blue: #3b82f6;
+    --accent-blue-dark: #2563eb;
+    --accent-blue-light: #60a5fa;
+    
+    --accent-green: #10b981;
+    --accent-green-dark: #059669;
+    --accent-green-light: #34d399;
+    
+    --accent-red: #ef4444;
+    --accent-red-dark: #dc2626;
+    --accent-red-light: #f87171;
+    
+    --accent-yellow: #f59e0b;
+    --accent-yellow-dark: #d97706;
+    --accent-yellow-light: #fbbf24;
+    
+    --accent-purple: #8b5cf6;
+    --accent-purple-dark: #7c3aed;
+    
+    --text-primary: #ffffff;
+    --text-secondary: #e2e8f0;
+    --text-muted: #94a3b8;
+    --text-dark: #1e293b;
+    
+    --border-dark: #2d3748;
+    --border-light: #4a5568;
+    
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-glow-green: 0 4px 15px rgba(16, 185, 129, 0.3);
+    --shadow-glow-red: 0 4px 15px rgba(239, 68, 68, 0.3);
+    --shadow-glow-blue: 0 4px 15px rgba(59, 130, 246, 0.3);
+    --shadow-glow-purple: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+body {
+    background: var(--dark-bg-primary);
+    color: var(--text-primary);
 }
 
 .bets-container {
     max-width: 1600px;
     margin: 0 auto;
     padding: 30px 20px;
+    background: var(--dark-bg-primary);
+    color: var(--text-primary);
 }
 
-/* ====== КНОПКИ ====== */
-.btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 24px;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-decoration: none;
-    gap: 8px;
-}
-
-.btn-primary {
-    background: #3498db;
-    color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-    background: #2980b9;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
-}
-
-.btn-excel {
-    background: #27ae60;
-    color: white;
-}
-
-.btn-excel:hover {
-    background: #219a52;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
-}
-
-.btn-secondary {
-    background: #6c757d;
-    color: white;
-}
-
-.btn-secondary:hover {
-    background: #5a6268;
-    transform: translateY(-2px);
-}
-
-.btn-danger {
-    background: #e74c3c;
-    color: white;
-}
-
-.btn-danger:hover {
-    background: #c0392b;
-    transform: translateY(-2px);
-}
-
-.btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Кнопка сигналов */
-.btn-signals {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 8px;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-    border: none;
-    cursor: pointer;
-}
-
-.btn-signals:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-.btn-signals .badge {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    margin-left: 5px;
-}
-
-/* ====== МОДАЛЬНЫЕ ОКНА ====== */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal.show {
-    display: flex;
-}
-
-.modal-content {
-    background: white;
-    border-radius: 20px;
-    padding: 30px;
-    max-width: 450px;
-    width: 90%;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--border);
-}
-
-.modal-title {
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: var(--primary);
-    margin: 0;
-}
-
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: var(--text-muted);
-}
-
-.modal-close:hover {
-    color: var(--danger);
-}
-
-.modal-body {
-    margin-bottom: 25px;
-    font-size: 1rem;
-    line-height: 1.5;
-}
-
-.modal-footer {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-}
-
-/* Баланс карточка */
+/* ====== БАЛАНС КАРТОЧКА ====== */
 .balance-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%);
     color: white;
     border-radius: 20px;
     padding: 30px;
     margin-bottom: 30px;
-    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.25);
+    box-shadow: var(--shadow-glow-purple);
 }
 
 .balance-label {
@@ -209,31 +87,130 @@
 }
 
 .stat-item {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
     border-radius: 15px;
     padding: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.stat-label {
+.stat-item .stat-label {
+    color: rgba(255, 255, 255, 0.8);
     font-size: 0.9rem;
-    opacity: 0.8;
     margin-bottom: 8px;
 }
 
-.stat-value {
+.stat-item .stat-value {
+    color: white;
     font-size: 1.8rem;
     font-weight: 600;
 }
 
-/* Панель действий */
+/* ====== КНОПКИ ====== */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 30px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    gap: 8px;
+    border: 1px solid transparent;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
+    color: white;
+    box-shadow: var(--shadow-glow-blue);
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.btn-excel {
+    background: linear-gradient(135deg, var(--accent-green), var(--accent-green-dark));
+    color: white;
+    box-shadow: var(--shadow-glow-green);
+}
+
+.btn-excel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.btn-secondary {
+    background: var(--dark-bg-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-dark);
+}
+
+.btn-secondary:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    background: var(--dark-bg-light);
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--accent-red), var(--accent-red-dark));
+    color: white;
+    box-shadow: var(--shadow-glow-red);
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Кнопка сигналов */
+.btn-signals {
+    background: linear-gradient(135deg, var(--accent-purple), var(--accent-purple-dark));
+    color: white;
+    padding: 10px 20px;
+    border-radius: 30px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-glow-purple);
+    border: 1px solid transparent;
+}
+
+.btn-signals:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+}
+
+.btn-signals .badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    margin-left: 5px;
+}
+
+/* ====== ПАНЕЛЬ ДЕЙСТВИЙ ====== */
 .action-bar {
-    background: white;
-    border-radius: 15px;
+    background: var(--dark-bg-card);
+    border-radius: 16px;
     padding: 20px;
     margin-bottom: 25px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-dark);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -250,33 +227,41 @@
 
 .action-select {
     padding: 10px 15px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    border: 2px solid var(--border-dark);
+    border-radius: 12px;
     font-size: 0.95rem;
     min-width: 200px;
-    background: white;
+    background: var(--dark-bg-secondary);
+    color: var(--text-primary);
     cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .action-select:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
-/* Панель фильтров */
+.action-select option {
+    background: var(--dark-bg-secondary);
+    color: var(--text-primary);
+}
+
+/* ====== ПАНЕЛЬ ФИЛЬТРОВ ====== */
 .filters-panel {
-    background: white;
-    border-radius: 15px;
+    background: var(--dark-bg-card);
+    border-radius: 16px;
     padding: 25px;
     margin-bottom: 25px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-dark);
 }
 
 .filters-title {
     font-size: 1.2rem;
     font-weight: 600;
-    color: var(--primary);
+    color: var(--text-primary);
     margin-bottom: 20px;
     display: flex;
     justify-content: space-between;
@@ -307,18 +292,24 @@
 .filter-group input,
 .filter-group select {
     padding: 10px 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    border: 2px solid var(--border-dark);
+    border-radius: 10px;
     font-size: 0.95rem;
     transition: all 0.2s;
-    background: white;
+    background: var(--dark-bg-secondary);
+    color: var(--text-primary);
 }
 
 .filter-group input:focus,
 .filter-group select:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.filter-group select option {
+    background: var(--dark-bg-secondary);
+    color: var(--text-primary);
 }
 
 .filter-actions {
@@ -327,10 +318,10 @@
     justify-content: flex-end;
     margin-top: 20px;
     padding-top: 20px;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--border-dark);
 }
 
-/* Карточки ставок */
+/* ====== КАРТОЧКИ СТАВОК ====== */
 .bets-list {
     display: flex;
     flex-direction: column;
@@ -338,35 +329,37 @@
 }
 
 .bet-card {
-    background: white;
-    border-radius: 12px;
+    background: var(--dark-bg-card);
+    border-radius: 16px;
     padding: 20px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-    transition: all 0.2s ease;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
     border-left: 4px solid transparent;
     display: flex;
     align-items: flex-start;
     gap: 20px;
+    border: 1px solid var(--border-dark);
 }
 
 .bet-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--accent-blue);
 }
 
 .bet-card.win {
-    border-left-color: var(--success);
-    background: linear-gradient(to right, #f0fff4, white);
+    border-left-color: var(--accent-green);
+    background: linear-gradient(to right, rgba(16, 185, 129, 0.1), var(--dark-bg-card));
 }
 
 .bet-card.loss {
-    border-left-color: var(--danger);
-    background: linear-gradient(to right, #fff5f5, white);
+    border-left-color: var(--accent-red);
+    background: linear-gradient(to right, rgba(239, 68, 68, 0.1), var(--dark-bg-card));
 }
 
 .bet-card.refund {
-    border-left-color: var(--warning);
-    background: linear-gradient(to right, #fffaf0, white);
+    border-left-color: var(--accent-yellow);
+    background: linear-gradient(to right, rgba(245, 158, 11, 0.1), var(--dark-bg-card));
 }
 
 .bet-checkbox {
@@ -377,7 +370,8 @@
     width: 20px;
     height: 20px;
     cursor: pointer;
-    accent-color: #667eea;
+    accent-color: var(--accent-blue);
+    background: var(--dark-bg-secondary);
 }
 
 .bet-content {
@@ -388,6 +382,7 @@
     align-items: flex-start;
 }
 
+/* Дата и время */
 .bet-datetime {
     min-width: 100px;
 }
@@ -401,9 +396,10 @@
 .bet-time {
     font-size: 1.2rem;
     font-weight: 600;
-    color: var(--primary);
+    color: var(--text-primary);
 }
 
+/* Информация о матче */
 .bet-match {
     flex: 2;
     min-width: 280px;
@@ -420,7 +416,7 @@
 .bet-teams {
     font-size: 1.2rem;
     font-weight: 600;
-    color: var(--primary);
+    color: var(--text-primary);
     margin-bottom: 3px;
 }
 
@@ -430,7 +426,7 @@
     margin: 0 5px;
 }
 
-/* Блок информации в карточке */
+/* Блок информации */
 .bet-info {
     display: flex;
     flex-wrap: wrap;
@@ -443,18 +439,19 @@
     font-weight: 600;
     padding: 5px 12px;
     border-radius: 20px;
-    background: var(--light);
+    background: var(--dark-bg-elevated);
+    border: 1px solid var(--border-dark);
 }
 
 .target-over {
-    color: var(--success);
+    color: var(--accent-green);
 }
 
 .target-under {
-    color: var(--danger);
+    color: var(--accent-red);
 }
 
-/* Кэф и сумма - одинаковый жирный шрифт */
+/* Кэф и сумма */
 .bet-odds,
 .bet-stake {
     font-size: 1.2rem;
@@ -462,30 +459,32 @@
 }
 
 .bet-odds {
-    color: var(--primary);
+    color: var(--text-primary);
 }
 
 .bet-stake {
-    color: var(--dark);
+    color: var(--text-primary);
 }
 
-/* Матожидание - жирный как кэф, зеленый */
+/* EV */
 .bet-ev {
     font-size: 1.2rem;
     font-weight: 700;
     padding: 4px 10px;
     border-radius: 15px;
-    background: var(--light);
+    background: var(--dark-bg-elevated);
+    border: 1px solid var(--border-dark);
 }
 
 .ev-positive {
-    color: var(--success);
+    color: var(--accent-green);
 }
 
 .ev-negative {
-    color: var(--danger);
+    color: var(--accent-red);
 }
 
+/* Результат */
 .bet-result {
     text-align: right;
     min-width: 120px;
@@ -502,15 +501,15 @@
 }
 
 .result-win {
-    background: var(--success);
+    background: var(--accent-green);
 }
 
 .result-loss {
-    background: var(--danger);
+    background: var(--accent-red);
 }
 
 .result-refund {
-    background: var(--warning);
+    background: var(--accent-yellow);
 }
 
 .bet-profit {
@@ -520,43 +519,131 @@
 }
 
 .bet-profit.profit-positive {
-    color: var(--success) !important;
+    color: var(--accent-green) !important;
     font-weight: 700 !important;
 }
 
 .bet-profit.profit-negative {
-    color: var(--danger) !important;
+    color: var(--accent-red) !important;
     font-weight: 700 !important;
 }
 
 /* Цвета для прибыли в блоке статистики */
 .profit-positive {
-    color: var(--success) !important;
+    color: var(--accent-green) !important;
 }
 
 .profit-negative {
-    color: var(--danger) !important;
+    color: var(--accent-red) !important;
 }
 
 .profit-badge {
-    background: white !important;
+    background: var(--dark-bg-elevated) !important;
     border-radius: 8px;
     padding: 5px 10px;
-    border: 1px solid #e0e0e0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-dark);
+    box-shadow: var(--shadow-sm);
 }
 
 .profit-badge .stat-label {
-    color: #000000 !important;
+    color: var(--text-muted) !important;
 }
 
-/* Пустое состояние */
+/* ====== МОДАЛЬНЫЕ ОКНА ====== */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--dark-bg-card);
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 450px;
+    width: 90%;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-dark);
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-dark);
+}
+
+.modal-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    color: var(--accent-red);
+}
+
+.modal-body {
+    margin-bottom: 25px;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.modal-body .text-danger {
+    color: var(--accent-red-light);
+}
+
+.modal-footer {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+/* ====== ПУСТОЕ СОСТОЯНИЕ ====== */
 .empty-state {
     text-align: center;
     padding: 60px 20px;
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+    background: var(--dark-bg-card);
+    border-radius: 20px;
+    box-shadow: var(--shadow-md);
+    border: 2px dashed var(--border-dark);
 }
 
 .empty-state i {
@@ -567,15 +654,16 @@
 }
 
 .empty-state h3 {
-    color: var(--primary);
+    color: var(--text-secondary);
     margin-bottom: 10px;
+    font-weight: 700;
 }
 
 .empty-state p {
     color: var(--text-muted);
 }
 
-/* Пагинация */
+/* ====== ПАГИНАЦИЯ ====== */
 .pagination-wrapper {
     margin-top: 40px;
     display: flex;
@@ -592,30 +680,49 @@
 .page-link {
     display: block;
     padding: 8px 16px;
-    border: 1px solid var(--border);
-    background: white;
-    color: var(--primary);
+    border: 1px solid var(--border-dark);
+    background: var(--dark-bg-card);
+    color: var(--text-secondary);
     text-decoration: none;
-    border-radius: 5px;
-    transition: all 0.2s;
+    border-radius: 8px;
+    transition: all 0.2s ease;
 }
 
 .page-link:hover {
-    background: #e9ecef;
+    background: var(--dark-bg-elevated);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
 }
 
 .page-item.active .page-link {
-    background: var(--primary);
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
     color: white;
-    border-color: var(--primary);
+    border-color: transparent;
+    box-shadow: var(--shadow-glow-blue);
 }
 
-/* Утилиты */
+/* ====== УТИЛИТЫ ====== */
 .ml-auto {
     margin-left: auto;
 }
 
-/* Адаптивность */
+/* ====== АНИМАЦИИ ====== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bet-card {
+    animation: fadeIn 0.4s ease forwards;
+}
+
+/* ====== АДАПТИВНОСТЬ ====== */
 @media (max-width: 768px) {
     .bets-container {
         padding: 15px;
@@ -669,5 +776,8 @@
     .filter-actions a {
         width: 100%;
     }
+    
+    .modal-content {
+        padding: 20px;
+    }
 }
-

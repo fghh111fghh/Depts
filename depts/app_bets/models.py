@@ -941,7 +941,7 @@ class BankTransaction(models.Model):
     balance_after = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Баланс после")
     description = models.TextField(blank=True, verbose_name="Описание")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата операции")
-    bet = models.ForeignKey('Bet', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Связанная ставка")
+    bet = models.ForeignKey('Bet', on_delete=models.CASCADE, null=True, blank=True, verbose_name="Связанная ставка")
 
     class Meta:
         ordering = ['-created_at']
