@@ -1,0 +1,345 @@
+/* ====== СТИЛИ ДЛЯ ФОРМЫ ДОБАВЛЕНИЯ СТАВКИ (ТЁМНАЯ ТЕМА) ====== */
+
+:root {
+    --dark-bg-primary: #0a0c10;
+    --dark-bg-secondary: #14181f;
+    --dark-bg-card: #1a1f2b;
+    --dark-bg-elevated: #232936;
+    --dark-bg-light: #2d3442;
+
+    --accent-blue: #3b82f6;
+    --accent-blue-dark: #2563eb;
+    --accent-blue-light: #60a5fa;
+
+    --accent-green: #10b981;
+    --accent-green-dark: #059669;
+
+    --accent-red: #ef4444;
+    --accent-red-dark: #dc2626;
+
+    --accent-yellow: #f59e0b;
+    --accent-purple: #8b5cf6;
+
+    --text-primary: #ffffff;
+    --text-secondary: #e2e8f0;
+    --text-muted: #94a3b8;
+
+    --border-dark: #2d3748;
+    --border-light: #4a5568;
+
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-glow-blue: 0 4px 15px rgba(59, 130, 246, 0.3);
+    --shadow-glow-green: 0 4px 15px rgba(16, 185, 129, 0.3);
+    --shadow-glow-red: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+/* ====== БАЗОВЫЕ СТИЛИ ФОРМЫ ====== */
+.bet-form {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background: var(--dark-bg-primary);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Заголовок формы */
+.bet-form h2 {
+    color: var(--text-primary);
+    font-size: 2rem;
+    font-weight: 900;
+    margin-bottom: 25px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--border-dark);
+}
+
+/* ====== СЕТКА ====== */
+.bet-form .row {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -12px;
+}
+
+.bet-form .col-md-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+    padding: 0 12px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .bet-form .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+
+/* ====== КАРТОЧКИ ====== */
+.bet-form .card {
+    background: var(--dark-bg-card);
+    border: 1px solid var(--border-dark);
+    border-radius: 20px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+}
+
+.bet-form .card:hover {
+    box-shadow: var(--shadow-lg);
+    border-color: var(--accent-blue);
+}
+
+/* Заголовки карточек */
+.bet-form .card-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-dark);
+    background: var(--dark-bg-elevated);
+}
+
+.bet-form .card-header.bg-match {
+    background: linear-gradient(135deg, var(--dark-bg-elevated), var(--dark-bg-card));
+    border-left: 4px solid var(--accent-blue);
+}
+
+.bet-form .card-header.bg-prediction {
+    background: linear-gradient(135deg, var(--dark-bg-elevated), var(--dark-bg-card));
+    border-left: 4px solid var(--accent-green);
+}
+
+.bet-form .card-header.bg-params {
+    background: linear-gradient(135deg, var(--dark-bg-elevated), var(--dark-bg-card));
+    border-left: 4px solid var(--accent-purple);
+}
+
+.bet-form .card-header h4 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+}
+
+.bet-form .card-body {
+    padding: 20px;
+    background: var(--dark-bg-card);
+}
+
+/* ====== ПОЛЯ ФОРМЫ ====== */
+.bet-form .mb-3 {
+    margin-bottom: 15px;
+}
+
+.bet-form label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 0.3px;
+}
+
+.bet-form input[type="text"],
+.bet-form input[type="number"],
+.bet-form input[type="date"],
+.bet-form select,
+.bet-form textarea {
+    width: 100%;
+    padding: 10px 15px;
+    background: var(--dark-bg-secondary);
+    border: 2px solid var(--border-dark);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.bet-form input[type="text"]:focus,
+.bet-form input[type="number"]:focus,
+.bet-form input[type="date"]:focus,
+.bet-form select:focus,
+.bet-form textarea:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.bet-form input[readonly] {
+    background: var(--dark-bg-elevated);
+    border-color: var(--border-light);
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+.bet-form select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+.bet-form select option {
+    background: var(--dark-bg-secondary);
+    color: var(--text-primary);
+}
+
+/* Поле с bg-light (для банка) */
+.bet-form .bg-light {
+    background: var(--dark-bg-elevated) !important;
+    border: 2px solid var(--border-dark);
+    color: var(--accent-green) !important;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+/* Input group */
+.bet-form .input-group {
+    display: flex;
+    align-items: center;
+}
+
+.bet-form .input-group .form-control {
+    flex: 1;
+}
+
+/* ====== КНОПКИ ====== */
+.bet-form .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    min-width: 120px;
+}
+
+.bet-form .btn-primary {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
+    color: white;
+    box-shadow: var(--shadow-glow-blue);
+}
+
+.bet-form .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.bet-form .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 2px solid var(--border-dark);
+    margin-left: 10px;
+}
+
+.bet-form .btn-secondary:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    background: var(--dark-bg-elevated);
+}
+
+/* ====== АЛЕРТЫ (СООБЩЕНИЯ) ====== */
+.bet-form .alert {
+    padding: 15px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border-left: 4px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.bet-form .alert-success {
+    background: rgba(16, 185, 129, 0.15);
+    border-left-color: var(--accent-green);
+    color: var(--accent-green-light);
+}
+
+.bet-form .alert-danger {
+    background: rgba(239, 68, 68, 0.15);
+    border-left-color: var(--accent-red);
+    color: var(--accent-red-light);
+}
+
+.bet-form .alert .btn-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 5px;
+}
+
+.bet-form .alert .btn-close:hover {
+    color: var(--text-primary);
+}
+
+/* Текстовые ошибки полей */
+.bet-form .text-danger {
+    color: var(--accent-red-light);
+    font-size: 0.8rem;
+    margin-top: 4px;
+    display: block;
+}
+
+/* ====== СКРЫТЫЕ ПОЛЯ ====== */
+.bet-form input[type="hidden"] {
+    display: none;
+}
+
+/* ====== АНИМАЦИИ ====== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bet-form .card {
+    animation: fadeIn 0.4s ease forwards;
+}
+
+/* ====== АДАПТИВНОСТЬ ====== */
+@media (max-width: 576px) {
+    .bet-form {
+        padding: 10px;
+    }
+
+    .bet-form h2 {
+        font-size: 1.6rem;
+    }
+
+    .bet-form .card-body {
+        padding: 15px;
+    }
+
+    .bet-form .btn {
+        width: 100%;
+        margin: 5px 0 !important;
+    }
+
+    .bet-form .mt-4 {
+        display: flex;
+        flex-direction: column;
+    }
+}
+
+/* Стили для числовых полей */
+.bet-form input[type="number"]::-webkit-inner-spin-button,
+.bet-form input[type="number"]::-webkit-outer-spin-button {
+    opacity: 0.5;
+    background: var(--dark-bg-light);
+}
