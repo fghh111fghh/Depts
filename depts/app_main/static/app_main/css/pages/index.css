@@ -1,12 +1,53 @@
-/* ====== СТИЛИ ДЛЯ ГЛАВНОЙ СТРАНИЦЫ ====== */
+/* ====== ТЁМНАЯ ТЕМА ДЛЯ ГЛАВНОЙ СТРАНИЦЫ ====== */
+
+:root {
+    --dark-bg-primary: #0a0c10;
+    --dark-bg-secondary: #14181f;
+    --dark-bg-card: #1a1f2b;
+    --dark-bg-elevated: #232936;
+    --dark-bg-light: #2d3442;
+
+    --accent-blue: #3b82f6;
+    --accent-blue-dark: #2563eb;
+    --accent-blue-light: #60a5fa;
+
+    --accent-green: #10b981;
+    --accent-green-dark: #059669;
+    --accent-green-light: #34d399;
+
+    --accent-red: #ef4444;
+    --accent-purple: #8b5cf6;
+    --accent-yellow: #f59e0b;
+
+    --text-primary: #ffffff;
+    --text-secondary: #e2e8f0;
+    --text-muted: #94a3b8;
+
+    --border-dark: #2d3748;
+    --border-light: #4a5568;
+
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-glow-blue: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+body {
+    background: var(--dark-bg-primary);
+    color: var(--text-primary);
+}
+
+/* ====== ОСНОВНОЙ КОНТЕЙНЕР ====== */
 .ds-welcome-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: 50px 15px;
     width: 100%;
+    background: var(--dark-bg-primary);
 }
 
+/* ====== ЗАГОЛОВОК ====== */
 .ds-header-block {
     text-align: center;
     margin-bottom: 60px;
@@ -14,17 +55,19 @@
 
 .ds-header-block h1 {
     font-size: 2.8rem;
-    color: #1e293b;
+    color: var(--text-primary);
     margin-bottom: 15px;
     font-weight: 800;
+    letter-spacing: -0.5px;
 }
 
 .ds-header-block p {
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 1.25rem;
     margin-bottom: 20px;
 }
 
+/* ====== СЕТКА МОДУЛЕЙ ====== */
 .ds-modules-grid {
     display: flex;
     flex-wrap: wrap;
@@ -34,59 +77,92 @@
     max-width: 1200px;
 }
 
+/* ====== КАРТОЧКА МОДУЛЯ ====== */
 .ds-module-card {
     display: flex;
     flex-direction: column;
     flex: 1 1 calc(33.333% - 35px);
     max-width: 400px;
     min-width: 300px;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
+    background: var(--dark-bg-card);
+    border: 1px solid var(--border-dark);
     border-radius: 20px;
     padding: 30px;
     box-sizing: border-box;
     text-decoration: none;
     color: inherit;
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Эффект градиентной полоски сверху */
+.ds-module-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.ds-module-card:not(.ds-mod-disabled):hover::before {
+    opacity: 1;
 }
 
 .ds-module-card:not(.ds-mod-disabled):hover {
     transform: translateY(-12px);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
-    border-color: #3b82f6;
+    box-shadow: var(--shadow-lg);
+    border-color: var(--accent-blue);
 }
 
+/* ====== ИКОНКА МОДУЛЯ ====== */
 .ds-card-icon {
     width: 70px;
     height: 70px;
-    background: #f0f7ff;
+    background: rgba(59, 130, 246, 0.1);
     border-radius: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 25px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    transition: all 0.3s ease;
 }
 
-.ds-card-icon i {
-    font-size: 2rem;
-    color: #3b82f6;
+.ds-module-card:not(.ds-mod-disabled):hover .ds-card-icon {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: var(--accent-blue);
+    transform: scale(1.05);
 }
 
+.card-icon {
+    width: 2rem;
+    height: 2rem;
+    filter: brightness(0) saturate(100%) invert(53%) sepia(98%) saturate(1234%) hue-rotate(186deg) brightness(96%) contrast(90%);
+    transition: all 0.3s ease;
+}
+
+/* ====== КОНТЕНТ КАРТОЧКИ ====== */
 .ds-card-content h3 {
     font-size: 1.5rem;
     margin-bottom: 15px;
-    color: #0f172a;
+    color: var(--text-primary);
     font-weight: 700;
 }
 
 .ds-card-content p {
     font-size: 1.05rem;
-    color: #475569;
+    color: var(--text-secondary);
     line-height: 1.6;
     margin-bottom: 25px;
 }
 
+/* ====== ТЕГИ СТАТУСА ====== */
 .ds-tag {
     display: inline-flex;
     padding: 6px 16px;
@@ -94,63 +170,89 @@
     font-size: 0.85rem;
     font-weight: 700;
     letter-spacing: 0.5px;
+    border: 1px solid transparent;
 }
 
 .ds-tag-active {
-    background: #dcfce7;
-    color: #15803d;
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--accent-green-light);
+    border-color: rgba(16, 185, 129, 0.3);
 }
 
 .ds-tag-wait {
-    background: #f1f5f9;
-    color: #64748b;
+    background: var(--dark-bg-elevated);
+    color: var(--text-muted);
+    border-color: var(--border-dark);
 }
 
+/* ====== НЕАКТИВНЫЕ МОДУЛИ ====== */
 .ds-mod-disabled {
-    opacity: 0.75;
-    background: #f8fafc;
+    opacity: 0.7;
+    background: var(--dark-bg-secondary);
     cursor: not-allowed;
+    border-color: var(--border-dark);
 }
 
 .ds-mod-disabled .ds-card-icon {
-    background: #e2e8f0;
+    background: var(--dark-bg-elevated);
+    border-color: var(--border-dark);
 }
 
-.ds-mod-disabled .ds-card-icon i {
-    color: #94a3b8;
-}
-
-/* Стили для ссылок в карточках */
-.ds-module-card[href]:hover {
-    cursor: pointer;
-}
-
-/* ====== СТИЛИ ДЛЯ КАРТОЧЕК МОДУЛЕЙ ====== */
-.ds-card-icon {
-    width: 70px;
-    height: 70px;
-    background: #f0f7ff;
-    border-radius: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 25px;
-}
-
-.card-icon {
-    width: 2rem;
-    height: 2rem;
-    filter: brightness(0) saturate(100%) invert(35%) sepia(98%) saturate(1234%) hue-rotate(186deg) brightness(96%) contrast(90%); /* Цвет primary-color */
-}
-
-/* Для неактивных модулей */
 .ds-mod-disabled .card-icon {
-    filter: brightness(0) saturate(100%) invert(65%) sepia(8%) saturate(0%) hue-rotate(0deg) brightness(90%) contrast(90%);
-    opacity: 0.7;
+    filter: brightness(0) saturate(100%) invert(40%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(80%) contrast(80%);
+    opacity: 0.5;
 }
 
-/* Адаптация для мобильных */
+.ds-mod-disabled .ds-card-content h3 {
+    color: var(--text-muted);
+}
+
+.ds-mod-disabled .ds-card-content p {
+    color: var(--text-muted);
+}
+
+/* ====== АНИМАЦИИ ====== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ds-module-card {
+    animation: fadeInUp 0.5s ease forwards;
+    animation-delay: calc(var(--card-index, 0) * 0.1s);
+}
+
+/* ====== АДАПТИВНОСТЬ ====== */
+@media (max-width: 992px) {
+    .ds-module-card {
+        flex: 1 1 calc(50% - 35px);
+    }
+}
+
 @media (max-width: 768px) {
+    .ds-welcome-wrapper {
+        padding: 30px 15px;
+    }
+
+    .ds-header-block h1 {
+        font-size: 2.2rem;
+    }
+
+    .ds-header-block p {
+        font-size: 1.1rem;
+    }
+
+    .ds-module-card {
+        flex: 1 1 100%;
+        max-width: 450px;
+    }
+
     .card-icon {
         width: 1.8rem;
         height: 1.8rem;
@@ -159,5 +261,27 @@
     .ds-card-icon {
         width: 60px;
         height: 60px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ds-header-block h1 {
+        font-size: 1.8rem;
+    }
+
+    .ds-header-block p {
+        font-size: 1rem;
+    }
+
+    .ds-module-card {
+        padding: 25px;
+    }
+
+    .ds-card-content h3 {
+        font-size: 1.3rem;
+    }
+
+    .ds-card-content p {
+        font-size: 0.95rem;
     }
 }
