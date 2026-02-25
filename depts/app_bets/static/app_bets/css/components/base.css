@@ -1,8 +1,48 @@
-/* ====== МЕНЮ ПРИЛОЖЕНИЯ СТАВОК ====== */
+/* ====== МЕНЮ ПРИЛОЖЕНИЯ СТАВОК (ТЁМНАЯ ТЕМА) ====== */
+
+:root {
+    --dark-bg-primary: #0a0c10;
+    --dark-bg-secondary: #14181f;
+    --dark-bg-card: #1a1f2b;
+    --dark-bg-elevated: #232936;
+    --dark-bg-light: #2d3442;
+
+    --accent-blue: #3b82f6;
+    --accent-blue-dark: #2563eb;
+    --accent-blue-light: #60a5fa;
+
+    --accent-purple: #8b5cf6;
+    --accent-purple-dark: #7c3aed;
+    --accent-purple-light: #a78bfa;
+
+    --accent-green: #10b981;
+    --accent-red: #ef4444;
+
+    --text-primary: #ffffff;
+    --text-secondary: #e2e8f0;
+    --text-muted: #94a3b8;
+
+    --border-dark: #2d3748;
+    --border-light: #4a5568;
+
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-glow-blue: 0 4px 15px rgba(59, 130, 246, 0.3);
+    --shadow-glow-purple: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+body {
+    background: var(--dark-bg-primary);
+}
+
 .bets-menu-wrapper {
-    background: white;
-    border-bottom: 1px solid #e2e8f0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    background: linear-gradient(135deg, var(--dark-bg-card) 0%, var(--dark-bg-elevated) 100%);
+    border-bottom: 1px solid var(--border-dark);
+    box-shadow: var(--shadow-md);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
 }
 
 .bets-menu-container {
@@ -12,12 +52,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    min-height: 50px;
+    min-height: 60px;
 }
 
 .bets-menu-nav {
     display: flex;
-    gap: 5px;
+    gap: 8px;
     align-items: center;
     flex-wrap: wrap;
 }
@@ -25,60 +65,73 @@
 .bets-menu-item {
     display: flex;
     align-items: center;
-    padding: 8px 16px;
-    color: #64748b;
+    padding: 8px 18px;
+    color: var(--text-muted);
     text-decoration: none;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     border-radius: 30px;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     white-space: nowrap;
+    border: 1px solid transparent;
 }
 
 .bets-menu-item:hover {
-    color: #3498db;
-    background: #f8fafc;
+    color: var(--text-primary);
+    background: var(--dark-bg-light);
+    border-color: var(--accent-purple);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow-purple);
 }
 
 .bets-menu-item.active {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
     color: white;
-    background: #3498db;
+    border-color: transparent;
+    box-shadow: var(--shadow-glow-blue);
 }
 
 .bets-menu-actions {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     align-items: center;
 }
 
 .bets-menu-action-btn {
-    padding: 6px 14px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+    padding: 6px 16px;
+    background: var(--dark-bg-card);
+    border: 1px solid var(--border-dark);
     border-radius: 30px;
-    color: #0f172a;
+    color: var(--text-secondary);
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     text-decoration: none;
 }
 
 .bets-menu-action-btn:hover {
-    background: #3498db;
+    background: linear-gradient(135deg, var(--accent-purple), var(--accent-purple-dark));
     color: white;
-    border-color: #3498db;
+    border-color: transparent;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow-purple);
+}
+
+.bets-menu-action-btn i {
+    font-size: 0.9rem;
 }
 
 /* Адаптивность */
 @media (max-width: 768px) {
     .bets-menu-container {
         flex-direction: column;
-        gap: 10px;
-        padding: 10px 20px;
+        gap: 12px;
+        padding: 12px 20px;
+        min-height: auto;
     }
 
     .bets-menu-nav {
@@ -92,18 +145,39 @@
     }
 
     .bets-menu-item {
-        padding: 6px 12px;
-        font-size: 0.85rem;
+        padding: 6px 14px;
+        font-size: 0.9rem;
     }
 }
 
 @media (max-width: 480px) {
     .bets-menu-nav {
-        gap: 3px;
+        gap: 5px;
     }
 
     .bets-menu-item {
         padding: 8px 12px;
-        font-size: 0.8rem;
+        font-size: 0.85rem;
     }
+
+    .bets-menu-action-btn {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+}
+
+/* Анимация для меню */
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.bets-menu-wrapper {
+    animation: slideDown 0.3s ease forwards;
 }
