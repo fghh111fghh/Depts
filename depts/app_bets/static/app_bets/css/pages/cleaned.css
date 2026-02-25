@@ -1,0 +1,478 @@
+/* ====== СТИЛИ ДЛЯ СТРАНИЦЫ CLEANED ====== */
+.cl-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 0 20px;
+}
+
+.cl-header h1 {
+    font-size: 2.2rem;
+    color: var(--bets-text, #0f172a);
+    font-weight: 900;
+    margin: 0 0 8px 0;
+}
+
+.cl-header h1 i {
+    color: var(--bets-primary, #3498db);
+    margin-right: 10px;
+}
+
+.cl-header-description {
+    color: var(--bets-text-muted, #64748b);
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+/* Панель управления */
+.cl-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 15px 0;
+    margin-bottom: 25px;
+    border-bottom: 2px solid var(--bets-border, #e2e8f0);
+}
+
+.cl-sort-panel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.cl-sort-label {
+    font-weight: 800;
+    color: var(--bets-text-muted, #64748b);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    margin-right: 5px;
+    letter-spacing: 0.5px;
+}
+
+.cl-sort-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--bets-border, #e2e8f0);
+    border-radius: 30px;
+    background: white;
+    color: var(--bets-text-muted, #64748b);
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.cl-sort-btn:hover {
+    background: var(--bets-bg-light, #f8fafc);
+    border-color: var(--bets-primary, #3498db);
+    color: var(--bets-primary, #3498db);
+}
+
+.cl-sort-btn.active {
+    background: var(--bets-primary, #3498db);
+    color: white;
+    border-color: var(--bets-primary, #3498db);
+}
+
+.cl-sort-btn i {
+    font-size: 0.8rem;
+}
+
+.cl-export-panel {
+    display: flex;
+    gap: 10px;
+}
+
+.cl-export-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+    background: var(--bets-success, #2ecc71);
+    color: white;
+}
+
+.cl-export-btn:hover {
+    background: var(--bets-success-dark, #27ae60);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+}
+
+/* Контейнер результатов */
+.cl-results-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Карточка матча */
+.cl-match-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: var(--bets-shadow, 0 2px 8px rgba(0,0,0,0.05));
+    border: 1px solid var(--bets-border, #e2e8f0);
+}
+
+/* Верхняя строка карточки */
+.cl-match-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--bets-border, #e2e8f0);
+}
+
+.cl-match-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.cl-match-time {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--bets-primary, #3498db);
+    background: rgba(52, 152, 219, 0.1);
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.cl-match-title {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.cl-match-name {
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: var(--bets-text, #0f172a);
+    line-height: 1.2;
+}
+
+.cl-match-league {
+    font-size: 0.85rem;
+    color: var(--bets-text-muted, #64748b);
+    font-weight: 600;
+}
+
+/* Коэффициенты */
+.cl-odds {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bets-bg-light, #f8fafc);
+    padding: 6px 14px;
+    border-radius: 30px;
+}
+
+.cl-odds-item {
+    text-align: center;
+    min-width: 45px;
+}
+
+.cl-odds-label {
+    display: block;
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: var(--bets-text-muted, #64748b);
+    text-transform: uppercase;
+}
+
+.cl-odds-value {
+    font-weight: 900;
+    color: var(--bets-text, #0f172a);
+    font-size: 1rem;
+}
+
+.cl-odds-sep {
+    color: var(--bets-border, #e2e8f0);
+    font-weight: 800;
+}
+
+/* Строка с EV */
+.cl-ev-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 15px;
+}
+
+.cl-ev-block {
+    display: inline-block;
+}
+
+.cl-ev-value {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: white;
+    padding: 6px 24px;
+    border-radius: 30px;
+    font-weight: 900;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+    display: inline-block;
+}
+
+/* Кнопка действия */
+.cl-action {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.cl-account-btn {
+    background: #3498db;
+    color: white;
+    padding: 10px 24px;
+    border-radius: 30px;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.cl-account-btn:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(52, 152, 219, 0.3);
+}
+
+/* Пустое состояние */
+.cl-no-results {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 20px;
+    border: 2px dashed var(--bets-border, #e2e8f0);
+}
+
+.cl-no-results-icon {
+    font-size: 4rem;
+    color: var(--bets-text-muted, #64748b);
+    margin-bottom: 20px;
+    opacity: 0.3;
+}
+
+.cl-no-results-text {
+    color: var(--bets-text-muted, #64748b);
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .cl-match-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .cl-odds {
+        align-self: flex-end;
+    }
+
+    .cl-ev-value {
+        font-size: 1.3rem;
+        padding: 5px 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .cl-match-name {
+        font-size: 1rem;
+    }
+
+    .cl-ev-value {
+        font-size: 1.1rem;
+        padding: 4px 14px;
+    }
+
+    .cl-account-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+.cl-match-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+}
+
+/* Первая строка */
+.cl-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.cl-match-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 2;
+}
+
+.cl-match-time {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #3498db;
+    background: rgba(52,152,219,0.1);
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+.cl-match-name {
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: #0f172a;
+}
+
+.cl-odds-headers {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    justify-content: center;
+}
+
+.cl-odds-header {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.cl-prediction {
+    flex: 1;
+    text-align: right;
+}
+
+.cl-prediction-text {
+    font-size: 1rem;
+    font-weight: 900;
+    color: #2ecc71;
+    background: rgba(46,204,113,0.1);
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+/* Вторая строка */
+.cl-row-middle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.cl-league {
+    flex: 2;
+    font-size: 0.9rem;
+    color: #64748b;
+    font-weight: 600;
+    padding-left: 44px; /* чтобы выровнять под названием матча */
+}
+
+.cl-odds-values {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    justify-content: center;
+}
+
+.cl-odds-value {
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: #0f172a;
+}
+
+.cl-odds-sep {
+    color: #e2e8f0;
+    font-weight: 800;
+}
+
+.cl-ev {
+    flex: 1;
+    text-align: right;
+}
+
+.cl-ev-value {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: white;
+    padding: 6px 20px;
+    border-radius: 30px;
+    font-weight: 900;
+    font-size: 1.3rem;
+    display: inline-block;
+    box-shadow: 0 4px 12px rgba(46,204,113,0.3);
+}
+
+/* Третья строка */
+.cl-row-bottom {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.cl-account-btn {
+    background: #3498db;
+    color: white;
+    padding: 10px 24px;
+    border-radius: 30px;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.cl-account-btn:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(52,152,219,0.3);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .cl-row-top, .cl-row-middle {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .cl-league {
+        padding-left: 0;
+    }
+
+    .cl-odds-headers, .cl-odds-values {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .cl-prediction, .cl-ev {
+        text-align: left;
+        width: 100%;
+    }
+}

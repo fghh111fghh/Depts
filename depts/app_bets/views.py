@@ -802,199 +802,561 @@ class AnalyzeView(ListView):
 
 @method_decorator(cache_page(60 * 60 * 24), name='dispatch')  # кэш на 24 часа
 class CleanedTemplateView(TemplateView):
+    """
+    Представление для анализа матчей из Excel файла с использованием калибровочных данных.
+
+    Что делает:
+    1. Загружает матчи из for_analyze_matches.xlsx (Время, Хозяева, Гости, П1, ТБ2,5, ТМ2,5)
+    2. Для каждого матча:
+       - Находит команды в БД (сначала по каноническому имени, потом по алиасам)
+       - Определяет лигу по последнему матчу команды
+       - Рассчитывает Пуассон (лямбды и вероятность ТБ2.5) через методы модели
+       - Определяет блоки: для П1, для ТБ, для вероятности (5% интервалы)
+       - Ищет в калибровочных данных точное совпадение всех трех блоков
+       - Получает статистику (total, hits_over) и рассчитывает hits_under = total - hits_over
+       - Рассчитывает EV для ТБ и ТМ
+       - Если EV > 7%, добавляет матч в результаты
+    3. Сортирует результаты по времени
+    4. Передает в шаблон для отображения
+    """
     template_name = 'app_bets/cleaned.html'
 
-    def get_league_mapping(self):
-        leagues = League.objects.all()
-        mapping = {}
-        for league in leagues:
-            mapping[league.name] = league.external_id
-            mapping[f"{league.name}"] = league.external_id
-        return mapping
+    # Константы для блоков (точно как в скрипте анализа)
+    PROBABILITY_BINS = [
+        (0, 5), (5, 10), (10, 15), (15, 20), (20, 25),
+        (25, 30), (30, 35), (35, 40), (40, 45), (45, 50),
+        (50, 55), (55, 60), (60, 65), (65, 70), (70, 75),
+        (75, 80), (80, 85), (85, 90), (90, 95), (95, 100)
+    ]
+
+    ODDS_BINS = [
+        (1.00, 1.10), (1.10, 1.21), (1.21, 1.33), (1.33, 1.46), (1.46, 1.61),
+        (1.61, 1.77), (1.77, 1.95), (1.95, 2.14), (2.14, 2.35), (2.35, 2.59),
+        (2.59, 2.85), (2.85, 3.13), (3.13, 3.44), (3.44, 3.78), (3.78, 4.16),
+        (4.16, 4.58), (4.58, 5.04), (5.04, 5.54), (5.54, 6.09), (6.09, 6.70),
+        (6.70, 7.37), (7.37, 8.11), (8.11, 8.92), (8.92, 9.81), (9.81, 10.79),
+        (10.79, 11.87), (11.87, 13.06), (13.06, float('inf'))
+    ]
+
+    def get_probability_bin(self, prob):
+        """
+        Определяет блок вероятности (5% интервалы)
+
+        Аргументы:
+            prob: вероятность в процентах (0-100)
+
+        Возвращает:
+            str: блок в формате "45-50%" или "95-100%"
+        """
+        for low, high in self.PROBABILITY_BINS:
+            if low <= prob < high:
+                return f"{low}-{high}%"
+        return "95-100%"
+
+    def get_odds_bin(self, odds):
+        """
+        Определяет блок коэффициента по фиксированной сетке
+
+        Аргументы:
+            odds: коэффициент (например 2.15)
+
+        Возвращает:
+            str: блок в формате "2.14-2.35" или ">13.06"
+        """
+        if odds is None:
+            return None
+        for low, high in self.ODDS_BINS:
+            if low <= odds < high:
+                if high == float('inf'):
+                    return f">{low:.2f}"
+                return f"{low:.2f}-{high:.2f}"
+        return f">{self.ODDS_BINS[-1][0]:.2f}"
 
     def get_calibration_data(self):
-        pickle_path = os.path.join(settings.BASE_DIR, 'calibration_summary.pkl')
-        if not os.path.exists(pickle_path):
-            return None
-        with open(pickle_path, 'rb') as f:
-            df = pickle.load(f)
-        league_map = self.get_league_mapping()
-        df['external_id'] = df['league'].map(league_map)
-        df = df.dropna(subset=['external_id'])
-        return df
+        """
+        Загружает калибровочные данные из PKL файла
 
-    def get_excel_matches(self):
+        Ожидаемая структура:
+        {
+            'АПЛ Англия': {
+                ('1.77-1.95', '1.95-2.14', '50-55%'): {'total': 150, 'hits': 82},
+                ...
+            },
+            ...
+        }
+
+        Возвращает:
+            dict: калибровочные данные или None при ошибке
+        """
+        pkl_path = os.path.join(settings.BASE_DIR, 'analysis_results', 'all_leagues_complete_stats.pkl')
+
+        if not os.path.exists(pkl_path):
+            print(f"❌ Файл калибровки не найден: {pkl_path}")
+            return None
+
+        try:
+            with open(pkl_path, 'rb') as f:
+                data = pickle.load(f)
+            print(f"✅ Загружены калибровочные данные для {len(data)} лиг")
+            return data
+        except Exception as e:
+            print(f"❌ Ошибка загрузки калибровочных данных: {e}")
+            return None
+
+    def get_matches_from_excel(self):
+        """
+        Загружает матчи для анализа из Excel файла
+
+        Ожидаемые колонки:
+        - Время: время матча (22:00)
+        - Хозяева: название команды хозяев
+        - Гости: название команды гостей
+        - П1: коэффициент на победу хозяев
+        - ТБ2,5: коэффициент на тотал больше 2.5
+        - ТМ2,5: коэффициент на тотал меньше 2.5
+
+        Возвращает:
+            DataFrame: данные матчей или None при ошибке
+        """
         excel_path = os.path.join(settings.BASE_DIR, 'for_analyze_matches.xlsx')
+
         if not os.path.exists(excel_path):
+            print(f"❌ Excel файл не найден: {excel_path}")
             return None
-        df = pd.read_excel(excel_path)
-        required = ['Время', 'Хозяева', 'Гости', 'ТБ2,5', 'ТМ2,5']
-        if not all(col in df.columns for col in required):
+
+        try:
+            df = pd.read_excel(excel_path)
+            required = ['Время', 'Хозяева', 'Гости', 'П1', 'ТБ2,5', 'ТМ2,5']
+
+            if not all(col in df.columns for col in required):
+                print(f"❌ В Excel отсутствуют необходимые колонки")
+                print(f"   Имеются: {list(df.columns)}")
+                print(f"   Требуются: {required}")
+                return None
+
+            print(f"✅ Загружено {len(df)} матчей из Excel")
+            return df
+        except Exception as e:
+            print(f"❌ Ошибка загрузки Excel: {e}")
             return None
-        return df
 
     def find_team(self, name):
-        try:
-            return Team.objects.get(Q(aliases__name__iexact=name) | Q(name__iexact=name))
-        except Team.DoesNotExist:
+        """
+        Находит команду в БД по названию.
+
+        Порядок поиска:
+        1. Сначала по точному совпадению канонического имени (name)
+        2. Затем по алиасам (если точного имени нет)
+        3. Затем по частичному совпадению (как запасной вариант)
+
+        Аргументы:
+            name: название команды из Excel (например "Миллуол")
+
+        Возвращает:
+            Team: объект команды или None если не найдена
+        """
+        if not name:
             return None
-        except Team.MultipleObjectsReturned:
-            return Team.objects.filter(Q(aliases__name__iexact=name) | Q(name__iexact=name)).first()
+
+        try:
+            # Очищаем имя от лишних пробелов
+            clean_name = " ".join(name.split()).lower()
+
+            print(f"   🔍 Поиск команды: '{name}'")
+
+            # 1. Поиск по точному каноническому имени (приоритет)
+            team = Team.objects.filter(name=name).first()
+            if team:
+                print(f"   ✅ Команда найдена по точному имени: {team.name}")
+                return team
+
+            # 2. Поиск по алиасам (если точного имени нет)
+            alias = TeamAlias.objects.filter(name=clean_name).select_related('team').first()
+            if alias:
+                print(f"   ✅ Команда найдена по алиасу: {name} -> {alias.team.name}")
+                return alias.team
+
+            # 3. Поиск по частичному совпадению (запасной вариант)
+            team = Team.objects.filter(name__icontains=name).first()
+            if team:
+                print(f"   ⚠️ Команда найдена по частичному совпадению: {name} -> {team.name}")
+                # Создаем алиас для будущего использования
+                TeamAlias.objects.get_or_create(name=clean_name, team=team)
+                return team
+
+            print(f"   ❌ Команда не найдена: {name}")
+            return None
+
+        except Exception as e:
+            print(f"   ❌ Ошибка при поиске команды {name}: {e}")
+            return None
 
     def get_league_for_team(self, team):
+        """
+        Определяет лигу команды по ее последнему матчу в БД
+
+        Аргументы:
+            team: объект Team
+
+        Возвращает:
+            League: объект лиги или None если нет матчей
+        """
+        if not team:
+            return None
+
         last_match = Match.objects.filter(
             Q(home_team=team) | Q(away_team=team)
         ).select_related('league').order_by('-date').first()
-        return last_match.league if last_match else None
 
-    def calculate_probs_for_match(self, home_team, away_team, league, n_values):
-        results = []
-        for n in n_values:
+        if last_match:
+            print(f"   ✅ Лига определена: {last_match.league.name}")
+            return last_match.league
+        else:
+            print(f"   ⚠️ У команды {team.name} нет матчей в БД")
+            return None
+
+    def calculate_poisson_for_match(self, home_team, away_team, league):
+        """
+        Рассчитывает Пуассон для матча, используя методы модели (как в AnalyzeView)
+        """
+        try:
+            from app_bets.models import Season
+            from django.utils.timezone import now
+
+            # Получаем текущий сезон (как в AnalyzeView)
+            current_season = Season.objects.filter(is_current=True).first()
+            if not current_season:
+                current_season = Season.objects.order_by('-start_date').first()
+
+            print(f"   📅 Используем сезон: {current_season.name if current_season else 'None'}")
+
+            # Создаем временный объект Match с правильным сезоном
             temp_match = Match(
                 home_team=home_team,
                 away_team=away_team,
                 league=league,
-                season=None
+                season=current_season,  # ВАЖНО: указываем сезон!
+                date=now()
             )
-            lambdas = temp_match.calculate_poisson_lambda(now())
-            if 'error' in lambdas:
-                continue
-            over_prob = self.poisson_over_prob(lambdas['home_lambda'], lambdas['away_lambda'])
-            results.append({
-                'n': n,
-                'over_prob': over_prob,
-                'under_prob': 1 - over_prob,
-                'home_lambda': lambdas['home_lambda'],
-                'away_lambda': lambdas['away_lambda']
-            })
-        return results
 
-    def poisson_over_prob(self, l_home, l_away, max_goals=10):
-        import math
-        def poisson(l, k):
-            return math.exp(-l) * (l**k) / math.factorial(k)
-        over = 0.0
-        for h in range(max_goals+1):
-            for a in range(max_goals+1):
-                if h + a > 2.5:
-                    over += poisson(l_home, h) * poisson(l_away, a)
-        return over
+            # Вызываем метод модели
+            lambda_result = temp_match.calculate_poisson_lambda(date=now(), last_n=7)
 
-    def find_calibration(self, calib_df, league, target, n, prob):
-        league_code = league.external_id
-        subset = calib_df[(calib_df['external_id'] == league_code) &
-                          (calib_df['target'] == target) &
-                          (calib_df['last_matches'] == n)]
-        if subset.empty:
-            return None, None
-        prob_pct = prob * 100
-        for _, row in subset.iterrows():
-            interval = row['interval']
-            if interval.startswith('>'):
-                low = float(interval[1:])
-                high = 100
+            if 'error' in lambda_result:
+                print(f"   ⚠️ Ошибка расчета Пуассона: {lambda_result.get('error')}")
+                # В AnalyzeView при ошибке используются дефолтные значения
+                lambda_home = 1.2
+                lambda_away = 1.0
             else:
-                low, high = map(float, interval.split('-'))
-            if low <= prob_pct < high:
-                return row['actual_%'], interval
-        return None, None
+                lambda_home = lambda_result['home_lambda']
+                lambda_away = lambda_result['away_lambda']
+
+            # Получаем вероятности
+            probs = AnalyzeView.get_poisson_probs(lambda_home, lambda_away)
+            over_prob = probs['over25_yes']
+
+            print(f"   📊 Лямбды: {lambda_home:.2f} : {lambda_away:.2f}, ТБ={over_prob:.1f}%")
+
+            return {
+                'home_lambda': lambda_home,
+                'away_lambda': lambda_away,
+                'over_prob': over_prob,
+                'under_prob': 100 - over_prob
+            }
+
+        except Exception as e:
+            print(f"❌ Ошибка расчета Пуассона: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    def find_calibration(self, calib_data, league_name, odds_h, odds_over, prob_value):
+        """
+        Находит калибровочные данные для матча по ПОЛНОМУ СОВПАДЕНИЮ всех трех блоков
+
+        Возвращает данные для ТБ и автоматически рассчитывает данные для ТМ
+
+        Аргументы:
+            calib_data: словарь с калибровочными данными
+            league_name: название лиги
+            odds_h: коэффициент П1
+            odds_over: коэффициент ТБ2.5
+            prob_value: вероятность по Пуассону (в процентах)
+
+        Возвращает:
+            tuple: (over_data, under_data) где каждый элемент - словарь с ключами:
+                   'prob', 'total', 'hits', 'interval' или None если нет данных
+        """
+        if league_name not in calib_data:
+            print(f"   ⚠️ Лига '{league_name}' не найдена в калибровочных данных")
+            return None, None
+
+        league_stats = calib_data[league_name]
+
+        # Определяем блоки точно как в скрипте анализа
+        p1_bin = self.get_odds_bin(odds_h)
+        tb_bin = self.get_odds_bin(odds_over)
+        prob_bin = self.get_probability_bin(prob_value)
+
+        key = (p1_bin, tb_bin, prob_bin)
+
+        print(f"   🔍 Поиск ключа: П1:{p1_bin} | ТБ:{tb_bin} | {prob_bin}")
+
+        if key in league_stats:
+            stats = league_stats[key]
+            total = stats['total']
+            hits_over = stats['hits']
+            hits_under = total - hits_over
+
+            over_prob = (hits_over / total) * 100 if total > 0 else 0
+            under_prob = (hits_under / total) * 100 if total > 0 else 0
+
+            print(
+                f"   ✅ Найдено: total={total}, ТБ={hits_over} ({over_prob:.1f}%), ТМ={hits_under} ({under_prob:.1f}%)")
+
+            over_data = {
+                'prob': over_prob,
+                'total': total,
+                'hits': hits_over,
+                'interval': prob_bin
+            }
+
+            under_data = {
+                'prob': under_prob,
+                'total': total,
+                'hits': hits_under,
+                'interval': prob_bin
+            }
+
+            return over_data, under_data
+        else:
+            print(f"   ❌ Точный ключ не найден")
+            # Покажем несколько похожих ключей для отладки
+            similar = 0
+            for k in list(league_stats.keys())[:3]:
+                print(f"      Доступный ключ: {k[0]} | {k[1]} | {k[2]}")
+            return None, None
 
     def get_context_data(self, **kwargs):
+        """
+        Основной метод обработки и подготовки данных для шаблона
+
+        Что делает:
+        1. Загружает калибровочные данные и Excel файл
+        2. Для каждого матча из Excel:
+           - Находит команды
+           - Определяет лигу
+           - Рассчитывает Пуассон
+           - Ищет калибровку по трем блокам
+           - Получает hits_over и total
+           - Рассчитывает hits_under = total - hits_over
+           - Считает EV для ТБ и ТМ
+           - Добавляет в результаты если EV > 7% И total >= 3
+        3. Сортирует результаты в соответствии с параметром sort
+        4. Передает в шаблон
+
+        Возвращает:
+            dict: контекст для шаблона
+        """
         context = super().get_context_data(**kwargs)
 
-        calib_df = self.get_calibration_data()
-        excel_df = self.get_excel_matches()
+        # Загружаем данные
+        calib_data = self.get_calibration_data()
+        excel_df = self.get_matches_from_excel()
 
-        if calib_df is None or excel_df is None:
-            context['error'] = 'Не удалось загрузить калибровочные данные или Excel-файл.'
+        if calib_data is None:
+            context['error'] = 'Не удалось загрузить калибровочные данные'
             return context
 
-        n_values = list(range(5, 11))
+        if excel_df is None:
+            context['error'] = 'Не удалось загрузить Excel файл с матчами'
+            return context
+
+        # Получаем параметр сортировки
+        sort_param = self.request.GET.get('sort', 'time_asc')
+        context['current_sort'] = sort_param
+
+        # Анализируем матчи
         analysis_results = []
+        MIN_EV = 7  # Минимальное EV в процентах
+        MIN_TOTAL = 3  # Минимальное количество матчей в выборке
+
+        print(f"\n{'=' * 60}")
+        print("НАЧАЛО АНАЛИЗА МАТЧЕЙ")
+        print('=' * 60)
 
         for idx, row in excel_df.iterrows():
-            match_time = row['Время']
-            if hasattr(match_time, 'strftime'):
-                time_str = match_time.strftime('%H:%M')
-            else:
-                time_str = str(match_time)
+            try:
+                # Парсим время
+                match_time = row['Время']
+                if hasattr(match_time, 'strftime'):
+                    time_str = match_time.strftime('%H:%M')
+                else:
+                    time_str = str(match_time)
 
-            home_name = row['Хозяева']
-            away_name = row['Гости']
-            odds_over = float(row['ТБ2,5']) if not pd.isna(row['ТБ2,5']) else None
-            odds_under = float(row['ТМ2,5']) if not pd.isna(row['ТМ2,5']) else None
+                home_name = str(row['Хозяева']).strip()
+                away_name = str(row['Гости']).strip()
+                odds_h = float(row['П1']) if not pd.isna(row['П1']) else None
+                odds_over = float(row['ТБ2,5']) if not pd.isna(row['ТБ2,5']) else None
+                odds_under = float(row['ТМ2,5']) if not pd.isna(row['ТМ2,5']) else None
 
-            home_team = self.find_team(home_name)
-            away_team = self.find_team(away_name)
-            if not home_team or not away_team:
+                print(f"\n{'=' * 60}")
+                print(f"МАТЧ #{idx + 1}: {home_name} vs {away_name}")
+                print(f"{'=' * 60}")
+                print(f"   Время: {time_str}")
+                print(f"   Кэф П1: {odds_h}")
+                print(f"   Кэф ТБ2.5: {odds_over}")
+                print(f"   Кэф ТМ2.5: {odds_under}")
+
+                # Проверяем наличие всех коэффициентов
+                if not odds_h or not odds_over or not odds_under:
+                    print(f"   ❌ Отсутствуют коэффициенты")
+                    continue
+
+                # Находим команды
+                home_team = self.find_team(home_name)
+                away_team = self.find_team(away_name)
+
+                if not home_team:
+                    print(f"   ❌ Не найдена команда хозяев: {home_name}")
+                    continue
+                if not away_team:
+                    print(f"   ❌ Не найдена команда гостей: {away_name}")
+                    continue
+
+                # Определяем лигу
+                league = self.get_league_for_team(home_team) or self.get_league_for_team(away_team)
+                if not league:
+                    print(f"   ❌ Не удалось определить лигу")
+                    continue
+
+                print(f"   ✅ Лига: {league.name}")
+
+                # Рассчитываем Пуассон
+                poisson_result = self.calculate_poisson_for_match(home_team, away_team, league)
+                if not poisson_result:
+                    print(f"   ❌ Не удалось рассчитать Пуассон")
+                    continue
+
+                over_prob = poisson_result['over_prob']
+                under_prob = poisson_result['under_prob']
+
+                print(f"   📊 Пуассон: ТБ={over_prob:.1f}%, ТМ={under_prob:.1f}%")
+                print(f"   📊 Лямбды: {poisson_result['home_lambda']:.2f} : {poisson_result['away_lambda']:.2f}")
+
+                # Находим калибровку
+                over_data, under_data = self.find_calibration(
+                    calib_data, league.name, odds_h, odds_over, over_prob
+                )
+
+                # Проверяем ТБ
+                if over_data and over_data['total'] >= MIN_TOTAL:
+                    ev_over = (over_data['prob'] / 100.0) * odds_over - 1
+                    ev_over_percent = ev_over * 100
+
+                    print(f"   💰 EV ТБ: {ev_over_percent:.1f}% (на основе {over_data['hits']}/{over_data['total']})")
+
+                    if ev_over_percent > MIN_EV:
+                        print(f"   ✅ ТБ ПРОХОДИТ! EV={ev_over_percent:.1f}%")
+                        analysis_results.append({
+                            'time': time_str,
+                            'time_sort': time_str,  # для сортировки по времени
+                            'home': home_name,
+                            'away': away_name,
+                            'match': f"{home_name} - {away_name}",
+                            'league': league.name,
+                            'league_sort': league.name,  # для сортировки по лиге
+                            'odds_h': odds_h,
+                            'odds_over': odds_over,
+                            'odds_under': odds_under,
+                            'target': 'ТБ 2.5',
+                            'ev': round(ev_over_percent, 1),
+                            'ev_sort': ev_over_percent,  # для сортировки по EV
+                            'poisson_prob': round(over_prob, 1),
+                            'actual_prob': round(over_data['prob'], 1),
+                            'interval': over_data['interval'],
+                            'recommended_odds': odds_over,
+                            'home_team_id': home_team.id,
+                            'away_team_id': away_team.id,
+                            'league_id': league.id,
+                            'target_code': 'over',
+                            'total': over_data['total'],
+                            'hits': over_data['hits'],
+                            'home_lambda': poisson_result['home_lambda'],
+                            'away_lambda': poisson_result['away_lambda']
+                        })
+
+                # Проверяем ТМ
+                if under_data and under_data['total'] >= MIN_TOTAL:
+                    ev_under = (under_data['prob'] / 100.0) * odds_under - 1
+                    ev_under_percent = ev_under * 100
+
+                    print(f"   💰 EV ТМ: {ev_under_percent:.1f}% (на основе {under_data['hits']}/{under_data['total']})")
+
+                    if ev_under_percent > MIN_EV:
+                        print(f"   ✅ ТМ ПРОХОДИТ! EV={ev_under_percent:.1f}%")
+                        analysis_results.append({
+                            'time': time_str,
+                            'time_sort': time_str,
+                            'home': home_name,
+                            'away': away_name,
+                            'match': f"{home_name} - {away_name}",
+                            'league': league.name,
+                            'league_sort': league.name,
+                            'odds_h': odds_h,
+                            'odds_over': odds_over,
+                            'odds_under': odds_under,
+                            'target': 'ТМ 2.5',
+                            'ev': round(ev_under_percent, 1),
+                            'ev_sort': ev_under_percent,
+                            'poisson_prob': round(under_prob, 1),
+                            'actual_prob': round(under_data['prob'], 1),
+                            'interval': under_data['interval'],
+                            'recommended_odds': odds_under,
+                            'home_team_id': home_team.id,
+                            'away_team_id': away_team.id,
+                            'league_id': league.id,
+                            'target_code': 'under',
+                            'total': under_data['total'],
+                            'hits': under_data['hits'],
+                            'home_lambda': poisson_result['home_lambda'],
+                            'away_lambda': poisson_result['away_lambda']
+                        })
+
+            except Exception as e:
+                print(f"❌ Ошибка при обработке строки {idx}: {e}")
+                import traceback
+                traceback.print_exc()
                 continue
 
-            league = self.get_league_for_team(home_team) or self.get_league_for_team(away_team)
-            if not league:
-                continue
+        # Применяем сортировку
+        if sort_param == 'time_asc':
+            analysis_results.sort(key=lambda x: x['time_sort'])
+        elif sort_param == 'time_desc':
+            analysis_results.sort(key=lambda x: x['time_sort'], reverse=True)
+        elif sort_param == 'league_asc':
+            analysis_results.sort(key=lambda x: x['league_sort'])
+        elif sort_param == 'league_desc':
+            analysis_results.sort(key=lambda x: x['league_sort'], reverse=True)
+        elif sort_param == 'ev_asc':
+            analysis_results.sort(key=lambda x: x['ev_sort'])
+        elif sort_param == 'ev_desc':
+            analysis_results.sort(key=lambda x: x['ev_sort'], reverse=True)
+        else:
+            # По умолчанию - как в файле (по индексу)
+            pass
 
-            probs = self.calculate_probs_for_match(home_team, away_team, league, n_values)
-            if not probs:
-                continue
-
-            best_ev = None
-            best_target = None
-            best_n = None
-            best_actual = None
-            best_interval = None
-            best_prob = None
-            best_odds = None
-
-            for p in probs:
-                actual_over, interval_over = self.find_calibration(calib_df, league, 'over', p['n'], p['over_prob'])
-                if actual_over is not None and odds_over is not None:
-                    ev_over = (actual_over / 100.0) * odds_over - 1
-                    if ev_over > 0 and (best_ev is None or ev_over > best_ev):
-                        best_ev = ev_over
-                        best_target = 'over'
-                        best_n = p['n']
-                        best_actual = actual_over
-                        best_interval = interval_over
-                        best_prob = p['over_prob']
-                        best_odds = odds_over
-
-                actual_under, interval_under = self.find_calibration(calib_df, league, 'under', p['n'], p['under_prob'])
-                if actual_under is not None and odds_under is not None:
-                    ev_under = (actual_under / 100.0) * odds_under - 1
-                    if ev_under > 0 and (best_ev is None or ev_under > best_ev):
-                        best_ev = ev_under
-                        best_target = 'under'
-                        best_n = p['n']
-                        best_actual = actual_under
-                        best_interval = interval_under
-                        best_prob = p['under_prob']
-                        best_odds = odds_under
-
-            if best_ev is not None:
-                analysis_results.append({
-                    'time': time_str,
-                    'home': home_name,
-                    'away': away_name,
-                    'match': f"{home_name} - {away_name}",
-                    'league': league.name,
-                    'odds_over': odds_over,
-                    'odds_under': odds_under,
-                    'target': 'ТБ 2.5' if best_target == 'over' else 'ТМ 2.5',
-                    'ev': round(best_ev * 100, 1),
-                    'n': best_n,
-                    'poisson_prob': round(best_prob * 100, 1),
-                    'actual_prob': best_actual,
-                    'interval': best_interval,
-                    'recommended_odds': best_odds,
-                    'home_team_id': home_team.id,
-                    'away_team_id': away_team.id,
-                    'league_id': league.id,
-                    'target_code': best_target,
-                })
-
-        analysis_results.sort(key=lambda x: x['time'])
+        # Сохраняем в сессию для экспорта
         self.request.session['cleaned_analysis_results'] = analysis_results
+
         context['analysis_results'] = analysis_results
+        context['total_analyzed'] = len(analysis_results)
+        context['min_ev'] = MIN_EV
+
+        print(f"\n{'=' * 60}")
+        print(f"ИТОГО: найдено {len(analysis_results)} сигналов с EV > {MIN_EV}% и total >= {MIN_TOTAL}")
+        print('=' * 60)
+
         return context
 
 
