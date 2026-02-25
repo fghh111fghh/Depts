@@ -90,7 +90,7 @@
             <!-- Третья строка: кнопка (прижата вправо) -->
             <div class="cl-row-bottom">
                 <a href="{% url 'app_bets:bet_create' %}?home_team_id={{ res.home_team_id }}&away_team_id={{ res.away_team_id }}&league_id={{ res.league_id }}&match_time={{ res.time }}&odds_over={{ res.odds_over }}&odds_under={{ res.odds_under }}&recommended_target={% if 'ТБ' in res.target %}over{% else %}under{% endif %}&recommended_odds={% if 'ТБ' in res.target %}{{ res.odds_over }}{% else %}{{ res.odds_under }}{% endif %}&poisson_prob={{ res.poisson_prob }}&actual_prob={{ res.actual_prob }}&ev={{ res.ev }}&interval={{ res.interval }}&n_last_matches=7&hits={{ res.hits }}&total={{ res.total }}" class="cl-account-btn">
-    <i class="fa-solid fa-book"></i> Учесть ставку
+    <i class="fa-solid fa-book"></i> Учесть
 </a>
             </div>
         </div>
