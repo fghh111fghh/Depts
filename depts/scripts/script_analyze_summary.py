@@ -1,13 +1,11 @@
-#!/usr/bin/env python
+
 import os
-import sys
 import csv
 import pickle
 import math
 import chardet
 from datetime import datetime
 from pathlib import Path
-from collections import defaultdict
 
 # Константы для анализа
 MIN_MATCHES = 3

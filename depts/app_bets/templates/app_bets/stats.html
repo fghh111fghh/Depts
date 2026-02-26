@@ -4,6 +4,149 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'app_bets/css/pages/stats.css' %}">
 
+<div class="stats-container">
+    <!-- Заголовок -->
+    <div class="stats-header">
+        <h1><i class="fa-solid fa-chart-pie"></i> Статистика калибровочных данных</h1>
+        <p class="stats-description">Просмотр статистики по лигам и блокам коэффициентов</p>
+    </div>
 
-Статистика
+    <!-- Форма фильтрации -->
+    <div class="stats-filter-card">
+        <form method="get" class="stats-filter-form">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="league">Лига</label>
+                    <select name="league" id="league" class="filter-select">
+                        <option value="">— Выберите лигу —</option>
+                        {% for league in leagues %}
+                        <option value="{{ league }}" {% if selected_league == league %}selected{% endif %}>
+                            {{ league }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="p1_bin">Блок П1</label>
+                    <select name="p1_bin" id="p1_bin" class="filter-select">
+                        <option value="">— Выберите блок П1 —</option>
+                        {% for bin in p1_bins %}
+                        <option value="{{ bin }}" {% if selected_p1_bin == bin %}selected{% endif %}>
+                            {{ bin }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="tb_bin">Блок ТБ 2.5</label>
+                    <select name="tb_bin" id="tb_bin" class="filter-select">
+                        <option value="">— Выберите блок ТБ —</option>
+                        {% for bin in tb_bins %}
+                        <option value="{{ bin }}" {% if selected_tb_bin == bin %}selected{% endif %}>
+                            {{ bin }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="prob_bin">Блок Пуассона</label>
+                    <select name="prob_bin" id="prob_bin" class="filter-select">
+                        <option value="">— Выберите блок вероятности —</option>
+                        {% for bin in prob_bins %}
+                        <option value="{{ bin }}" {% if selected_prob_bin == bin %}selected{% endif %}>
+                            {{ bin }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-magnifying-glass"></i> Найти
+                </button>
+                <a href="{% url 'app_bets:stats' %}" class="btn btn-secondary">
+                    <i class="fa-solid fa-rotate-left"></i> Сбросить
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Результаты -->
+    <div class="stats-results">
+        {% if error %}
+        <div class="stats-error">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <p>{{ error }}</p>
+        </div>
+
+        {% elif stats %}
+        <div class="stats-result-card">
+            <div class="result-header">
+                <h2>Результаты поиска</h2>
+                <div class="result-badge">
+                    <span class="badge-key">{{ selected_league }}</span>
+                </div>
+            </div>
+
+            <div class="result-blocks">
+                <div class="block-item">
+                    <span class="block-label">Блок П1</span>
+                    <span class="block-value">{{ selected_p1_bin }}</span>
+                </div>
+                <div class="block-item">
+                    <span class="block-label">Блок ТБ 2.5</span>
+                    <span class="block-value">{{ selected_tb_bin }}</span>
+                </div>
+                <div class="block-item">
+                    <span class="block-label">Блок Пуассона</span>
+                    <span class="block-value">{{ selected_prob_bin }}</span>
+                </div>
+            </div>
+
+            <div class="stats-numbers">
+                <div class="stat-number-card">
+                    <span class="stat-number-label">Всего событий</span>
+                    <span class="stat-number-value total">{{ stats.total }}</span>
+                </div>
+                <div class="stat-number-card">
+                    <span class="stat-number-label">Свершилось (ТБ 2.5)</span>
+                    <span class="stat-number-value hits">{{ stats.hits }}</span>
+                </div>
+                <div class="stat-number-card">
+                    <span class="stat-number-label">Процент попаданий</span>
+                    <span class="stat-number-percent">{{ hit_rate|floatformat:1 }}%</span>
+                </div>
+            </div>
+
+            <div class="progress-section">
+                <div class="progress-label">
+                    <span>ТБ 2.5</span>
+                    <span>{{ stats.hits }} / {{ stats.total }} ({{ hit_rate|floatformat:1 }}%)</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" style="width: {{ hit_rate|floatformat:0 }}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        {% elif selected_league or selected_p1_bin or selected_tb_bin or selected_prob_bin %}
+        <div class="stats-not-found">
+            <i class="fa-solid fa-database"></i>
+            <h3>Данные не найдены</h3>
+            <p>Для выбранной комбинации блоков нет статистики</p>
+            <p class="small">Попробуйте изменить параметры поиска</p>
+        </div>
+        {% else %}
+        <div class="stats-welcome">
+            <i class="fa-solid fa-chart-line"></i>
+            <h3>Выберите параметры для просмотра статистики</h3>
+            <p>Используйте форму выше, чтобы найти данные по конкретной лиге и блокам</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

@@ -30,18 +30,15 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import F, Q, Sum, DecimalField
-from django.db.models.functions import Coalesce
+from django.db.models import F, Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
-from django.utils.decorators import method_decorator
 from django.utils.timezone import make_aware, get_current_timezone, now
 from django.views import View
 import re
 import math
 import unicodedata
-from django.views.decorators.cache import cache_page
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView, CreateView, ListView
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -2202,6 +2199,96 @@ class BetRecordsView(LoginRequiredMixin, ListView):
 
 class StatsView(TemplateView):
     template_name = 'app_bets/stats.html'
+
+    # Константы из скрипта анализа
+    PROBABILITY_BINS = [
+        (0, 5), (5, 10), (10, 15), (15, 20), (20, 25),
+        (25, 30), (30, 35), (35, 40), (40, 45), (45, 50),
+        (50, 55), (55, 60), (60, 65), (65, 70), (70, 75),
+        (75, 80), (80, 85), (85, 90), (90, 95), (95, 100)
+    ]
+
+    ODDS_BINS = [
+        (1.00, 1.10), (1.10, 1.21), (1.21, 1.33), (1.33, 1.46), (1.46, 1.61),
+        (1.61, 1.77), (1.77, 1.95), (1.95, 2.14), (2.14, 2.35), (2.35, 2.59),
+        (2.59, 2.85), (2.85, 3.13), (3.13, 3.44), (3.44, 3.78), (3.78, 4.16),
+        (4.16, 4.58), (4.58, 5.04), (5.04, 5.54), (5.54, 6.09), (6.09, 6.70),
+        (6.70, 7.37), (7.37, 8.11), (8.11, 8.92), (8.92, 9.81), (9.81, 10.79),
+        (10.79, 11.87), (11.87, 13.06), (13.06, float('inf'))
+    ]
+
+    def get_probability_bins_list(self):
+        """Возвращает список строк для блоков вероятности"""
+        bins = []
+        for low, high in self.PROBABILITY_BINS:
+            bins.append(f"{low}-{high}%")
+        return bins
+
+    def get_odds_bins_list(self):
+        """Возвращает список строк для блоков коэффициентов"""
+        bins = []
+        for low, high in self.ODDS_BINS:
+            if high == float('inf'):
+                bins.append(f">{low:.2f}")
+            else:
+                bins.append(f"{low:.2f}-{high:.2f}")
+        return bins
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Загружаем данные из PKL файла
+        import os
+        import pickle
+        from django.conf import settings
+
+        pkl_path = os.path.join(settings.BASE_DIR, 'analysis_results', 'all_leagues_complete_stats.pkl')
+
+        # Списки всех возможных блоков
+        context['prob_bins'] = self.get_probability_bins_list()
+        context['p1_bins'] = self.get_odds_bins_list()
+        context['tb_bins'] = self.get_odds_bins_list()
+
+        if os.path.exists(pkl_path):
+            try:
+                with open(pkl_path, 'rb') as f:
+                    data = pickle.load(f)
+
+                # Получаем список всех лиг
+                context['leagues'] = sorted(data.keys())
+
+                # Получаем выбранную лигу из GET параметров
+                selected_league = self.request.GET.get('league')
+                p1_bin = self.request.GET.get('p1_bin')
+                tb_bin = self.request.GET.get('tb_bin')
+                prob_bin = self.request.GET.get('prob_bin')
+
+                context['selected_league'] = selected_league
+                context['selected_p1_bin'] = p1_bin
+                context['selected_tb_bin'] = tb_bin
+                context['selected_prob_bin'] = prob_bin
+
+                # Если выбрана лига и все блоки, ищем данные
+                if selected_league and p1_bin and tb_bin and prob_bin:
+                    if selected_league in data:
+                        key = (p1_bin, tb_bin, prob_bin)
+                        stats = data[selected_league].get(key)
+
+                        if stats:
+                            context['stats'] = stats
+                            context['key_found'] = True
+                            # Рассчитываем процент попаданий
+                            if stats['total'] > 0:
+                                context['hit_rate'] = (stats['hits'] / stats['total']) * 100
+                        else:
+                            context['key_found'] = False
+
+            except Exception as e:
+                context['error'] = f'Ошибка загрузки данных: {e}'
+        else:
+            context['error'] = 'Файл с данными не найден'
+
+        return context
 
 
 @require_POST
