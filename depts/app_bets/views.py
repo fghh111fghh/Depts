@@ -2026,6 +2026,15 @@ class BetCreateView(SuccessMessageMixin, CreateView):
         if interval:
             initial['interval'] = interval
 
+        # Статистика выборки
+        hits = self.request.GET.get('hits')
+        if hits:
+            initial['hits'] = safe_int(hits)
+
+        total = self.request.GET.get('total')
+        if total:
+            initial['total'] = safe_int(total)
+
         # Автоматические поля
         from .models import Bank
         from django.utils import timezone
@@ -2056,16 +2065,30 @@ class BetCreateView(SuccessMessageMixin, CreateView):
         return initial
 
     def get_success_message(self, cleaned_data):
+        """Формирует сообщение об успешном сохранении"""
         return self.success_message % {
-            'home_team': self.object.home_team.name,
-            'away_team': self.object.away_team.name,
+            'home_team': self.object.home_team.name if self.object.home_team else '?',
+            'away_team': self.object.away_team.name if self.object.away_team else '?',
             'recommended_odds': self.object.recommended_odds,
             'stake': self.object.stake,
         }
 
     def form_invalid(self, form):
+        """Обработка невалидной формы"""
         messages.error(self.request, 'Ошибка при сохранении ставки. Пожалуйста, исправьте ошибки в форме.')
         return super().form_invalid(form)
+
+    def get_context_data(self, **kwargs):
+        """Добавляет сообщения в контекст"""
+        context = super().get_context_data(**kwargs)
+
+        # Добавляем сообщения из GET-параметров (если есть)
+        if 'message' in self.request.GET:
+            messages.success(self.request, self.request.GET.get('message'))
+        if 'error' in self.request.GET:
+            messages.error(self.request, self.request.GET.get('error'))
+
+        return context
 
 
 class BetRecordsView(LoginRequiredMixin, ListView):

@@ -4,6 +4,16 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'app_bets/css/pages/cleaned.css' %}">
 
+<!-- Блок сообщений -->
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
 <div class="cl-header">
     <p class="cl-header-description">Найдено {{ total_analyzed }}</p>
 </div>
