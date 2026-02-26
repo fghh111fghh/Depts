@@ -2088,7 +2088,6 @@ class BetRecordsView(LoginRequiredMixin, ListView):
         )
 
         # Фильтры
-        # Поиск по командам или лиге
         search_query = self.request.GET.get('search', '')
         if search_query:
             queryset = queryset.filter(
@@ -2097,7 +2096,6 @@ class BetRecordsView(LoginRequiredMixin, ListView):
                 Q(league__name__icontains=search_query)
             )
 
-        # Фильтр по дате начала
         date_from = self.request.GET.get('date_from', '')
         if date_from:
             try:
@@ -2106,51 +2104,22 @@ class BetRecordsView(LoginRequiredMixin, ListView):
             except ValueError:
                 pass
 
-        # Фильтр по дате окончания
         date_to = self.request.GET.get('date_to', '')
         if date_to:
             try:
                 date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
-                # Добавляем +1 день, чтобы включить весь день окончания
                 date_to = datetime.combine(date_to, datetime.max.time())
                 queryset = queryset.filter(date_placed__lte=date_to)
             except ValueError:
                 pass
 
-        # Фильтр по лиге
         league_id = self.request.GET.get('league', '')
         if league_id and league_id.isdigit():
             queryset = queryset.filter(league_id=league_id)
 
-        # Фильтр по результату
         result = self.request.GET.get('result', '')
-        if result and result != 'all':
+        if result:
             queryset = queryset.filter(result=result)
-
-        # Фильтр по типу ставки (ТБ/ТМ)
-        target = self.request.GET.get('target', '')
-        if target and target != 'all':
-            queryset = queryset.filter(recommended_target=target)
-
-        # Фильтр по минимальной сумме
-        min_amount = self.request.GET.get('min_amount', '')
-        if min_amount and min_amount.replace('.', '', 1).isdigit():
-            queryset = queryset.filter(stake__gte=Decimal(min_amount))
-
-        # Фильтр по максимальной сумме
-        max_amount = self.request.GET.get('max_amount', '')
-        if max_amount and max_amount.replace('.', '', 1).isdigit():
-            queryset = queryset.filter(stake__lte=Decimal(max_amount))
-
-        # Фильтр по минимальному EV
-        min_ev = self.request.GET.get('min_ev', '')
-        if min_ev and min_ev.replace('-', '', 1).replace('.', '', 1).isdigit():
-            queryset = queryset.filter(ev__gte=float(min_ev))
-
-        # Фильтр по максимальному EV
-        max_ev = self.request.GET.get('max_ev', '')
-        if max_ev and max_ev.replace('-', '', 1).replace('.', '', 1).isdigit():
-            queryset = queryset.filter(ev__lte=float(max_ev))
 
         # Сортировка
         sort_field = self.request.GET.get('sort', '-date_placed')
@@ -2160,8 +2129,6 @@ class BetRecordsView(LoginRequiredMixin, ListView):
             'ev', '-ev',
             'profit', '-profit',
             'recommended_odds', '-recommended_odds',
-            'home_team__name', '-home_team__name',
-            'league__name', '-league__name',
         ]
 
         if sort_field in valid_sort_fields:
@@ -2177,47 +2144,35 @@ class BetRecordsView(LoginRequiredMixin, ListView):
         """
         context = super().get_context_data(**kwargs)
 
-        # Текущий баланс
+        # Текущий баланс - берем из БД
+        from .models import Bank
         context['current_balance'] = Bank.get_balance()
 
-        # Статистика по ставкам
-        bets = self.get_queryset()
-        context['total_bets'] = bets.count()
-        context['total_stake'] = bets.aggregate(
-            total=Coalesce(Sum('stake'), 0, output_field=DecimalField())
-        )['total']
-        context['total_profit'] = bets.aggregate(
-            total=Coalesce(Sum('profit'), 0, output_field=DecimalField())
-        )['total']
+        # ВСЕ СТАВКИ для статистики
+        all_bets = Bet.objects.all()
 
-        # Количество по результатам
-        context['wins_count'] = bets.filter(result=Bet.ResultChoices.WIN).count()
-        context['losses_count'] = bets.filter(result=Bet.ResultChoices.LOSS).count()
-        context['refunds_count'] = bets.filter(result=Bet.ResultChoices.REFUND).count()
+        # Сумма ставок
+        total_stake_agg = all_bets.aggregate(total=Sum('stake'))['total']
+        context['total_stake'] = total_stake_agg if total_stake_agg else 0
 
-        # ROI (возврат инвестиций)
+        # Прибыль
+        total_profit_agg = all_bets.aggregate(total=Sum('profit'))['total']
+        context['total_profit'] = total_profit_agg if total_profit_agg else 0
+
+        # Количество ставок
+        context['total_bets'] = all_bets.count()
+        context['wins_count'] = all_bets.filter(result=Bet.ResultChoices.WIN).count()
+        context['losses_count'] = all_bets.filter(result=Bet.ResultChoices.LOSS).count()
+        context['refunds_count'] = all_bets.filter(result=Bet.ResultChoices.REFUND).count()
+
+        # ROI
         if context['total_stake'] > 0:
             context['roi'] = (context['total_profit'] / context['total_stake']) * 100
         else:
             context['roi'] = 0
 
-        # Списки для фильтров
+        # Список лиг для фильтра
         context['leagues'] = League.objects.filter(bet__isnull=False).distinct().order_by('name')
-
-        # Текущие значения фильтров для формы
-        context['current_filters'] = {
-            'search': self.request.GET.get('search', ''),
-            'date_from': self.request.GET.get('date_from', ''),
-            'date_to': self.request.GET.get('date_to', ''),
-            'league': self.request.GET.get('league', ''),
-            'result': self.request.GET.get('result', ''),
-            'target': self.request.GET.get('target', ''),
-            'min_amount': self.request.GET.get('min_amount', ''),
-            'max_amount': self.request.GET.get('max_amount', ''),
-            'min_ev': self.request.GET.get('min_ev', ''),
-            'max_ev': self.request.GET.get('max_ev', ''),
-            'sort': self.request.GET.get('sort', '-date_placed'),
-        }
 
         return context
 
