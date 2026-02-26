@@ -1873,6 +1873,17 @@ class ExportCleanedExcelView(View):
         ws = wb.active
         ws.title = "Анализ матчей"
 
+        # Устанавливаем шрифт Times New Roman для всей книги
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+
+        # Создаем стили
+        times_new_roman = Font(name='Times New Roman', size=14)
+        bold_times = Font(name='Times New Roman', size=14, bold=True)
+
+        # Центрирование для всех ячеек
+        center_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+        # Заголовки колонок
         headers = [
             'Время',
             'Хозяева',
@@ -1880,15 +1891,37 @@ class ExportCleanedExcelView(View):
             'Лига',
             'Коэффициент',
             'Исход',
-            'Прогноз Пуассона, %',
-            'Фактическая вероятность, %',
-            'EV, %'
+            'Прогноз\nПуассона,%',
+            'Фактическая\nвероятность,%',
+            'EV,\n%',
+            'Всего\nсобытий',
+            'Попаданий'
         ]
         ws.append(headers)
-        for cell in ws[1]:
-            cell.font = openpyxl.styles.Font(bold=True)
 
-        for res in results:
+        # Устанавливаем ширину колонок
+        column_widths = [10, 20, 20, 25, 12, 12, 18, 23, 10, 12, 15]
+        for i, width in enumerate(column_widths, 1):
+            ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = width
+
+        # Форматируем заголовки
+        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+        header_font = Font(name='Times New Roman', size=14, bold=True, color="FFFFFF")
+
+        for col in range(1, len(headers) + 1):
+            cell = ws.cell(row=1, column=col)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = center_alignment
+            cell.border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+
+        # Данные
+        for row_num, res in enumerate(results, 2):
             row = [
                 res.get('time', ''),
                 res.get('home', ''),
@@ -1899,17 +1932,34 @@ class ExportCleanedExcelView(View):
                 res.get('poisson_prob', ''),
                 res.get('actual_prob', ''),
                 res.get('ev', ''),
+                res.get('total', ''),
+                res.get('hits', ''),
             ]
             ws.append(row)
 
-        # автоширина
-        for col in ws.columns:
-            max_len = 0
-            col_letter = col[0].column_letter
-            for cell in col:
-                if cell.value and len(str(cell.value)) > max_len:
-                    max_len = len(str(cell.value))
-            ws.column_dimensions[col_letter].width = min(max_len + 2, 30)
+            # Форматируем каждую ячейку строки
+            for col in range(1, len(row) + 1):
+                cell = ws.cell(row=row_num, column=col)
+                cell.font = times_new_roman
+                cell.alignment = center_alignment
+                cell.border = Border(
+                    left=Side(style='thin'),
+                    right=Side(style='thin'),
+                    top=Side(style='thin'),
+                    bottom=Side(style='thin')
+                )
+
+                # Для числовых колонок устанавливаем формат
+                if col in [5, 7, 8, 9]:  # Коэффициент, вероятности, EV
+                    cell.number_format = '0.00'
+                elif col in [10, 11]:  # Всего событий, Попаданий
+                    cell.number_format = '0'  # Целые числа без десятичных знаков
+
+        # Добавляем фильтры на заголовки
+        ws.auto_filter.ref = f"A1:{openpyxl.utils.get_column_letter(len(headers))}1"
+
+        # Фиксируем заголовки (чтобы всегда были видны)
+        ws.freeze_panes = 'A2'
 
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
