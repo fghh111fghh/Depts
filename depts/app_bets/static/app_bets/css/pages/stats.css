@@ -426,3 +426,157 @@ body {
         text-align: center;
     }
 }
+
+/* ====== ТАБЛИЦА РЕЗУЛЬТАТОВ ====== */
+.sort-info {
+    margin-bottom: 20px;
+    padding: 10px 15px;
+    background: var(--dark-bg-elevated);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    border: 1px solid var(--border-dark);
+}
+
+.sort-info-label {
+    font-weight: 600;
+}
+
+.top-results-table {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid var(--border-dark);
+}
+
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--dark-bg-card);
+}
+
+.stats-table th {
+    padding: 15px 12px;
+    text-align: left;
+    background: var(--dark-bg-elevated);
+    color: var(--text-muted);
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border-dark);
+}
+
+.stats-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border-dark);
+    color: var(--text-secondary);
+}
+
+.stats-table tr:hover td {
+    background: var(--dark-bg-elevated);
+}
+
+.stats-table .text-right {
+    text-align: right;
+    font-weight: 600;
+}
+
+.stats-table .hits {
+    color: var(--accent-green);
+    font-weight: 700;
+}
+
+.stats-table .percent {
+    color: var(--accent-blue-light);
+    font-weight: 700;
+}
+
+@media (max-width: 768px) {
+    .stats-table {
+        font-size: 0.85rem;
+    }
+
+    .stats-table th,
+    .stats-table td {
+        padding: 10px 8px;
+    }
+}
+
+/* ====== ВКЛАДКИ ====== */
+.stats-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+    border-bottom: 2px solid var(--border-dark);
+    padding-bottom: 10px;
+}
+
+.tab-link {
+    padding: 10px 20px;
+    border-radius: 30px;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-weight: 600;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tab-link:hover {
+    color: var(--text-primary);
+    background: var(--dark-bg-elevated);
+}
+
+.tab-link.active {
+    background: var(--accent-blue);
+    color: white;
+    box-shadow: var(--shadow-glow-blue);
+}
+
+.filter-title {
+    margin: 0 0 20px 0;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-dark);
+}
+
+.filter-title i {
+    color: var(--accent-blue);
+}
+
+.welcome-options {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.welcome-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 20px;
+    background: var(--dark-bg-elevated);
+    border-radius: 12px;
+    border: 1px solid var(--border-dark);
+    color: var(--text-secondary);
+}
+
+.welcome-option i {
+    color: var(--accent-blue);
+    font-size: 1.2rem;
+}
+
+.welcome-option strong {
+    color: var(--text-primary);
+    margin-right: 5px;
+}

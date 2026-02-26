@@ -2249,6 +2249,20 @@ class StatsView(TemplateView):
         context['p1_bins'] = self.get_odds_bins_list()
         context['tb_bins'] = self.get_odds_bins_list()
 
+        # Варианты сортировки для топ-10
+        context['sort_options'] = [
+            {'value': 'prob_bin', 'label': 'По блоку вероятности'},
+            {'value': 'total', 'label': 'По количеству событий'},
+            {'value': 'hits', 'label': 'По количеству попаданий'},
+            {'value': 'hit_rate', 'label': 'По проценту попаданий'},
+        ]
+
+        # Варианты направления
+        context['direction_options'] = [
+            {'value': 'asc', 'label': 'Первые 10 (по возрастанию)'},
+            {'value': 'desc', 'label': 'Последние 10 (по убыванию)'},
+        ]
+
         if os.path.exists(pkl_path):
             try:
                 with open(pkl_path, 'rb') as f:
@@ -2257,31 +2271,93 @@ class StatsView(TemplateView):
                 # Получаем список всех лиг
                 context['leagues'] = sorted(data.keys())
 
-                # Получаем выбранную лигу из GET параметров
-                selected_league = self.request.GET.get('league')
-                p1_bin = self.request.GET.get('p1_bin')
-                tb_bin = self.request.GET.get('tb_bin')
-                prob_bin = self.request.GET.get('prob_bin')
+                # Получаем параметры из GET
+                tab = self.request.GET.get('tab', 'search')
+                context['current_tab'] = tab
 
-                context['selected_league'] = selected_league
-                context['selected_p1_bin'] = p1_bin
-                context['selected_tb_bin'] = tb_bin
-                context['selected_prob_bin'] = prob_bin
+                if tab == 'search':
+                    # Режим поиска по конкретным блокам
+                    selected_league = self.request.GET.get('league')
+                    p1_bin = self.request.GET.get('p1_bin')
+                    tb_bin = self.request.GET.get('tb_bin')
+                    prob_bin = self.request.GET.get('prob_bin')
 
-                # Если выбрана лига и все блоки, ищем данные
-                if selected_league and p1_bin and tb_bin and prob_bin:
-                    if selected_league in data:
-                        key = (p1_bin, tb_bin, prob_bin)
-                        stats = data[selected_league].get(key)
+                    context['selected_league'] = selected_league
+                    context['selected_p1_bin'] = p1_bin
+                    context['selected_tb_bin'] = tb_bin
+                    context['selected_prob_bin'] = prob_bin
 
-                        if stats:
-                            context['stats'] = stats
-                            context['key_found'] = True
-                            # Рассчитываем процент попаданий
-                            if stats['total'] > 0:
-                                context['hit_rate'] = (stats['hits'] / stats['total']) * 100
-                        else:
-                            context['key_found'] = False
+                    # Если выбрана лига и все блоки, ищем данные
+                    if selected_league and p1_bin and tb_bin and prob_bin:
+                        if selected_league in data:
+                            key = (p1_bin, tb_bin, prob_bin)
+                            stats = data[selected_league].get(key)
+
+                            if stats:
+                                context['stats'] = stats
+                                context['key_found'] = True
+                                # Рассчитываем процент попаданий
+                                if stats['total'] > 0:
+                                    context['hit_rate'] = (stats['hits'] / stats['total']) * 100
+                            else:
+                                context['key_found'] = False
+
+                elif tab == 'top':
+                    # Режим топ-10 по лиге
+                    selected_league = self.request.GET.get('league')
+                    sort_by = self.request.GET.get('sort_by', 'total')
+                    direction = self.request.GET.get('direction', 'desc')
+                    limit = 10
+
+                    context['selected_league'] = selected_league
+                    context['selected_sort'] = sort_by
+                    context['selected_direction'] = direction
+
+                    if selected_league and selected_league in data:
+                        league_data = data[selected_league]
+
+                        # Преобразуем данные в список для сортировки
+                        results_list = []
+                        for key, stats in league_data.items():
+                            p1_bin, tb_bin, prob_bin = key
+                            hit_rate = (stats['hits'] / stats['total'] * 100) if stats['total'] > 0 else 0
+
+                            results_list.append({
+                                'p1_bin': p1_bin,
+                                'tb_bin': tb_bin,
+                                'prob_bin': prob_bin,
+                                'total': stats['total'],
+                                'hits': stats['hits'],
+                                'hit_rate': round(hit_rate, 1),
+                                'key': key
+                            })
+
+                        # Сортировка
+                        reverse = (direction == 'desc')
+
+                        if sort_by == 'prob_bin':
+                            # Сортируем по блоку вероятности (числовое значение)
+                            def get_prob_value(item):
+                                prob_str = item['prob_bin'].replace('%', '')
+                                if '-' in prob_str:
+                                    low, _ = prob_str.split('-')
+                                    return float(low)
+                                return 0
+
+                            results_list.sort(key=get_prob_value, reverse=reverse)
+
+                        elif sort_by == 'total':
+                            results_list.sort(key=lambda x: x['total'], reverse=reverse)
+
+                        elif sort_by == 'hits':
+                            results_list.sort(key=lambda x: x['hits'], reverse=reverse)
+
+                        elif sort_by == 'hit_rate':
+                            results_list.sort(key=lambda x: x['hit_rate'], reverse=reverse)
+
+                        # Берем первые 10
+                        context['top_results'] = results_list[:limit]
+                        context['total_found'] = len(results_list)
 
             except Exception as e:
                 context['error'] = f'Ошибка загрузки данных: {e}'

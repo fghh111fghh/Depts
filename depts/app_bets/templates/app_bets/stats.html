@@ -11,9 +11,22 @@
         <p class="stats-description">Просмотр статистики по лигам и блокам коэффициентов</p>
     </div>
 
-    <!-- Форма фильтрации -->
+    <!-- Вкладки -->
+    <div class="stats-tabs">
+        <a href="?tab=search" class="tab-link {% if request.GET.tab == 'search' or not request.GET.tab %}active{% endif %}">
+            <i class="fa-solid fa-magnifying-glass"></i> Поиск по блокам
+        </a>
+        <a href="?tab=top" class="tab-link {% if request.GET.tab == 'top' %}active{% endif %}">
+            <i class="fa-solid fa-chart-simple"></i> Топ-10 по лиге
+        </a>
+    </div>
+
+    <!-- Форма поиска по блокам -->
+    {% if request.GET.tab == 'search' or not request.GET.tab %}
     <div class="stats-filter-card">
+        <h3 class="filter-title"><i class="fa-solid fa-sliders"></i> Поиск по конкретным блокам</h3>
         <form method="get" class="stats-filter-form">
+            <input type="hidden" name="tab" value="search">
             <div class="filter-row">
                 <div class="filter-group">
                     <label for="league">Лига</label>
@@ -68,22 +81,71 @@
                 <button type="submit" class="btn btn-primary">
                     <i class="fa-solid fa-magnifying-glass"></i> Найти
                 </button>
-                <a href="{% url 'app_bets:stats' %}" class="btn btn-secondary">
+                <a href="{% url 'app_bets:stats' %}?tab=search" class="btn btn-secondary">
                     <i class="fa-solid fa-rotate-left"></i> Сбросить
                 </a>
             </div>
         </form>
     </div>
+    {% endif %}
 
-    <!-- Результаты -->
-    <div class="stats-results">
-        {% if error %}
-        <div class="stats-error">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            <p>{{ error }}</p>
-        </div>
+    <!-- Форма топ-10 по лиге -->
+    {% if request.GET.tab == 'top' %}
+    <div class="stats-filter-card">
+        <h3 class="filter-title"><i class="fa-solid fa-chart-simple"></i> Топ-10 блоков по лиге</h3>
+        <form method="get" class="stats-filter-form">
+            <input type="hidden" name="tab" value="top">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="league_top">Лига</label>
+                    <select name="league" id="league_top" class="filter-select" required>
+                        <option value="">— Выберите лигу —</option>
+                        {% for league in leagues %}
+                        <option value="{{ league }}" {% if selected_league == league %}selected{% endif %}>
+                            {{ league }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-        {% elif stats %}
+                <div class="filter-group">
+                    <label for="sort_by">Сортировать по</label>
+                    <select name="sort_by" id="sort_by" class="filter-select">
+                        {% for option in sort_options %}
+                        <option value="{{ option.value }}" {% if selected_sort == option.value %}selected{% endif %}>
+                            {{ option.label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="direction">Направление</label>
+                    <select name="direction" id="direction" class="filter-select">
+                        {% for option in direction_options %}
+                        <option value="{{ option.value }}" {% if selected_direction == option.value %}selected{% endif %}>
+                            {{ option.label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-magnifying-glass"></i> Показать топ-10
+                </button>
+                <a href="{% url 'app_bets:stats' %}?tab=top" class="btn btn-secondary">
+                    <i class="fa-solid fa-rotate-left"></i> Сбросить
+                </a>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Результаты поиска по блокам -->
+    {% if request.GET.tab == 'search' or not request.GET.tab %}
+        {% if stats %}
         <div class="stats-result-card">
             <div class="result-header">
                 <h2>Результаты поиска</h2>
@@ -133,20 +195,91 @@
             </div>
         </div>
 
-        {% elif selected_league or selected_p1_bin or selected_tb_bin or selected_prob_bin %}
+        {% elif selected_league and selected_p1_bin and selected_tb_bin and selected_prob_bin %}
         <div class="stats-not-found">
             <i class="fa-solid fa-database"></i>
             <h3>Данные не найдены</h3>
             <p>Для выбранной комбинации блоков нет статистики</p>
             <p class="small">Попробуйте изменить параметры поиска</p>
         </div>
-        {% else %}
-        <div class="stats-welcome">
-            <i class="fa-solid fa-chart-line"></i>
-            <h3>Выберите параметры для просмотра статистики</h3>
-            <p>Используйте форму выше, чтобы найти данные по конкретной лиге и блокам</p>
-        </div>
         {% endif %}
+    {% endif %}
+
+    <!-- Результаты топ-10 -->
+    {% if request.GET.tab == 'top' and top_results %}
+    <div class="stats-result-card">
+        <div class="result-header">
+            <h2>Топ-10 результатов для {{ selected_league }}</h2>
+            <div class="result-badge">
+                <span class="badge-key">Найдено {{ total_found }} блоков</span>
+            </div>
+        </div>
+
+        <div class="sort-info">
+            <span class="sort-info-label">
+                Сортировка:
+                {% for option in sort_options %}
+                    {% if option.value == selected_sort %}{{ option.label }}{% endif %}
+                {% endfor %}
+                {% if selected_direction == 'asc' %} (по возрастанию){% else %} (по убыванию){% endif %}
+            </span>
+        </div>
+
+        <div class="top-results-table">
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Блок П1</th>
+                        <th>Блок ТБ 2.5</th>
+                        <th>Блок Пуассона</th>
+                        <th>Всего</th>
+                        <th>Попаданий</th>
+                        <th>%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in top_results %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ result.p1_bin }}</td>
+                        <td>{{ result.tb_bin }}</td>
+                        <td>{{ result.prob_bin }}</td>
+                        <td class="text-right">{{ result.total }}</td>
+                        <td class="text-right hits">{{ result.hits }}</td>
+                        <td class="text-right percent">{{ result.hit_rate }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
+
+    {% elif request.GET.tab == 'top' and selected_league and not top_results %}
+    <div class="stats-not-found">
+        <i class="fa-solid fa-database"></i>
+        <h3>Данные не найдены</h3>
+        <p>Для выбранной лиги нет данных</p>
+    </div>
+    {% endif %}
+
+    <!-- Приветственное сообщение (когда ничего не выбрано) -->
+    {% if not selected_league and not selected_p1_bin and not selected_tb_bin and not selected_prob_bin and not top_results %}
+    <div class="stats-welcome">
+        <i class="fa-solid fa-chart-line"></i>
+        <h3>Добро пожаловать в статистику калибровочных данных</h3>
+        <p>Используйте вкладки выше для выбора режима:</p>
+        <div class="welcome-options">
+            <div class="welcome-option">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <strong>Поиск по блокам</strong> — найдите статистику для конкретной комбинации блоков
+            </div>
+            <div class="welcome-option">
+                <i class="fa-solid fa-chart-simple"></i>
+                <strong>Топ-10 по лиге</strong> — получите 10 лучших блоков для выбранной лиги
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
