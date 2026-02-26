@@ -9,23 +9,24 @@
 <div class="container mt-4 bet-form">
     <!-- Блок сообщений -->
     {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
+    {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show"
+         role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
     {% endif %}
 
     <h2 class="mb-3">Добавление ставки</h2>
 
     <!-- Общие ошибки формы -->
     {% if form.non_field_errors %}
-        <div class="alert alert-danger">
-            {% for error in form.non_field_errors %}
-                {{ error }}
-            {% endfor %}
-        </div>
+    <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}
+        {{ error }}
+        {% endfor %}
+    </div>
     {% endif %}
 
     <form method="post" id="bet-form">
@@ -43,28 +44,28 @@
                             {{ form.match_time.label_tag }}
                             {{ form.match_time }}
                             {% if form.match_time.errors %}
-                                <div class="text-danger small">{{ form.match_time.errors }}</div>
+                            <div class="text-danger small">{{ form.match_time.errors }}</div>
                             {% endif %}
                         </div>
                         <div class="mb-3">
                             {{ form.home_team.label_tag }}
                             {{ form.home_team }}
                             {% if form.home_team.errors %}
-                                <div class="text-danger small">{{ form.home_team.errors }}</div>
+                            <div class="text-danger small">{{ form.home_team.errors }}</div>
                             {% endif %}
                         </div>
                         <div class="mb-3">
                             {{ form.away_team.label_tag }}
                             {{ form.away_team }}
                             {% if form.away_team.errors %}
-                                <div class="text-danger small">{{ form.away_team.errors }}</div>
+                            <div class="text-danger small">{{ form.away_team.errors }}</div>
                             {% endif %}
                         </div>
                         <div class="mb-3">
                             {{ form.league.label_tag }}
                             {{ form.league }}
                             {% if form.league.errors %}
-                                <div class="text-danger small">{{ form.league.errors }}</div>
+                            <div class="text-danger small">{{ form.league.errors }}</div>
                             {% endif %}
                         </div>
                     </div>
@@ -81,28 +82,28 @@
                                 {{ form.poisson_prob.label_tag }}
                                 {{ form.poisson_prob }}
                                 {% if form.poisson_prob.errors %}
-                                    <div class="text-danger small">{{ form.poisson_prob.errors }}</div>
+                                <div class="text-danger small">{{ form.poisson_prob.errors }}</div>
                                 {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
                                 {{ form.actual_prob.label_tag }}
                                 {{ form.actual_prob }}
                                 {% if form.actual_prob.errors %}
-                                    <div class="text-danger small">{{ form.actual_prob.errors }}</div>
+                                <div class="text-danger small">{{ form.actual_prob.errors }}</div>
                                 {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
                                 {{ form.ev.label_tag }}
                                 {{ form.ev }}
                                 {% if form.ev.errors %}
-                                    <div class="text-danger small">{{ form.ev.errors }}</div>
+                                <div class="text-danger small">{{ form.ev.errors }}</div>
                                 {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
                                 {{ form.interval.label_tag }}
                                 {{ form.interval }}
                                 {% if form.interval.errors %}
-                                    <div class="text-danger small">{{ form.interval.errors }}</div>
+                                <div class="text-danger small">{{ form.interval.errors }}</div>
                                 {% endif %}
                             </div>
                         </div>
@@ -121,9 +122,10 @@
                         <div class="mb-3">
                             {{ form.bank_before.label_tag }}
                             <span class="form-control bg-light">{{ form.initial.bank_before|thousand_separator }}</span>
-                            <input type="hidden" name="bank_before" value="{{ form.initial.bank_before }}" id="id_bank_before">
+                            <input type="hidden" name="bank_before" value="{{ form.initial.bank_before }}"
+                                   id="id_bank_before">
                             {% if form.bank_before.errors %}
-                                <div class="text-danger small">{{ form.bank_before.errors }}</div>
+                            <div class="text-danger small">{{ form.bank_before.errors }}</div>
                             {% endif %}
                         </div>
 
@@ -132,28 +134,30 @@
                             {{ form.settled_at.label_tag }}
                             {{ form.settled_at }}
                             {% if form.settled_at.errors %}
-                                <div class="text-danger small">{{ form.settled_at.errors }}</div>
+                            <div class="text-danger small">{{ form.settled_at.errors }}</div>
                             {% endif %}
                         </div>
 
-                        <!-- Доля Келли -->
-                        <div class="mb-3">
-                            {{ form.fractional_kelly.label_tag }}
-                            {{ form.fractional_kelly }}
-                            {% if form.fractional_kelly.errors %}
-                                <div class="text-danger small">{{ form.fractional_kelly.errors }}</div>
-                            {% endif %}
-                        </div>
+<!-- Доля Келли -->
+<div class="mb-3">
+    {{ form.fractional_kelly.label_tag }}
+    {{ form.fractional_kelly }}
+    {% if form.fractional_kelly.errors %}
+        <div class="text-danger small">{{ form.fractional_kelly.errors }}</div>
+    {% endif %}
+</div>
 
                         <!-- Сумма ставки -->
                         <div class="mb-3">
                             {{ form.stake.label_tag }}
                             <div class="input-group">
-                                <input type="text" class="form-control" id="id_stake_display" value="{{ form.initial.stake|default:'0' }}">
-                                <input type="hidden" name="stake" id="id_stake" value="{{ form.initial.stake|default:'0' }}">
+                                <input type="text" class="form-control" id="id_stake_display"
+                                       value="{{ form.initial.stake|default:'0' }}">
+                                <input type="hidden" name="stake" id="id_stake"
+                                       value="{{ form.initial.stake|default:'0' }}">
                             </div>
                             {% if form.stake.errors %}
-                                <div class="text-danger small">{{ form.stake.errors }}</div>
+                            <div class="text-danger small">{{ form.stake.errors }}</div>
                             {% endif %}
                         </div>
 
@@ -162,7 +166,7 @@
                             {{ form.recommended_odds.label_tag }}
                             {{ form.recommended_odds }}
                             {% if form.recommended_odds.errors %}
-                                <div class="text-danger small">{{ form.recommended_odds.errors }}</div>
+                            <div class="text-danger small">{{ form.recommended_odds.errors }}</div>
                             {% endif %}
                         </div>
 
@@ -171,7 +175,7 @@
                             {{ form.recommended_target.label_tag }}
                             {{ form.recommended_target }}
                             {% if form.recommended_target.errors %}
-                                <div class="text-danger small">{{ form.recommended_target.errors }}</div>
+                            <div class="text-danger small">{{ form.recommended_target.errors }}</div>
                             {% endif %}
                         </div>
 
@@ -180,7 +184,7 @@
                             {{ form.result.label_tag }}
                             {{ form.result }}
                             {% if form.result.errors %}
-                                <div class="text-danger small">{{ form.result.errors }}</div>
+                            <div class="text-danger small">{{ form.result.errors }}</div>
                             {% endif %}
                         </div>
 
@@ -202,70 +206,106 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const bankInput = document.getElementById('id_bank_before');
-    const oddsInput = document.getElementById('id_recommended_odds');
-    const probInput = document.getElementById('id_actual_prob');
-    const kellySelect = document.getElementById('id_fractional_kelly');
-    const stakeInput = document.getElementById('id_stake');
-    const stakeDisplay = document.getElementById('id_stake_display');
+    document.addEventListener('DOMContentLoaded', function() {
+        const bankInput = document.getElementById('id_bank_before');
+        const oddsInput = document.getElementById('id_recommended_odds');
+        const probInput = document.getElementById('id_actual_prob');
+        const kellySelect = document.getElementById('id_fractional_kelly');
+        const stakeInput = document.getElementById('id_stake');
+        const stakeDisplay = document.getElementById('id_stake_display');
 
-    function getFloatValue(element) {
-        if (!element || !element.value) return 0;
-        return parseFloat(element.value.toString().replace(/\s/g, '').replace(',', '.')) || 0;
-    }
+        function getFloatValue(element) {
+            if (!element || !element.value) return 0;
+            return parseFloat(element.value.toString().replace(/\s/g, '').replace(',', '.')) || 0;
+        }
 
-    function roundToHundreds(value) {
-        return Math.round(value / 100) * 100;
-    }
+        function roundToHundreds(value) {
+            return Math.round(value / 100) * 100;
+        }
 
-    function formatNumberWithSpaces(value) {
-        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-    }
+        function formatNumberWithSpaces(value) {
+            return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        }
 
-    function calculateStake() {
+        function calculateStake() {
         const bank = getFloatValue(bankInput);
         const odds = getFloatValue(oddsInput);
         const prob = getFloatValue(probInput);
         const fraction = parseFloat(kellySelect.value) || 0;
 
-        if (odds > 1 && prob > 0 && prob < 100) {
-            const p = prob / 100;
-            const fullKelly = (p * odds - 1) / (odds - 1);
-            const limitedKelly = Math.max(0, Math.min(fullKelly, 1));
-            const stake = bank * limitedKelly * fraction;
-            const roundedStake = roundToHundreds(stake);
+        // ОТЛАДКА - смотрим что приходит
+        console.log('=== ОТЛАДКА РАСЧЕТА СТАВКИ ===');
+        console.log('bank (raw):', bankInput.value);
+        console.log('bank (parsed):', bank);
+        console.log('odds (raw):', oddsInput.value);
+        console.log('odds (parsed):', odds);
+        console.log('prob (raw):', probInput.value);
+        console.log('prob (parsed):', prob);
+        console.log('fraction:', fraction);
 
+        if (odds > 1 && prob > 0 && prob < 100 && bank > 0) {
+            // ПРЕДПОЛАГАЕМ, ЧТО prob В ПРОЦЕНТАХ (0-100)
+            const p = prob / 100;  // переводим в доли
+            console.log('p (probability in decimal):', p);
+
+            // Критерий Келли: f = (p * k - 1) / (k - 1)
+            const fullKelly = (p * odds - 1) / (odds - 1);
+            console.log('fullKelly:', fullKelly);
+
+            // Ограничиваем от 0 до 1
+            const limitedKelly = Math.max(0, Math.min(fullKelly, 1));
+            console.log('limitedKelly:', limitedKelly);
+
+            // Сумма ставки
+            const stake = bank * limitedKelly * fraction;
+            console.log('stake (before rounding):', stake);
+
+            // Округляем до сотен
+            const roundedStake = roundToHundreds(stake);
+            console.log('roundedStake:', roundedStake);
+
+            // Если пользователь не менял сумму вручную
             if (!stakeDisplay._userModified) {
                 stakeInput.value = roundedStake;
                 stakeDisplay.value = formatNumberWithSpaces(roundedStake);
+                console.log('СТАВКА УСТАНОВЛЕНА АВТОМАТИЧЕСКИ');
+            } else {
+                console.log('СТАВКА НЕ ИЗМЕНЕНА (пользователь ввел вручную)');
             }
         } else {
+            console.log('УСЛОВИЕ НЕ ВЫПОЛНЕНО:');
+            if (odds <= 1) console.log('- odds <= 1');
+            if (prob <= 0) console.log('- prob <= 0');
+            if (prob >= 100) console.log('- prob >= 100');
+            if (bank <= 0) console.log('- bank <= 0');
+
             if (!stakeDisplay._userModified) {
                 stakeInput.value = 0;
                 stakeDisplay.value = '0';
+                console.log('СТАВКА СБРОШЕНА В 0');
             }
         }
+        console.log('=== КОНЕЦ ОТЛАДКИ ===');
     }
 
-    stakeDisplay.addEventListener('input', function() {
-        stakeDisplay._userModified = true;
-        const rawValue = this.value.replace(/\s/g, '');
-        stakeInput.value = rawValue;
-    });
+        stakeDisplay.addEventListener('input', function() {
+            stakeDisplay._userModified = true;
+            const rawValue = this.value.replace(/\s/g, '');
+            stakeInput.value = rawValue;
+        });
 
-    function recalcWithFlag() {
+        function recalcWithFlag() {
+            stakeDisplay._userModified = false;
+            calculateStake();
+        }
+
+        bankInput.addEventListener('input', recalcWithFlag);
+        oddsInput.addEventListener('input', recalcWithFlag);
+        probInput.addEventListener('input', recalcWithFlag);
+        kellySelect.addEventListener('change', recalcWithFlag);
+
         stakeDisplay._userModified = false;
         calculateStake();
-    }
-
-    bankInput.addEventListener('input', recalcWithFlag);
-    oddsInput.addEventListener('input', recalcWithFlag);
-    probInput.addEventListener('input', recalcWithFlag);
-    kellySelect.addEventListener('change', recalcWithFlag);
-
-    stakeDisplay._userModified = false;
-    calculateStake();
-});
+    });
 </script>
 {% endblock %}

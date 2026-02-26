@@ -8,7 +8,7 @@ class BetForm(forms.ModelForm):
 
     # Константы для выбора доли Келли
     KELLY_CHOICES = [
-        ('0.25', '0.25)'),
+        ('0.25', '0.25'),
         ('0.5', '0.5'),
         ('0.75', '0.75'),
         ('1.0', '1.0'),
@@ -18,7 +18,7 @@ class BetForm(forms.ModelForm):
     fractional_kelly = forms.ChoiceField(
         choices=KELLY_CHOICES,
         required=False,
-        initial='0.5',
+        initial='0.25',
         label='Доля Келли',
         widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_fractional_kelly'})
     )

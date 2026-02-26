@@ -2087,21 +2087,29 @@ class BetCreateView(SuccessMessageMixin, CreateView):
         from django.utils import timezone
         initial['bank_before'] = float(Bank.get_balance())
         initial['settled_at'] = timezone.now().date().isoformat()
-        initial['fractional_kelly'] = 0.5
+        initial['fractional_kelly'] = 0.25  # ИЗМЕНЕНО С 0.5 НА 0.25
 
         # Расчёт начальной суммы ставки
         try:
             bank = initial.get('bank_before', 0)
             odds = initial.get('recommended_odds', 0)
-            prob = initial.get('actual_prob', 0)
-            fraction = initial.get('fractional_kelly', 0.5)
+            prob = initial.get('actual_prob', 0)  # это в процентах
+            fraction = initial.get('fractional_kelly', 0.25)  # УЖЕ 0.25
 
-            if odds and prob and bank and fraction:
+            if odds and prob and bank and fraction and odds > 1:
+                # Переводим проценты в доли
                 p = float(prob) / 100
-                k = float(odds)
-                full_kelly = (p * k - 1) / (k - 1)
+
+                # Критерий Келли: f = (p * k - 1) / (k - 1)
+                full_kelly = (p * float(odds) - 1) / (float(odds) - 1)
+
+                # Ограничиваем от 0 до 1
                 limited_kelly = max(0, min(full_kelly, 1))
+
+                # Применяем дробный Келли
                 stake = float(bank) * limited_kelly * float(fraction)
+
+                # Округляем до сотен
                 initial['stake'] = round(stake / 100) * 100
             else:
                 initial['stake'] = 0
