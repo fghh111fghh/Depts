@@ -129,6 +129,17 @@
                         {% endfor %}
                     </select>
                 </div>
+
+                <div class="filter-group">
+                    <label for="min_total">Мин. событий</label>
+                    <select name="min_total" id="min_total" class="filter-select">
+                        {% for option in min_total_options %}
+                        <option value="{{ option.value }}" {% if selected_min_total == option.value %}selected{% endif %}>
+                            {{ option.label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
 
             <div class="filter-actions">
@@ -222,6 +233,10 @@
                     {% if option.value == selected_sort %}{{ option.label }}{% endif %}
                 {% endfor %}
                 {% if selected_direction == 'asc' %} (по возрастанию){% else %} (по убыванию){% endif %}
+                | Минимум событий:
+                {% for option in min_total_options %}
+                    {% if option.value == selected_min_total %}{{ option.label }}{% endif %}
+                {% endfor %}
             </span>
         </div>
 
@@ -259,7 +274,7 @@
     <div class="stats-not-found">
         <i class="fa-solid fa-database"></i>
         <h3>Данные не найдены</h3>
-        <p>Для выбранной лиги нет данных</p>
+        <p>Для выбранной лиги нет данных с минимальным количеством событий {{ selected_min_total }}</p>
     </div>
     {% endif %}
 
@@ -276,7 +291,7 @@
             </div>
             <div class="welcome-option">
                 <i class="fa-solid fa-chart-simple"></i>
-                <strong>Топ-10 по лиге</strong> — получите 10 лучших блоков для выбранной лиги
+                <strong>Топ-10 по лиге</strong> — получите 10 лучших блоков для выбранной лиги с фильтром по минимальному количеству событий
             </div>
         </div>
     </div>

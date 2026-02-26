@@ -2263,6 +2263,17 @@ class StatsView(TemplateView):
             {'value': 'desc', 'label': 'Последние 10 (по убыванию)'},
         ]
 
+        # Варианты минимального количества событий
+        context['min_total_options'] = [
+            {'value': '1', 'label': 'Любое (≥1)'},
+            {'value': '5', 'label': '≥5 событий'},
+            {'value': '10', 'label': '≥10 событий'},
+            {'value': '20', 'label': '≥20 событий'},
+            {'value': '30', 'label': '≥30 событий'},
+            {'value': '50', 'label': '≥50 событий'},
+            {'value': '100', 'label': '≥100 событий'},
+        ]
+
         if os.path.exists(pkl_path):
             try:
                 with open(pkl_path, 'rb') as f:
@@ -2307,11 +2318,13 @@ class StatsView(TemplateView):
                     selected_league = self.request.GET.get('league')
                     sort_by = self.request.GET.get('sort_by', 'total')
                     direction = self.request.GET.get('direction', 'desc')
+                    min_total = int(self.request.GET.get('min_total', 1))
                     limit = 10
 
                     context['selected_league'] = selected_league
                     context['selected_sort'] = sort_by
                     context['selected_direction'] = direction
+                    context['selected_min_total'] = str(min_total)
 
                     if selected_league and selected_league in data:
                         league_data = data[selected_league]
@@ -2320,6 +2333,11 @@ class StatsView(TemplateView):
                         results_list = []
                         for key, stats in league_data.items():
                             p1_bin, tb_bin, prob_bin = key
+
+                            # Применяем фильтр по минимальному количеству
+                            if stats['total'] < min_total:
+                                continue
+
                             hit_rate = (stats['hits'] / stats['total'] * 100) if stats['total'] > 0 else 0
 
                             results_list.append({
