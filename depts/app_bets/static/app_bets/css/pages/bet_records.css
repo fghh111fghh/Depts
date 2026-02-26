@@ -780,6 +780,11 @@ body {
     .modal-content {
         padding: 20px;
     }
+
+    .filter-group input[type="date"] {
+        min-height: 48px; /* Больше на мобильных для удобства */
+        font-size: 16px; /* Предотвращает зум на iOS */
+    }
 }
 
 /* ====== АЛЕРТЫ ====== */
@@ -832,3 +837,58 @@ body {
         opacity: 1;
     }
 }
+
+/* ====== СТИЛИ ДЛЯ ПОЛЕЙ ДАТЫ ====== */
+.filter-group input[type="date"] {
+    padding: 10px 12px;
+    border: 2px solid var(--border-dark);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    background: var(--dark-bg-secondary);
+    color: var(--text-primary);
+    font-family: inherit;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 42px;
+}
+
+/* Стили для календаря (Webkit браузеры - Chrome, Safari, Edge) */
+.filter-group input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+    cursor: pointer;
+    opacity: 0.7;
+    padding: 4px;
+    width: 20px;
+    height: 20px;
+}
+
+.filter-group input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    filter: invert(0.9);
+}
+
+/* Для Firefox */
+.filter-group input[type="date"]::-moz-calendar-picker-indicator {
+    filter: invert(0.8);
+    cursor: pointer;
+}
+
+/* Placeholder для дат */
+.filter-group input[type="date"]::-webkit-datetime-edit-text,
+.filter-group input[type="date"]::-webkit-datetime-edit-month-field,
+.filter-group input[type="date"]::-webkit-datetime-edit-day-field,
+.filter-group input[type="date"]::-webkit-datetime-edit-year-field {
+    color: var(--text-primary);
+}
+
+.filter-group input[type="date"]::-webkit-datetime-edit {
+    padding: 0 3px;
+}
+
+.filter-group input[type="date"]:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+

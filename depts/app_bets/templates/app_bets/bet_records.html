@@ -90,17 +90,6 @@
                     <input type="date" name="date_to" value="{{ request.GET.date_to }}">
                 </div>
                 <div class="filter-group">
-                    <label>Вид спорта</label>
-                    <select name="sport">
-                        <option value="">Все</option>
-                        {% for sport in sports %}
-                        <option value="{{ sport.id }}" {% if request.GET.sport == sport.id|stringformat:"s" %}selected{% endif %}>
-                            {{ sport.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="filter-group">
                     <label>Лига</label>
                     <select name="league">
                         <option value="">Все</option>
