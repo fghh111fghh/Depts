@@ -1130,3 +1130,54 @@ body {
 .bets-result-card {
     animation: fadeIn 0.4s ease forwards;
 }
+
+/* ====== ПАГИНАЦИЯ ====== */
+.pagination-wrapper {
+    margin-top: 40px;
+    display: flex;
+    justify-content: center;
+}
+
+.pagination {
+    display: flex;
+    gap: 8px;
+    list-style: none;
+    padding: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.page-link {
+    display: block;
+    padding: 8px 16px;
+    border: 1px solid var(--border-dark);
+    background: var(--dark-bg-card);
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.page-link:hover {
+    background: var(--dark-bg-elevated);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.page-item.active .page-link {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
+    color: white;
+    border-color: transparent;
+    box-shadow: var(--shadow-glow-blue);
+}
+
+@media (max-width: 768px) {
+    .pagination {
+        gap: 5px;
+    }
+
+    .page-link {
+        padding: 6px 12px;
+        font-size: 0.9rem;
+    }
+}
