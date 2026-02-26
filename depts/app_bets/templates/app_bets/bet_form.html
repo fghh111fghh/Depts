@@ -233,36 +233,21 @@
         const prob = getFloatValue(probInput);
         const fraction = parseFloat(kellySelect.value) || 0;
 
-        // ОТЛАДКА - смотрим что приходит
-        console.log('=== ОТЛАДКА РАСЧЕТА СТАВКИ ===');
-        console.log('bank (raw):', bankInput.value);
-        console.log('bank (parsed):', bank);
-        console.log('odds (raw):', oddsInput.value);
-        console.log('odds (parsed):', odds);
-        console.log('prob (raw):', probInput.value);
-        console.log('prob (parsed):', prob);
-        console.log('fraction:', fraction);
-
-        if (odds > 1 && prob > 0 && prob < 100 && bank > 0) {
+        if (odds > 1 && prob > 0 && prob <= 100 && bank > 0) {
             // ПРЕДПОЛАГАЕМ, ЧТО prob В ПРОЦЕНТАХ (0-100)
             const p = prob / 100;  // переводим в доли
-            console.log('p (probability in decimal):', p);
 
             // Критерий Келли: f = (p * k - 1) / (k - 1)
             const fullKelly = (p * odds - 1) / (odds - 1);
-            console.log('fullKelly:', fullKelly);
 
             // Ограничиваем от 0 до 1
             const limitedKelly = Math.max(0, Math.min(fullKelly, 1));
-            console.log('limitedKelly:', limitedKelly);
 
             // Сумма ставки
             const stake = bank * limitedKelly * fraction;
-            console.log('stake (before rounding):', stake);
 
             // Округляем до сотен
             const roundedStake = roundToHundreds(stake);
-            console.log('roundedStake:', roundedStake);
 
             // Если пользователь не менял сумму вручную
             if (!stakeDisplay._userModified) {
@@ -285,7 +270,6 @@
                 console.log('СТАВКА СБРОШЕНА В 0');
             }
         }
-        console.log('=== КОНЕЦ ОТЛАДКИ ===');
     }
 
         stakeDisplay.addEventListener('input', function() {
