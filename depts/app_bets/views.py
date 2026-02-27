@@ -147,6 +147,7 @@ class AnalyzeView(ListView):
 
         results, unknown_teams = self._analyze_matches(request, raw_text)
 
+        # СОХРАНЯЕМ ВСЕ ДАННЫЕ В СЕССИЮ
         request.session['results'] = results
         request.session['raw_text'] = raw_text
         request.session['unknown_teams'] = list(unknown_teams)
@@ -154,15 +155,8 @@ class AnalyzeView(ListView):
         if results:
             request.session['original_results'] = [dict(r) for r in results]
 
-        sorted_results = self.sort_results(results, current_sort)
-
-        return render(request, self.template_name, {
-            'results': sorted_results,
-            'raw_text': raw_text,
-            'unknown_teams': sorted(list(unknown_teams)),
-            'all_teams': Team.objects.all().order_by('name'),
-            'current_sort': current_sort,
-        })
+        # РЕДИРЕКТ НА GET С ПАРАМЕТРАМИ СОРТИРОВКИ
+        return redirect(f"{request.path}?sort={current_sort}")
 
     def _handle_alias_creation(self, request):
         """
