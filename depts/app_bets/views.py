@@ -1110,9 +1110,10 @@ class CleanedTemplateView(TemplateView):
            - Рассчитывает Пуассон
            - Ищет калибровку по трем блокам
            - Получает hits_over и total
+           - Применяет БАЙЕСОВСКОЕ СГЛАЖИВАНИЕ для вероятности
            - Рассчитывает hits_under = total - hits_over
            - Считает EV для ТБ и ТМ
-           - Добавляет в результаты если EV > 7% И total >= 3
+           - Добавляет в результаты если EV > 7% И total >= 5
         3. Сортирует результаты в соответствии с параметром sort
         4. Передает в шаблон
 
@@ -1140,7 +1141,11 @@ class CleanedTemplateView(TemplateView):
         # Анализируем матчи
         analysis_results = []
         MIN_EV = 7  # Минимальное EV в процентах
-        MIN_TOTAL = 3  # Минимальное количество матчей в выборке
+        MIN_TOTAL = 5  # УВЕЛИЧЕНО с 3 до 5
+
+        # Параметры байесовского сглаживания
+        ALPHA = 1  # априорные успехи
+        BETA = 1  # априорные неудачи
 
         for idx, row in excel_df.iterrows():
             try:
@@ -1190,26 +1195,30 @@ class CleanedTemplateView(TemplateView):
 
                 # Проверяем ТБ
                 if over_data and over_data['total'] >= MIN_TOTAL:
-                    ev_over = (over_data['prob'] / 100.0) * odds_over - 1
+                    # БАЙЕСОВСКОЕ СГЛАЖИВАНИЕ для ТБ
+                    smoothed_prob_over = (over_data['hits'] + ALPHA) / (over_data['total'] + ALPHA + BETA) * 100
+
+                    ev_over = (smoothed_prob_over / 100.0) * odds_over - 1
                     ev_over_percent = ev_over * 100
 
                     if ev_over_percent > MIN_EV:
                         analysis_results.append({
                             'time': time_str,
-                            'time_sort': time_str,  # для сортировки по времени
+                            'time_sort': time_str,
                             'home': home_name,
                             'away': away_name,
                             'match': f"{home_name} - {away_name}",
                             'league': league.name,
-                            'league_sort': league.name,  # для сортировки по лиге
+                            'league_sort': league.name,
                             'odds_h': odds_h,
                             'odds_over': odds_over,
                             'odds_under': odds_under,
                             'target': 'ТБ 2.5',
                             'ev': round(ev_over_percent, 1),
-                            'ev_sort': ev_over_percent,  # для сортировки по EV
+                            'ev_sort': ev_over_percent,
                             'poisson_prob': round(over_prob, 1),
-                            'actual_prob': round(over_data['prob'], 1),
+                            'actual_prob': round(smoothed_prob_over, 1),  # СГЛАЖЕННАЯ вероятность
+                            'raw_prob': round(over_data['prob'], 1),  # Сырая вероятность для информации
                             'interval': over_data['interval'],
                             'recommended_odds': odds_over,
                             'home_team_id': home_team.id,
@@ -1224,7 +1233,10 @@ class CleanedTemplateView(TemplateView):
 
                 # Проверяем ТМ
                 if under_data and under_data['total'] >= MIN_TOTAL:
-                    ev_under = (under_data['prob'] / 100.0) * odds_under - 1
+                    # БАЙЕСОВСКОЕ СГЛАЖИВАНИЕ для ТМ
+                    smoothed_prob_under = (under_data['hits'] + ALPHA) / (under_data['total'] + ALPHA + BETA) * 100
+
+                    ev_under = (smoothed_prob_under / 100.0) * odds_under - 1
                     ev_under_percent = ev_under * 100
 
                     if ev_under_percent > MIN_EV:
@@ -1243,7 +1255,8 @@ class CleanedTemplateView(TemplateView):
                             'ev': round(ev_under_percent, 1),
                             'ev_sort': ev_under_percent,
                             'poisson_prob': round(under_prob, 1),
-                            'actual_prob': round(under_data['prob'], 1),
+                            'actual_prob': round(smoothed_prob_under, 1),  # СГЛАЖЕННАЯ вероятность
+                            'raw_prob': round(under_data['prob'], 1),  # Сырая вероятность для информации
                             'interval': under_data['interval'],
                             'recommended_odds': odds_under,
                             'home_team_id': home_team.id,
@@ -2087,14 +2100,14 @@ class BetCreateView(SuccessMessageMixin, CreateView):
         from django.utils import timezone
         initial['bank_before'] = float(Bank.get_balance())
         initial['settled_at'] = timezone.now().date().isoformat()
-        initial['fractional_kelly'] = 0.25  # ИЗМЕНЕНО С 0.5 НА 0.25
+        initial['fractional_kelly'] = 0.5  # ИЗМЕНЕНО С 0.5 НА 0.25
 
         # Расчёт начальной суммы ставки
         try:
             bank = initial.get('bank_before', 0)
             odds = initial.get('recommended_odds', 0)
             prob = initial.get('actual_prob', 0)  # это в процентах
-            fraction = initial.get('fractional_kelly', 0.25)  # УЖЕ 0.25
+            fraction = initial.get('fractional_kelly', 0.5)  # УЖЕ 0.25
 
             if odds and prob and bank and fraction and odds > 1:
                 # Переводим проценты в доли
