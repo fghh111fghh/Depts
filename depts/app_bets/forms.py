@@ -18,7 +18,7 @@ class BetForm(forms.ModelForm):
     fractional_kelly = forms.ChoiceField(
         choices=KELLY_CHOICES,
         required=False,
-        initial='0.5',
+        initial='0.25',
         label='Доля Келли',
         widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_fractional_kelly'})
     )

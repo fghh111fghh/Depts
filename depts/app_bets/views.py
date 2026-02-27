@@ -2205,14 +2205,15 @@ class BetCreateView(SuccessMessageMixin, CreateView):
         from django.utils import timezone
         initial['bank_before'] = float(Bank.get_balance())
         initial['settled_at'] = timezone.now().date().isoformat()
-        initial['fractional_kelly'] = 0.5  # ИЗМЕНЕНО С 0.5 НА 0.25
+        initial['fractional_kelly'] = 0.25
+        # ИЗМЕНЕНО С 0.5 НА 0.25
 
         # Расчёт начальной суммы ставки
         try:
             bank = initial.get('bank_before', 0)
             odds = initial.get('recommended_odds', 0)
             prob = initial.get('actual_prob', 0)  # это в процентах
-            fraction = initial.get('fractional_kelly', 0.5)  # УЖЕ 0.25
+            fraction = initial.get('fractional_kelly', 0.25)  # УЖЕ 0.25
 
             if odds and prob and bank and fraction and odds > 1:
                 # Переводим проценты в доли
