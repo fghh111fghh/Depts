@@ -820,10 +820,8 @@ class CleanedTemplateView(TemplateView):
 
     # Константы для блоков (точно как в скрипте анализа)
     PROBABILITY_BINS = [
-        (0, 5), (5, 10), (10, 15), (15, 20), (20, 25),
-        (25, 30), (30, 35), (35, 40), (40, 45), (45, 50),
-        (50, 55), (55, 60), (60, 65), (65, 70), (70, 75),
-        (75, 80), (80, 85), (85, 90), (90, 95), (95, 100)
+        (0, 9), (10, 19), (20, 29), (30, 39), (40, 49),
+        (50, 59), (60, 69), (70, 79), (80, 89), (90, 100)
     ]
 
     ODDS_BINS = [
@@ -1108,9 +1106,10 @@ class CleanedTemplateView(TemplateView):
            - Находит команды
            - Определяет лигу
            - Рассчитывает Пуассон
-           - Ищет калибровку по трем блокам
-           - Получает hits_over и total
-           - Применяет БАЙЕСОВСКОЕ СГЛАЖИВАНИЕ для вероятности
+           - Определяет ГРУППУ ЛИГИ по тоталам
+           - Ищет калибровку по трем блокам В ГРУППЕ ЛИГ
+           - Получает hits_over и total (суммируя по всем лигам группы)
+           - Применяет БАЙЕСОВСКОЕ СГЛАЖИВАНИЕ для вероятности ТОЛЬКО если total < 100
            - Рассчитывает hits_under = total - hits_over
            - Считает EV для ТБ и ТМ
            - Добавляет в результаты если EV > 7% И total >= 5
@@ -1138,14 +1137,40 @@ class CleanedTemplateView(TemplateView):
         sort_param = self.request.GET.get('sort', 'time_asc')
         context['current_sort'] = sort_param
 
+        # ГРУППЫ ЛИГ ПО ТОТАЛАМ (настраивается под ваши данные)
+        LEAGUE_GROUPS = {
+            'high_scoring': [  # Высоко результативные (тотал > 2.8)
+                'АПЛ Англия',
+                'Бундеслига Германия',
+                'Эредивизи Нидерланды',
+                'Лига 1 Франция',
+                'Чемпионшип Англия',
+            ],
+            'medium_scoring': [  # Средне результативные (2.4-2.8)
+                'Ла Лига Испания',
+                'Бундеслига 2 Германия',
+                'Суперлига Турция',
+                'Премьер Лига Шотландия',
+                'Высшая лига Бельгия',
+                'Высшая лига Португалия',
+            ],
+            'low_scoring': [  # Низко результативные (< 2.4)
+                'Серия Б Италия',
+                'Лига 2 Франция',
+                'Сегунда Испания',
+                'Серия А Италия',
+            ]
+        }
+
         # Анализируем матчи
         analysis_results = []
         MIN_EV = 7  # Минимальное EV в процентах
-        MIN_TOTAL = 5  # УВЕЛИЧЕНО с 3 до 5
+        MIN_TOTAL = 5  # Минимальное количество матчей в выборке
 
         # Параметры байесовского сглаживания
         ALPHA = 1  # априорные успехи
         BETA = 1  # априорные неудачи
+        BAYES_THRESHOLD = 100  # Применяем сглаживание только если total < 100
 
         for idx, row in excel_df.iterrows():
             try:
@@ -1188,27 +1213,93 @@ class CleanedTemplateView(TemplateView):
                 over_prob = poisson_result['over_prob']
                 under_prob = poisson_result['under_prob']
 
-                # Находим калибровку
-                over_data, under_data = self.find_calibration(
+                # Находим калибровку для КОНКРЕТНОЙ лиги
+                over_data_single, under_data_single = self.find_calibration(
                     calib_data, league.name, odds_h, odds_over, over_prob
                 )
 
+                # Определяем группу лиги и собираем данные из ВСЕХ лиг группы
+                league_group = None
+                for group_name, leagues in LEAGUE_GROUPS.items():
+                    if league.name in leagues:
+                        league_group = group_name
+                        break
+
+                # Если группа не найдена, используем только данные своей лиги
+                if league_group is None:
+                    # Используем одиночные данные
+                    over_data = over_data_single
+                    under_data = under_data_single
+                    used_leagues = [league.name]
+                else:
+                    # Собираем данные из всех лиг группы
+                    over_total = 0
+                    over_hits = 0
+                    under_total = 0
+                    under_hits = 0
+                    used_leagues = []
+
+                    for league_name in LEAGUE_GROUPS[league_group]:
+                        # Получаем данные для каждой лиги в группе
+                        over_tmp, under_tmp = self.find_calibration(
+                            calib_data, league_name, odds_h, odds_over, over_prob
+                        )
+
+                        if over_tmp:
+                            over_total += over_tmp['total']
+                            over_hits += over_tmp['hits']
+                            used_leagues.append(league_name)
+
+                        if under_tmp:
+                            under_total += under_tmp['total']
+                            under_hits += under_tmp['hits']
+
+                    # Формируем объединенные данные
+                    over_data = None
+                    under_data = None
+
+                    if over_total > 0:
+                        over_data = {
+                            'total': over_total,
+                            'hits': over_hits,
+                            'prob': (over_hits / over_total) * 100 if over_total > 0 else 0,
+                            'interval': over_data_single['interval'] if over_data_single else 'unknown'
+                        }
+
+                    if under_total > 0:
+                        under_data = {
+                            'total': under_total,
+                            'hits': under_hits,
+                            'prob': (under_hits / under_total) * 100 if under_total > 0 else 0,
+                            'interval': under_data_single['interval'] if under_data_single else 'unknown'
+                        }
+
                 # Проверяем ТБ
                 if over_data and over_data['total'] >= MIN_TOTAL:
-                    # БАЙЕСОВСКОЕ СГЛАЖИВАНИЕ для ТБ
-                    smoothed_prob_over = (over_data['hits'] + ALPHA) / (over_data['total'] + ALPHA + BETA) * 100
+                    # БАЙЕСОВСКОЕ СГЛАЖИВАНИЕ ТОЛЬКО ДЛЯ МАЛЫХ ВЫБОРОК
+                    if over_data['total'] < BAYES_THRESHOLD:
+                        # Применяем сглаживание
+                        smoothed_prob_over = (over_data['hits'] + ALPHA) / (over_data['total'] + ALPHA + BETA) * 100
+                        actual_prob_used = round(smoothed_prob_over, 1)
+                        smoothing_applied = True
+                    else:
+                        # Используем сырую вероятность для больших выборок
+                        actual_prob_used = round(over_data['prob'], 1)
+                        smoothing_applied = False
 
-                    ev_over = (smoothed_prob_over / 100.0) * odds_over - 1
+                    ev_over = (actual_prob_used / 100.0) * odds_over - 1
                     ev_over_percent = ev_over * 100
 
                     if ev_over_percent > MIN_EV:
-                        analysis_results.append({
+                        result_item = {
                             'time': time_str,
                             'time_sort': time_str,
                             'home': home_name,
                             'away': away_name,
                             'match': f"{home_name} - {away_name}",
                             'league': league.name,
+                            'league_group': league_group,  # Группа лиги
+                            'used_leagues': used_leagues,  # Какие лиги использованы
                             'league_sort': league.name,
                             'odds_h': odds_h,
                             'odds_over': odds_over,
@@ -1217,8 +1308,8 @@ class CleanedTemplateView(TemplateView):
                             'ev': round(ev_over_percent, 1),
                             'ev_sort': ev_over_percent,
                             'poisson_prob': round(over_prob, 1),
-                            'actual_prob': round(smoothed_prob_over, 1),  # СГЛАЖЕННАЯ вероятность
-                            'raw_prob': round(over_data['prob'], 1),  # Сырая вероятность для информации
+                            'actual_prob': actual_prob_used,
+                            'raw_prob': round(over_data['prob'], 1),
                             'interval': over_data['interval'],
                             'recommended_odds': odds_over,
                             'home_team_id': home_team.id,
@@ -1228,25 +1319,37 @@ class CleanedTemplateView(TemplateView):
                             'total': over_data['total'],
                             'hits': over_data['hits'],
                             'home_lambda': poisson_result['home_lambda'],
-                            'away_lambda': poisson_result['away_lambda']
-                        })
+                            'away_lambda': poisson_result['away_lambda'],
+                            'smoothing_applied': smoothing_applied,
+                        }
+                        analysis_results.append(result_item)
 
                 # Проверяем ТМ
                 if under_data and under_data['total'] >= MIN_TOTAL:
-                    # БАЙЕСОВСКОЕ СГЛАЖИВАНИЕ для ТМ
-                    smoothed_prob_under = (under_data['hits'] + ALPHA) / (under_data['total'] + ALPHA + BETA) * 100
+                    # БАЙЕСОВСКОЕ СГЛАЖИВАНИЕ ТОЛЬКО ДЛЯ МАЛЫХ ВЫБОРОК
+                    if under_data['total'] < BAYES_THRESHOLD:
+                        # Применяем сглаживание
+                        smoothed_prob_under = (under_data['hits'] + ALPHA) / (under_data['total'] + ALPHA + BETA) * 100
+                        actual_prob_used = round(smoothed_prob_under, 1)
+                        smoothing_applied = True
+                    else:
+                        # Используем сырую вероятность для больших выборок
+                        actual_prob_used = round(under_data['prob'], 1)
+                        smoothing_applied = False
 
-                    ev_under = (smoothed_prob_under / 100.0) * odds_under - 1
+                    ev_under = (actual_prob_used / 100.0) * odds_under - 1
                     ev_under_percent = ev_under * 100
 
                     if ev_under_percent > MIN_EV:
-                        analysis_results.append({
+                        result_item = {
                             'time': time_str,
                             'time_sort': time_str,
                             'home': home_name,
                             'away': away_name,
                             'match': f"{home_name} - {away_name}",
                             'league': league.name,
+                            'league_group': league_group,
+                            'used_leagues': used_leagues,
                             'league_sort': league.name,
                             'odds_h': odds_h,
                             'odds_over': odds_over,
@@ -1255,8 +1358,8 @@ class CleanedTemplateView(TemplateView):
                             'ev': round(ev_under_percent, 1),
                             'ev_sort': ev_under_percent,
                             'poisson_prob': round(under_prob, 1),
-                            'actual_prob': round(smoothed_prob_under, 1),  # СГЛАЖЕННАЯ вероятность
-                            'raw_prob': round(under_data['prob'], 1),  # Сырая вероятность для информации
+                            'actual_prob': actual_prob_used,
+                            'raw_prob': round(under_data['prob'], 1),
                             'interval': under_data['interval'],
                             'recommended_odds': odds_under,
                             'home_team_id': home_team.id,
@@ -1266,8 +1369,10 @@ class CleanedTemplateView(TemplateView):
                             'total': under_data['total'],
                             'hits': under_data['hits'],
                             'home_lambda': poisson_result['home_lambda'],
-                            'away_lambda': poisson_result['away_lambda']
-                        })
+                            'away_lambda': poisson_result['away_lambda'],
+                            'smoothing_applied': smoothing_applied,
+                        }
+                        analysis_results.append(result_item)
 
             except Exception as e:
                 import traceback
@@ -2273,10 +2378,8 @@ class StatsView(TemplateView):
 
     # Константы из скрипта анализа
     PROBABILITY_BINS = [
-        (0, 5), (5, 10), (10, 15), (15, 20), (20, 25),
-        (25, 30), (30, 35), (35, 40), (40, 45), (45, 50),
-        (50, 55), (55, 60), (60, 65), (65, 70), (70, 75),
-        (75, 80), (80, 85), (85, 90), (90, 95), (95, 100)
+        (0, 9), (10, 19), (20, 29), (30, 39), (40, 49),
+        (50, 59), (60, 69), (70, 79), (80, 89), (90, 100)
     ]
 
     ODDS_BINS = [
