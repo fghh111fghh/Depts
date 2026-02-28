@@ -802,7 +802,7 @@ class CleanedTemplateView(TemplateView):
        - Находит команды в БД (сначала по каноническому имени, потом по алиасам)
        - Определяет лигу по последнему матчу команды
        - Рассчитывает Пуассон (лямбды и вероятность ТБ2.5) через методы модели
-       - Определяет блоки: для П1, для ТБ, для вероятности (5% интервалы)
+       - Определяет блоки: для П1, для ТБ, для вероятности
        - Ищет в калибровочных данных точное совпадение всех трех блоков
        - Получает статистику (total, hits_over) и рассчитывает hits_under = total - hits_over
        - Рассчитывает EV для ТБ и ТМ
@@ -812,71 +812,60 @@ class CleanedTemplateView(TemplateView):
     """
     template_name = 'app_bets/cleaned.html'
 
-    # Константы для блоков (точно как в скрипте анализа)
+    # ========== НОВЫЕ БЛОКИ (как в скрипте калибровки) ==========
     PROBABILITY_BINS = [
-        (0, 9), (10, 19), (20, 29), (30, 39), (40, 49),
-        (50, 59), (60, 69), (70, 79), (80, 89), (90, 100)
+        (0, 10), (10, 20), (20, 30), (30, 40), (40, 50),
+        (50, 60), (60, 70), (70, 80), (80, 90), (90, 100)
     ]
 
-    ODDS_BINS = [
-        (1.00, 1.10), (1.10, 1.21), (1.21, 1.33), (1.33, 1.46), (1.46, 1.61),
-        (1.61, 1.77), (1.77, 1.95), (1.95, 2.14), (2.14, 2.35), (2.35, 2.59),
-        (2.59, 2.85), (2.85, 3.13), (3.13, 3.44), (3.44, 3.78), (3.78, 4.16),
-        (4.16, 4.58), (4.58, 5.04), (5.04, 5.54), (5.54, 6.09), (6.09, 6.70),
-        (6.70, 7.37), (7.37, 8.11), (8.11, 8.92), (8.92, 9.81), (9.81, 10.79),
-        (10.79, 11.87), (11.87, 13.06), (13.06, float('inf'))
+    # Блоки для П1 (полная сетка)
+    P1_ODDS_BINS = [
+        (1.00, 1.30), (1.31, 1.6), (1.61, 1.9), (1.91, 2.3), (2.31, 2.7),
+        (2.71, 3.2), (3.21, 3.8), (3.81, 4.5), (4.51, 5.5), (5.51, 6.7),
+        (6.71, 7.8), (7.81, 9.1), (9.11, float('inf'))
     ]
+
+    # Блоки для ТБ (только 4 блока)
+    TB_ODDS_BINS = [
+        (1.00, 1.30),    # меньше 1.30
+        (1.30, 1.61),    # 1.30 - 1.60
+        (1.61, 1.96),    # 1.61 - 1.95
+        (1.96, float('inf'))  # больше 1.95
+    ]
+    # =============================================================
 
     def get_probability_bin(self, prob):
-        """
-        Определяет блок вероятности (5% интервалы)
-
-        Аргументы:
-            prob: вероятность в процентах (0-100)
-
-        Возвращает:
-            str: блок в формате "45-50%" или "95-100%"
-        """
+        """Определяет блок вероятности"""
         for low, high in self.PROBABILITY_BINS:
             if low <= prob < high:
-                return f"{low}-{high}%"
-        return "95-100%"
+                result = f"{low}-{high}%"
+                return result
+        return " - "
 
-    def get_odds_bin(self, odds):
-        """
-        Определяет блок коэффициента по фиксированной сетке
-
-        Аргументы:
-            odds: коэффициент (например 2.15)
-
-        Возвращает:
-            str: блок в формате "2.14-2.35" или ">13.06"
-        """
+    def get_p1_bin(self, odds):
+        """Определяет блок для П1"""
         if odds is None:
             return None
-        for low, high in self.ODDS_BINS:
+        for low, high in self.P1_ODDS_BINS:
             if low <= odds < high:
                 if high == float('inf'):
                     return f">{low:.2f}"
                 return f"{low:.2f}-{high:.2f}"
-        return f">{self.ODDS_BINS[-1][0]:.2f}"
+        return f">{self.P1_ODDS_BINS[-1][0]:.2f}"
+
+    def get_tb_bin(self, odds):
+        """Определяет блок для ТБ (4 блока)"""
+        if odds is None:
+            return None
+        for low, high in self.TB_ODDS_BINS:
+            if low <= odds < high:
+                if high == float('inf'):
+                    return f">{low:.2f}"
+                return f"{low:.2f}-{high:.2f}"
+        return f">{self.TB_ODDS_BINS[-1][0]:.2f}"
 
     def get_calibration_data(self):
-        """
-        Загружает калибровочные данные из PKL файла
-
-        Ожидаемая структура:
-        {
-            'АПЛ Англия': {
-                ('1.77-1.95', '1.95-2.14', '50-55%'): {'total': 150, 'hits': 82},
-                ...
-            },
-            ...
-        }
-
-        Возвращает:
-            dict: калибровочные данные или None при ошибке
-        """
+        """Загружает калибровочные данные из PKL файла"""
         pkl_path = os.path.join(settings.BASE_DIR, 'analysis_results', 'all_leagues_complete_stats.pkl')
 
         if not os.path.exists(pkl_path):
@@ -890,20 +879,7 @@ class CleanedTemplateView(TemplateView):
             return None
 
     def get_matches_from_excel(self):
-        """
-        Загружает матчи для анализа из Excel файла
-
-        Ожидаемые колонки:
-        - Время: время матча (22:00)
-        - Хозяева: название команды хозяев
-        - Гости: название команды гостей
-        - П1: коэффициент на победу хозяев
-        - ТБ2,5: коэффициент на тотал больше 2.5
-        - ТМ2,5: коэффициент на тотал меньше 2.5
-
-        Возвращает:
-            DataFrame: данные матчей или None при ошибке
-        """
+        """Загружает матчи для анализа из Excel файла"""
         excel_path = os.path.join(settings.BASE_DIR, 'for_analyze_matches.xlsx')
 
         if not os.path.exists(excel_path):
@@ -921,41 +897,23 @@ class CleanedTemplateView(TemplateView):
             return None
 
     def find_team(self, name):
-        """
-        Находит команду в БД по названию.
-
-        Порядок поиска:
-        1. Сначала по точному совпадению канонического имени (name)
-        2. Затем по алиасам (если точного имени нет)
-        3. Затем по частичному совпадению (как запасной вариант)
-
-        Аргументы:
-            name: название команды из Excel (например "Миллуол")
-
-        Возвращает:
-            Team: объект команды или None если не найдена
-        """
+        """Находит команду в БД по названию"""
         if not name:
             return None
 
         try:
-            # Очищаем имя от лишних пробелов
             clean_name = " ".join(name.split()).lower()
 
-            # 1. Поиск по точному каноническому имени (приоритет)
             team = Team.objects.filter(name=name).first()
             if team:
                 return team
 
-            # 2. Поиск по алиасам (если точного имени нет)
             alias = TeamAlias.objects.filter(name=clean_name).select_related('team').first()
             if alias:
                 return alias.team
 
-            # 3. Поиск по частичному совпадению (запасной вариант)
             team = Team.objects.filter(name__icontains=name).first()
             if team:
-                # Создаем алиас для будущего использования
                 TeamAlias.objects.get_or_create(name=clean_name, team=team)
                 return team
             return None
@@ -964,15 +922,7 @@ class CleanedTemplateView(TemplateView):
             return None
 
     def get_league_for_team(self, team):
-        """
-        Определяет лигу команды по ее последнему матчу в БД
-
-        Аргументы:
-            team: объект Team
-
-        Возвращает:
-            League: объект лиги или None если нет матчей
-        """
+        """Определяет лигу команды по ее последнему матчу в БД"""
         if not team:
             return None
 
@@ -986,39 +936,32 @@ class CleanedTemplateView(TemplateView):
             return None
 
     def calculate_poisson_for_match(self, home_team, away_team, league):
-        """
-        Рассчитывает Пуассон для матча, используя методы модели (как в AnalyzeView)
-        """
+        """Рассчитывает Пуассон для матча"""
         try:
             from app_bets.models import Season
             from django.utils.timezone import now
 
-            # Получаем текущий сезон (как в AnalyzeView)
             current_season = Season.objects.filter(is_current=True).first()
             if not current_season:
                 current_season = Season.objects.order_by('-start_date').first()
 
-            # Создаем временный объект Match с правильным сезоном
             temp_match = Match(
                 home_team=home_team,
                 away_team=away_team,
                 league=league,
-                season=current_season,  # ВАЖНО: указываем сезон!
+                season=current_season,
                 date=now()
             )
 
-            # Вызываем метод модели
             lambda_result = temp_match.calculate_poisson_lambda(date=now(), last_n=7)
 
             if 'error' in lambda_result:
-                # В AnalyzeView при ошибке используются дефолтные значения
                 lambda_home = 1.2
                 lambda_away = 1.0
             else:
                 lambda_home = lambda_result['home_lambda']
                 lambda_away = lambda_result['away_lambda']
 
-            # Получаем вероятности
             probs = AnalyzeView.get_poisson_probs(lambda_home, lambda_away)
             over_prob = probs['over25_yes']
 
@@ -1035,30 +978,14 @@ class CleanedTemplateView(TemplateView):
             return None
 
     def find_calibration(self, calib_data, league_name, odds_h, odds_over, prob_value):
-        """
-        Находит калибровочные данные для матча по ПОЛНОМУ СОВПАДЕНИЮ всех трех блоков
-
-        Возвращает данные для ТБ и автоматически рассчитывает данные для ТМ
-
-        Аргументы:
-            calib_data: словарь с калибровочными данными
-            league_name: название лиги
-            odds_h: коэффициент П1
-            odds_over: коэффициент ТБ2.5
-            prob_value: вероятность по Пуассону (в процентах)
-
-        Возвращает:
-            tuple: (over_data, under_data) где каждый элемент - словарь с ключами:
-                   'prob', 'total', 'hits', 'interval' или None если нет данных
-        """
+        """Находит калибровочные данные с новыми блоками"""
         if league_name not in calib_data:
             return None, None
 
         league_stats = calib_data[league_name]
 
-        # Определяем блоки точно как в скрипте анализа
-        p1_bin = self.get_odds_bin(odds_h)
-        tb_bin = self.get_odds_bin(odds_over)
+        p1_bin = self.get_p1_bin(odds_h)
+        tb_bin = self.get_tb_bin(odds_over)
         prob_bin = self.get_probability_bin(prob_value)
 
         key = (p1_bin, tb_bin, prob_bin)
@@ -1091,9 +1018,7 @@ class CleanedTemplateView(TemplateView):
             return None, None
 
     def get_context_data(self, **kwargs):
-        """
-        Основной метод обработки и подготовки данных для шаблона
-        """
+        """Основной метод обработки и подготовки данных для шаблона"""
         context = super().get_context_data(**kwargs)
 
         # Загружаем данные
@@ -1108,11 +1033,10 @@ class CleanedTemplateView(TemplateView):
             context['error'] = 'Не удалось загрузить Excel файл с матчами'
             return context
 
-        # Получаем параметр сортировки
         sort_param = self.request.GET.get('sort', 'time_asc')
         context['current_sort'] = sort_param
 
-        # ========== ДИНАМИЧЕСКАЯ ГРУППИРОВКА ЛИГ ПО РЕЗУЛЬТАТИВНОСТИ ==========
+        # ========== ГРУППИРОВКА ЛИГ ПО РЕЗУЛЬТАТИВНОСТИ ==========
         LEAGUES_WITH_SCORING = [
             ('Бундеслига Германия', 3.18),
             ('Эредивизи Нидерланды', 3.12),
@@ -1136,6 +1060,7 @@ class CleanedTemplateView(TemplateView):
             league_positions[league_name] = idx
 
         def get_league_group(league_name, neighbors=2):
+            """Возвращает список лиг: сама + neighbors выше и ниже"""
             if league_name not in league_positions:
                 return [league_name]
 
@@ -1155,123 +1080,14 @@ class CleanedTemplateView(TemplateView):
 
             return [LEAGUES_WITH_SCORING[i][0] for i in range(start, end)]
 
-        def get_weighted_league_data(league_name, group_leagues, odds_h, odds_over, over_prob, target_type='over'):
-            if league_name not in league_positions:
-                return None
+        # ==========================================================
 
-            target_pos = league_positions[league_name]
-            total_weight = 0.0
-            weighted_hits = 0.0
-            used_leagues = []
-
-            for gl in group_leagues:
-                if gl not in league_positions:
-                    continue
-
-                gl_pos = league_positions[gl]
-                distance = abs(gl_pos - target_pos)
-                weight = 1.0 / ((distance + 1) ** 2)
-
-                if target_type == 'over':
-                    data_tmp, _ = self.find_calibration(calib_data, gl, odds_h, odds_over, over_prob)
-                else:
-                    _, data_tmp = self.find_calibration(calib_data, gl, odds_h, odds_over, over_prob)
-
-                if data_tmp and data_tmp['total'] > 0:
-                    total_weight += data_tmp['total'] * weight
-                    weighted_hits += data_tmp['hits'] * weight
-                    used_leagues.append(gl)
-
-            if total_weight > 0:
-                prob = (weighted_hits / total_weight) * 100
-                return {
-                    'total': total_weight,
-                    'hits': weighted_hits,
-                    'prob': prob,
-                    'used_leagues': used_leagues
-                }
-            return None
-
-        # ========== ФУНКЦИЯ ДЛЯ ДОВЕРИТЕЛЬНОГО ИНТЕРВАЛА ==========
-        def calculate_confidence_interval(hits, total, confidence=0.90):
-            from math import sqrt
-            from scipy import stats
-
-            if total < 3:
-                return 0, 100
-
-            p = hits / total
-            z = stats.norm.ppf(1 - (1 - confidence) / 2)
-
-            denominator = 1 + z ** 2 / total
-            center = (p + z ** 2 / (2 * total)) / denominator
-            half_width = z * sqrt((p * (1 - p) + z ** 2 / (4 * total)) / total) / denominator
-
-            lower = max(0, center - half_width)
-            upper = min(1, center + half_width)
-
-            return lower * 100, upper * 100
-
-        # ========== ФУНКЦИЯ ДЛЯ ТРЕНДОВОЙ КОРРЕКЦИИ ==========
-        def get_trend_adjustment(league_name, current_date, window=15, strength=0.15):
-            """Возвращает корректировку вероятности на основе тренда"""
-            try:
-                from django.utils import timezone
-                from datetime import datetime
-
-                league = League.objects.filter(name=league_name).first()
-                if not league:
-                    return 0
-
-                if current_date is None or isinstance(current_date, str):
-                    return 0
-
-                if hasattr(current_date, 'tzinfo') and timezone.is_naive(current_date):
-                    current_date = timezone.make_aware(current_date)
-
-                recent_matches = Match.objects.filter(
-                    league=league,
-                    date__lt=current_date,
-                    home_score_reg__isnull=False,
-                    away_score_reg__isnull=False
-                ).order_by('-date')[:window]
-
-                if recent_matches.count() < 8:
-                    return 0
-
-                recent_total = 0
-                for match in recent_matches:
-                    recent_total += match.home_score_reg + match.away_score_reg
-                recent_avg = recent_total / recent_matches.count()
-
-                historical_avg = None
-                for league_item in LEAGUES_WITH_SCORING:
-                    if league_item[0] == league_name:
-                        historical_avg = league_item[1]
-                        break
-
-                if not historical_avg:
-                    return 0
-
-                deviation = (recent_avg - historical_avg) / historical_avg * 100
-                correction = -deviation * strength
-                return max(min(correction, 10), -10)
-
-            except Exception:
-                return 0
-
-        # ============================================================
-
-        # Параметры - СМЯГЧЕННЫЕ
-        CONFIDENCE_LEVEL = 0.85
-        MAX_INTERVAL_WIDTH = 35
+        # Параметры анализа
         MIN_EV = 7
-        MIN_TOTAL = 4
+        MIN_TOTAL = 3
         ALPHA = 1
         BETA = 1
         BAYES_THRESHOLD = 100
-        TREND_WINDOW = 12
-        TREND_STRENGTH = 0.15
 
         analysis_results = []
 
@@ -1281,10 +1097,8 @@ class CleanedTemplateView(TemplateView):
                 match_time = row['Время']
                 if hasattr(match_time, 'strftime'):
                     time_str = match_time.strftime('%H:%M')
-                    match_datetime = match_time
                 else:
                     time_str = str(match_time)
-                    match_datetime = None
 
                 home_name = str(row['Хозяева']).strip()
                 away_name = str(row['Гости']).strip()
@@ -1305,10 +1119,6 @@ class CleanedTemplateView(TemplateView):
                 if not league:
                     continue
 
-                trend_adjustment = 0
-                if match_datetime:
-                    trend_adjustment = get_trend_adjustment(league.name, match_datetime, TREND_WINDOW, TREND_STRENGTH)
-
                 poisson_result = self.calculate_poisson_for_match(home_team, away_team, league)
                 if not poisson_result:
                     continue
@@ -1316,125 +1126,128 @@ class CleanedTemplateView(TemplateView):
                 over_prob = poisson_result['over_prob']
                 under_prob = poisson_result['under_prob']
 
+                # Находим калибровку для КОНКРЕТНОЙ лиги
                 over_data_single, under_data_single = self.find_calibration(
                     calib_data, league.name, odds_h, odds_over, over_prob
                 )
 
-                # ===== ВЗВЕШЕННАЯ ГРУППИРОВКА =====
-                over_data = None
-                under_data = None
-                used_leagues = []
+                # ===== ГРУППИРОВКА ЛИГ =====
+                over_data = over_data_single
+                under_data = under_data_single
+                used_leagues = [league.name] if league.name else []
 
                 if league.name in league_positions:
                     group_leagues = get_league_group(league.name, neighbors=2)
 
-                    weighted_over = get_weighted_league_data(
-                        league.name, group_leagues, odds_h, odds_over, over_prob, 'over'
-                    )
+                    # Собираем данные из всех лиг группы
+                    over_total = 0
+                    over_hits = 0
+                    under_total = 0
+                    under_hits = 0
+                    used_leagues = []  # Переопределяем для группы
 
-                    weighted_under = get_weighted_league_data(
-                        league.name, group_leagues, odds_h, odds_over, over_prob, 'under'
-                    )
+                    for league_name in group_leagues:
+                        over_tmp, under_tmp = self.find_calibration(
+                            calib_data, league_name, odds_h, odds_over, over_prob
+                        )
 
-                    if weighted_over and weighted_over['total'] > 0:
-                        over_data = weighted_over
-                        used_leagues = weighted_over['used_leagues']
+                        if over_tmp:
+                            over_total += over_tmp['total']
+                            over_hits += over_tmp['hits']
+                            used_leagues.append(league_name)
 
-                    if weighted_under and weighted_under['total'] > 0:
-                        under_data = weighted_under
-                        if not used_leagues:
-                            used_leagues = weighted_under['used_leagues']
-                else:
-                    over_data = over_data_single
-                    under_data = under_data_single
-                    used_leagues = [league.name] if over_data_single or under_data_single else []
+                        if under_tmp:
+                            under_total += under_tmp['total']
+                            under_hits += under_tmp['hits']
+
+                    if over_total > 0:
+                        over_data = {
+                            'total': over_total,
+                            'hits': over_hits,
+                            'prob': (over_hits / over_total) * 100 if over_total > 0 else 0,
+                            'interval': None  # Не используем interval из калибровки!
+                        }
+
+                    if under_total > 0:
+                        under_data = {
+                            'total': under_total,
+                            'hits': under_hits,
+                            'prob': (under_hits / under_total) * 100 if under_total > 0 else 0,
+                            'interval': None  # Не используем interval из калибровки!
+                        }
                 # ===== КОНЕЦ ГРУППИРОВКИ =====
 
                 # Проверяем ТБ
                 if over_data and over_data['total'] >= MIN_TOTAL:
-                    lower, upper = calculate_confidence_interval(
-                        over_data['hits'], over_data['total'], CONFIDENCE_LEVEL
-                    )
+                    if over_data['total'] < BAYES_THRESHOLD:
+                        smoothed_prob_over = (over_data['hits'] + ALPHA) / (over_data['total'] + ALPHA + BETA) * 100
+                        actual_prob_used = round(smoothed_prob_over, 1)
+                    else:
+                        actual_prob_used = round(over_data['prob'], 1)
 
-                    if upper - lower <= MAX_INTERVAL_WIDTH:
-                        if over_data['total'] < BAYES_THRESHOLD:
-                            smoothed_prob = (over_data['hits'] + ALPHA) / (over_data['total'] + ALPHA + BETA) * 100
-                        else:
-                            smoothed_prob = over_data['prob']
+                    ev_over = (actual_prob_used / 100.0) * odds_over - 1
+                    ev_over_percent = ev_over * 100
 
-                        final_prob = smoothed_prob + trend_adjustment
-                        final_prob = max(min(final_prob, 95), 5)
-
-                        ev = (final_prob / 100.0) * odds_over - 1
-                        ev_percent = ev * 100
-
-                        if ev_percent > MIN_EV:
-                            analysis_results.append({
-                                'time': time_str,
-                                'time_sort': time_str,
-                                'home': home_name,
-                                'away': away_name,
-                                'match': f"{home_name} - {away_name}",
-                                'league': league.name,
-                                'used_leagues': used_leagues,
-                                'league_sort': league.name,
-                                'odds_over': odds_over,
-                                'odds_under': odds_under,
-                                'target': 'ТБ 2.5',
-                                'ev': round(ev_percent, 1),
-                                'ev_sort': ev_percent,
-                                'poisson_prob': round(over_prob, 1),
-                                'actual_prob': round(final_prob, 1),
-                                'interval': self.get_probability_bin(over_prob),  # ИСПРАВЛЕНО
-                                'total': int(round(over_data['total'], 0)),
-                                'hits': int(round(over_data['hits'], 0)),
-                                'home_team_id': home_team.id,
-                                'away_team_id': away_team.id,
-                                'league_id': league.id
-                            })
+                    if ev_over_percent > MIN_EV:
+                        analysis_results.append({
+                            'time': time_str,
+                            'time_sort': time_str,
+                            'home': home_name,
+                            'away': away_name,
+                            'match': f"{home_name} - {away_name}",
+                            'league': league.name,
+                            'used_leagues': used_leagues,
+                            'league_sort': league.name,
+                            'odds_over': odds_over,
+                            'odds_under': odds_under,
+                            'target': 'ТБ 2.5',
+                            'ev': round(ev_over_percent, 1),
+                            'ev_sort': ev_over_percent,
+                            'poisson_prob': round(over_prob, 1),
+                            'actual_prob': actual_prob_used,
+                            'interval': self.get_probability_bin(over_prob),  # ВСЕГДА от Пуассона!
+                            'total': over_data['total'],
+                            'hits': over_data['hits'],
+                            'home_team_id': home_team.id,
+                            'away_team_id': away_team.id,
+                            'league_id': league.id
+                        })
 
                 # Проверяем ТМ
                 if under_data and under_data['total'] >= MIN_TOTAL:
-                    lower, upper = calculate_confidence_interval(
-                        under_data['hits'], under_data['total'], CONFIDENCE_LEVEL
-                    )
+                    if under_data['total'] < BAYES_THRESHOLD:
+                        smoothed_prob_under = (under_data['hits'] + ALPHA) / (under_data['total'] + ALPHA + BETA) * 100
+                        actual_prob_used = round(smoothed_prob_under, 1)
+                    else:
+                        actual_prob_used = round(under_data['prob'], 1)
 
-                    if upper - lower <= MAX_INTERVAL_WIDTH:
-                        if under_data['total'] < BAYES_THRESHOLD:
-                            smoothed_prob = (under_data['hits'] + ALPHA) / (under_data['total'] + ALPHA + BETA) * 100
-                        else:
-                            smoothed_prob = under_data['prob']
+                    ev_under = (actual_prob_used / 100.0) * odds_under - 1
+                    ev_under_percent = ev_under * 100
 
-                        final_prob = smoothed_prob - trend_adjustment
-                        final_prob = max(min(final_prob, 95), 5)
-
-                        ev = (final_prob / 100.0) * odds_under - 1
-                        ev_percent = ev * 100
-
-                        if ev_percent > MIN_EV:
-                            analysis_results.append({
-                                'time': time_str,
-                                'time_sort': time_str,
-                                'home': home_name,
-                                'away': away_name,
-                                'match': f"{home_name} - {away_name}",
-                                'league': league.name,
-                                'used_leagues': used_leagues,
-                                'league_sort': league.name,
-                                'odds_over': odds_over,
-                                'odds_under': odds_under,
-                                'target': 'ТМ 2.5',
-                                'ev': round(ev_percent, 1),
-                                'ev_sort': ev_percent,
-                                'poisson_prob': round(under_prob, 1),
-                                'actual_prob': round(final_prob, 1),
-                                'interval': self.get_probability_bin(under_prob),  # ИСПРАВЛЕНО
-                                'total': int(round(under_data['total'], 0)),
-                                'hits': int(round(under_data['hits'], 0)),
-                                'home_team_id': home_team.id,
-                                'away_team_id': away_team.id,
-                                'league_id': league.id
-                            })
+                    if ev_under_percent > MIN_EV:
+                        analysis_results.append({
+                            'time': time_str,
+                            'time_sort': time_str,
+                            'home': home_name,
+                            'away': away_name,
+                            'match': f"{home_name} - {away_name}",
+                            'league': league.name,
+                            'used_leagues': used_leagues,
+                            'league_sort': league.name,
+                            'odds_over': odds_over,
+                            'odds_under': odds_under,
+                            'target': 'ТМ 2.5',
+                            'ev': round(ev_under_percent, 1),
+                            'ev_sort': ev_under_percent,
+                            'poisson_prob': round(under_prob, 1),
+                            'actual_prob': actual_prob_used,
+                            'interval': self.get_probability_bin(under_prob),  # ВСЕГДА от Пуассона!
+                            'total': under_data['total'],
+                            'hits': under_data['hits'],
+                            'home_team_id': home_team.id,
+                            'away_team_id': away_team.id,
+                            'league_id': league.id
+                        })
 
             except Exception as e:
                 import traceback
@@ -2435,19 +2248,25 @@ class BetRecordsView(LoginRequiredMixin, ListView):
 class StatsView(TemplateView):
     template_name = 'app_bets/stats.html'
 
-    # Константы из скрипта анализа
+    # Константы из скрипта анализа (НОВЫЕ БЛОКИ)
     PROBABILITY_BINS = [
-        (0, 9), (10, 19), (20, 29), (30, 39), (40, 49),
-        (50, 59), (60, 69), (70, 79), (80, 89), (90, 100)
+        (0, 10), (10, 20), (20, 30), (30, 40), (40, 50),
+        (50, 60), (60, 70), (70, 80), (80, 90), (90, 100)
     ]
 
-    ODDS_BINS = [
-        (1.00, 1.10), (1.10, 1.21), (1.21, 1.33), (1.33, 1.46), (1.46, 1.61),
-        (1.61, 1.77), (1.77, 1.95), (1.95, 2.14), (2.14, 2.35), (2.35, 2.59),
-        (2.59, 2.85), (2.85, 3.13), (3.13, 3.44), (3.44, 3.78), (3.78, 4.16),
-        (4.16, 4.58), (4.58, 5.04), (5.04, 5.54), (5.54, 6.09), (6.09, 6.70),
-        (6.70, 7.37), (7.37, 8.11), (8.11, 8.92), (8.92, 9.81), (9.81, 10.79),
-        (10.79, 11.87), (11.87, 13.06), (13.06, float('inf'))
+    # Блоки для П1 (полная сетка)
+    P1_ODDS_BINS = [
+        (1.00, 1.30), (1.31, 1.6), (1.61, 1.9), (1.91, 2.3), (2.31, 2.7),
+        (2.71, 3.2), (3.21, 3.8), (3.81, 4.5), (4.51, 5.5), (5.51, 6.7),
+        (6.71, 7.8), (7.81, 9.1), (9.11, float('inf'))
+    ]
+
+    # Блоки для ТБ (только 4 блока)
+    TB_ODDS_BINS = [
+        (1.00, 1.30),    # меньше 1.30
+        (1.30, 1.61),    # 1.30 - 1.60
+        (1.61, 1.96),    # 1.61 - 1.95
+        (1.96, float('inf'))  # больше 1.95
     ]
 
     def get_probability_bins_list(self):
@@ -2457,10 +2276,20 @@ class StatsView(TemplateView):
             bins.append(f"{low}-{high}%")
         return bins
 
-    def get_odds_bins_list(self):
-        """Возвращает список строк для блоков коэффициентов"""
+    def get_p1_bins_list(self):
+        """Возвращает список строк для блоков П1"""
         bins = []
-        for low, high in self.ODDS_BINS:
+        for low, high in self.P1_ODDS_BINS:
+            if high == float('inf'):
+                bins.append(f">{low:.2f}")
+            else:
+                bins.append(f"{low:.2f}-{high:.2f}")
+        return bins
+
+    def get_tb_bins_list(self):
+        """Возвращает список строк для блоков ТБ (4 блока)"""
+        bins = []
+        for low, high in self.TB_ODDS_BINS:
             if high == float('inf'):
                 bins.append(f">{low:.2f}")
             else:
@@ -2477,10 +2306,10 @@ class StatsView(TemplateView):
 
         pkl_path = os.path.join(settings.BASE_DIR, 'analysis_results', 'all_leagues_complete_stats.pkl')
 
-        # Списки всех возможных блоков
+        # Списки всех возможных блоков (РАЗДЕЛЬНЫЕ ДЛЯ П1 И ТБ)
         context['prob_bins'] = self.get_probability_bins_list()
-        context['p1_bins'] = self.get_odds_bins_list()
-        context['tb_bins'] = self.get_odds_bins_list()
+        context['p1_bins'] = self.get_p1_bins_list()
+        context['tb_bins'] = self.get_tb_bins_list()
 
         # Варианты сортировки для топ-10
         context['sort_options'] = [
@@ -2499,12 +2328,12 @@ class StatsView(TemplateView):
         # Варианты минимального количества событий
         context['min_total_options'] = [
             {'value': '1', 'label': 'Любое (≥1)'},
+            {'value': '3', 'label': '≥3 событий'},
             {'value': '5', 'label': '≥5 событий'},
             {'value': '10', 'label': '≥10 событий'},
             {'value': '20', 'label': '≥20 событий'},
             {'value': '30', 'label': '≥30 событий'},
             {'value': '50', 'label': '≥50 событий'},
-            {'value': '100', 'label': '≥100 событий'},
         ]
 
         if os.path.exists(pkl_path):

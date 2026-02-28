@@ -1,4 +1,3 @@
-
 import os
 import csv
 import pickle
@@ -6,45 +5,72 @@ import math
 import chardet
 from datetime import datetime
 from pathlib import Path
+from collections import defaultdict
 
 # Константы для анализа
 MIN_MATCHES = 3
 MAX_MATCHES = 7
 
+# Блоки вероятности
 PROBABILITY_BINS = [
-    (0, 9), (10, 19), (20, 29), (30, 39), (40, 49),
-    (50, 59), (60, 69), (70, 79), (80, 89), (90, 100)
+    (0, 10), (10, 20), (20, 30), (30, 40), (40, 50),
+    (50, 60), (60, 70), (70, 80), (80, 90), (90, 100)
 ]
 
-# Фиксированные блоки с шагом 10% (без перекрытия)
-ODDS_BINS = [
-    (1.00, 1.10), (1.10, 1.21), (1.21, 1.33), (1.33, 1.46), (1.46, 1.61),
-    (1.61, 1.77), (1.77, 1.95), (1.95, 2.14), (2.14, 2.35), (2.35, 2.59),
-    (2.59, 2.85), (2.85, 3.13), (3.13, 3.44), (3.44, 3.78), (3.78, 4.16),
-    (4.16, 4.58), (4.58, 5.04), (5.04, 5.54), (5.54, 6.09), (6.09, 6.70),
-    (6.70, 7.37), (7.37, 8.11), (8.11, 8.92), (8.92, 9.81), (9.81, 10.79),
-    (10.79, 11.87), (11.87, 13.06), (13.06, float('inf'))
+# Блоки для ТБ (только 4 блока)
+TB_ODDS_BINS = [
+    (1.00, 1.30),  # меньше 1.30
+    (1.30, 1.61),  # 1.30 - 1.60
+    (1.61, 1.96),  # 1.61 - 1.95
+    (1.96, float('inf'))  # больше 1.95
 ]
+
+# Блоки для П1 (полная сетка)
+P1_ODDS_BINS = [
+    (1.00, 1.30), (1.31, 1.6), (1.61, 1.9), (1.91, 2.3), (2.31, 2.7),
+    (2.71, 3.2), (3.21, 3.8), (3.81, 4.5), (4.51, 5.5), (5.51, 6.7),
+    (6.71, 7.8), (7.81, 9.1), (9.11, float('inf'))
+]
+
+# Веса для разных возрастных групп
+YEAR_WEIGHTS = {
+    '0-5': 1.0,  # последние 5 лет - полный вес
+    '6-10': 0.7,  # 6-10 лет назад - 70%
+    '11-15': 0.4,  # 11-15 лет назад - 40%
+    '16+': 0.2  # 16+ лет назад - 20%
+}
 
 
 def get_probability_bin(prob):
-    """Определяет блок вероятности (5% интервалы)"""
+    """Определяет блок вероятности"""
     for low, high in PROBABILITY_BINS:
         if low <= prob < high:
             return f"{low}-{high}%"
-    return "95-100%"
+    return "90-100%"
 
 
-def get_odds_bin(odds):
-    """Определяет фиксированный блок коэффициента с шагом 10%"""
+def get_tb_bin(odds):
+    """Определяет блок для ТБ"""
     if odds is None:
         return None
-    for low, high in ODDS_BINS:
+    for low, high in TB_ODDS_BINS:
         if low <= odds < high:
             if high == float('inf'):
                 return f">{low:.2f}"
             return f"{low:.2f}-{high:.2f}"
-    return f">{ODDS_BINS[-1][0]:.2f}"
+    return f">{TB_ODDS_BINS[-1][0]:.2f}"
+
+
+def get_p1_bin(odds):
+    """Определяет блок для П1"""
+    if odds is None:
+        return None
+    for low, high in P1_ODDS_BINS:
+        if low <= odds < high:
+            if high == float('inf'):
+                return f">{low:.2f}"
+            return f"{low:.2f}-{high:.2f}"
+    return f">{P1_ODDS_BINS[-1][0]:.2f}"
 
 
 def detect_delimiter(file_path):
@@ -65,9 +91,7 @@ def detect_encoding(file_path):
 
 
 def get_odds_from_row(row, odds_type):
-    """
-    Ищет коэффициент в различных колонках
-    """
+    """Ищет коэффициент в различных колонках"""
     odds_mapping = {
         'H': [
             'B365H', 'BWH', 'IWH', 'LBH', 'PSH', 'WHH', 'SJH', 'VCH',
@@ -82,7 +106,7 @@ def get_odds_from_row(row, odds_type):
         'UNDER': [
             'B365<2.5', 'P<2.5', 'Max<2.5', 'Avg<2.5',
             'BbMx<2.5', 'BbAv<2.5',
-            'BFE<2.5', 'BFEC<2.5', 'PC<2.5', 'MaxC<2.5', 'AvgC<2.5'
+            'BFE<2.5', 'BFEC<2.5', 'PC<2.5', 'MaxC<2.5', 'AvgC>2.5'
         ]
     }
 
@@ -155,9 +179,7 @@ def get_poisson_probs(l_home, l_away):
 
 
 def calculate_poisson_lambda_from_history(home_history, away_history, league_avg_home, league_avg_away):
-    """
-    Рассчитывает лямбды Пуассона на основе исторических данных
-    """
+    """Рассчитывает лямбды Пуассона на основе исторических данных"""
     try:
         if len(home_history) < MIN_MATCHES or len(away_history) < MIN_MATCHES:
             return None
@@ -199,10 +221,10 @@ def calculate_poisson_lambda_from_history(home_history, away_history, league_avg
         return None
 
 
-def analyze_league_folder(folder_path):
+def analyze_league_folder(folder_path, current_year=2025):
     """
     Анализирует все CSV файлы в папке одной лиги
-    Возвращает статистику по лиге и мета-информацию
+    Возвращает готовые взвешенные данные в старом формате
     """
     league_name = os.path.basename(folder_path)
     print(f"\n{'=' * 60}")
@@ -218,9 +240,14 @@ def analyze_league_folder(folder_path):
         return None, None
 
     processed_files = 0
-    all_stats = {}
+
+    # Собираем статистику по годам
+    stats_by_year = defaultdict(lambda: defaultdict(lambda: {'total': 0, 'hits': 0}))
+
     total_league_matches = 0
     total_analyzed_matches = 0
+    min_year = 9999
+    max_year = 0
 
     for csv_file in sorted(csv_files):
         print(f"\n--- Файл: {csv_file.name} ---")
@@ -274,6 +301,7 @@ def analyze_league_folder(folder_path):
                     if odds_h is not None and odds_over is not None:
                         all_matches.append({
                             'date': dt,
+                            'year': dt.year,
                             'date_str': date_str,
                             'home_team': row.get('HomeTeam', '').strip(),
                             'away_team': row.get('AwayTeam', '').strip(),
@@ -293,7 +321,6 @@ def analyze_league_folder(folder_path):
         total_league_matches += file_matches
         print(f"   📊 Загружено матчей с коэффициентами: {file_matches}")
 
-        file_stats = {}
         analyzed = 0
 
         for idx in range(file_matches - 1, -1, -1):
@@ -304,6 +331,12 @@ def analyze_league_folder(folder_path):
                     continue
 
                 total_goals = match['fthg'] + match['ftag']
+                match_year = match['year']
+
+                if match_year < min_year:
+                    min_year = match_year
+                if match_year > max_year:
+                    max_year = match_year
 
                 home_history = []
                 away_history = []
@@ -346,18 +379,16 @@ def analyze_league_folder(folder_path):
                 probs = get_poisson_probs(lambda_home, lambda_away)
                 over25_prob = probs['over25_yes']
 
-                odds_h_bin = get_odds_bin(match['odds_h'])
-                odds_over_bin = get_odds_bin(match['odds_over'])
+                p1_bin = get_p1_bin(match['odds_h'])
+                tb_bin = get_tb_bin(match['odds_over'])
                 prob_bin = get_probability_bin(over25_prob)
 
-                key = (odds_h_bin, odds_over_bin, prob_bin)
+                key = (p1_bin, tb_bin, prob_bin)
 
-                if key not in file_stats:
-                    file_stats[key] = {'total': 0, 'hits': 0}
-
-                file_stats[key]['total'] += 1
+                # Сохраняем с разбивкой по годам
+                stats_by_year[match_year][key]['total'] += 1
                 if total_goals > 2.5:
-                    file_stats[key]['hits'] += 1
+                    stats_by_year[match_year][key]['hits'] += 1
 
                 analyzed += 1
 
@@ -366,15 +397,45 @@ def analyze_league_folder(folder_path):
 
         print(f"   ✅ Проанализировано матчей в файле: {analyzed}")
         total_analyzed_matches += analyzed
-
-        # Объединяем статистику из файла в общую
-        for key, data in file_stats.items():
-            if key not in all_stats:
-                all_stats[key] = {'total': 0, 'hits': 0}
-            all_stats[key]['total'] += data['total']
-            all_stats[key]['hits'] += data['hits']
-
         processed_files += 1
+
+    # ========== ПРИМЕНЯЕМ ВЕСА И ПОЛУЧАЕМ ФИНАЛЬНЫЕ ДАННЫЕ ==========
+    final_stats = {}
+
+    # Собираем все уникальные ключи
+    all_keys = set()
+    for year_data in stats_by_year.values():
+        all_keys.update(year_data.keys())
+
+    print(f"\n📊 Применение весов к {len(all_keys)} блокам...")
+
+    for key in all_keys:
+        total_weight = 0
+        weighted_hits = 0
+
+        for year, year_data in stats_by_year.items():
+            if key in year_data:
+                stats = year_data[key]
+                years_ago = current_year - year
+
+                if years_ago <= 5:
+                    weight = YEAR_WEIGHTS['0-5']
+                elif years_ago <= 10:
+                    weight = YEAR_WEIGHTS['6-10']
+                elif years_ago <= 15:
+                    weight = YEAR_WEIGHTS['11-15']
+                else:
+                    weight = YEAR_WEIGHTS['16+']
+
+                total_weight += stats['total'] * weight
+                weighted_hits += stats['hits'] * weight
+
+        if total_weight > 0:
+            # Округляем до целых чисел (для совместимости со старым форматом)
+            final_stats[key] = {
+                'total': int(round(total_weight)),
+                'hits': int(round(weighted_hits))
+            }
 
     # Мета-информация по лиге
     league_info = {
@@ -383,31 +444,33 @@ def analyze_league_folder(folder_path):
         'processed_files': processed_files,
         'total_matches': total_league_matches,
         'analyzed_matches': total_analyzed_matches,
-        'blocks_count': len(all_stats)
+        'years_range': f"{min_year}-{max_year}",
+        'blocks_count': len(final_stats)
     }
 
     print(f"\n📊 ИТОГО ПО ЛИГЕ {league_name}:")
     print(f"   Обработано файлов: {processed_files}/{total_files}")
     print(f"   Всего матчей в файлах: {total_league_matches}")
     print(f"   Проанализировано матчей: {total_analyzed_matches}")
-    print(f"   Получено блоков: {len(all_stats)}")
+    print(f"   Период: {min_year}-{max_year}")
+    print(f"   Получено блоков (после взвешивания): {len(final_stats)}")
 
-    return league_info, all_stats
+    return league_info, final_stats
 
 
 def main():
     print("\n" + "🚀" * 10)
-    print("ЗАПУСК АНАЛИЗА ВСЕХ ЛИГ")
+    print("ЗАПУСК АНАЛИЗА ВСЕХ ЛИГ (С ВЕСАМИ)")
     print("🚀" * 10 + "\n")
 
     base_dir = Path(__file__).parent.parent
     all_matches_dir = base_dir / 'all_matches'
+    current_year = datetime.now().year
 
     if not all_matches_dir.exists():
         print(f"❌ Папка не найдена: {all_matches_dir}")
         return
 
-    # Находим все папки с лигами
     league_folders = [f for f in all_matches_dir.iterdir() if f.is_dir()]
 
     if not league_folders:
@@ -415,47 +478,67 @@ def main():
         return
 
     print(f"📁 Найдено лиг: {len(league_folders)}")
+    print(f"📅 Текущий год: {current_year}")
+    print(f"⚖️ Веса: 0-5 лет: 1.0, 6-10: 0.7, 11-15: 0.4, 16+: 0.2")
 
-    # Словари для общей статистики
     all_leagues_stats = {}
     all_leagues_info = []
 
-    # Анализируем каждую лигу
     for folder in sorted(league_folders):
-        league_info, league_stats = analyze_league_folder(str(folder))
+        league_info, league_stats = analyze_league_folder(str(folder), current_year)
 
         if league_stats:
             all_leagues_stats[league_info['name']] = league_stats
             all_leagues_info.append(league_info)
 
     if all_leagues_stats:
-        # Сохраняем результаты
         output_dir = base_dir / 'analysis_results'
         output_dir.mkdir(exist_ok=True)
 
+        # Сохраняем в СТАРОМ формате (для совместимости)
         output_file = output_dir / 'all_leagues_complete_stats.pkl'
-
         with open(output_file, 'wb') as f:
             pickle.dump(all_leagues_stats, f)
 
-        print(f"\n💾 Полные результаты сохранены в: {output_file}")
+        print(f"\n💾 Взвешенные результаты сохранены в: {output_file}")
+        print(f"   (в формате, совместимом со старым кодом)")
 
-        # Сохраняем также сводную информацию
+        # Сохраняем сводную информацию
         summary_file = output_dir / 'summary_info.txt'
         with open(summary_file, 'w', encoding='utf-8') as f:
-            f.write("СВОДНАЯ ИНФОРМАЦИЯ ПО ВСЕМ ЛИГАМ\n")
-            f.write("=" * 50 + "\n\n")
+            f.write("СВОДНАЯ ИНФОРМАЦИЯ ПО ВСЕМ ЛИГАМ (С ВЕСАМИ)\n")
+            f.write("=" * 60 + "\n\n")
+            f.write(f"Текущий год: {current_year}\n")
+            f.write(f"Веса:\n")
+            f.write(f"  0-5 лет: 1.0\n")
+            f.write(f"  6-10 лет: 0.7\n")
+            f.write(f"  11-15 лет: 0.4\n")
+            f.write(f"  16+ лет: 0.2\n\n")
 
             for info in all_leagues_info:
                 f.write(f"Лига: {info['name']}\n")
                 f.write(f"  Файлов: {info['processed_files']}/{info['total_files']}\n")
                 f.write(f"  Всего матчей: {info['total_matches']}\n")
                 f.write(f"  Проанализировано: {info['analyzed_matches']}\n")
-                f.write(f"  Блоков: {info['blocks_count']}\n\n")
+                f.write(f"  Период: {info['years_range']}\n")
+                f.write(f"  Блоков (после весов): {info['blocks_count']}\n\n")
 
         print(f"📊 Сводная информация сохранена в: {summary_file}")
 
-        # Выводим итоговую статистику
+        # Выводим пример для первой лиги
+        if all_leagues_stats:
+            first_league = list(all_leagues_stats.keys())[0]
+            first_key = list(all_leagues_stats[first_league].keys())[0]
+            first_stats = all_leagues_stats[first_league][first_key]
+
+            print(f"\n📊 ПРИМЕР (первая лига, первый ключ):")
+            print(f"  Лига: {first_league}")
+            print(f"  Ключ: {first_key}")
+            print(f"  Всего (с весами): {first_stats['total']}")
+            print(f"  Попаданий (с весами): {first_stats['hits']}")
+            print(f"  Вероятность: {first_stats['hits'] / first_stats['total'] * 100:.1f}%")
+
+        # Итоговая статистика
         print("\n" + "=" * 80)
         print("ИТОГОВАЯ СТАТИСТИКА ПО ВСЕМ ЛИГАМ")
         print("=" * 80)
@@ -468,7 +551,8 @@ def main():
             print(f"   Файлов: {info['processed_files']}/{info['total_files']}")
             print(f"   Всего матчей: {info['total_matches']}")
             print(f"   Проанализировано: {info['analyzed_matches']}")
-            print(f"   Блоков: {info['blocks_count']}")
+            print(f"   Период: {info['years_range']}")
+            print(f"   Блоков (после весов): {info['blocks_count']}")
 
             total_matches += info['total_matches']
             total_analyzed += info['analyzed_matches']
