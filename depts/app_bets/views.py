@@ -1113,11 +1113,6 @@ class CleanedTemplateView(TemplateView):
         context['current_sort'] = sort_param
 
         # ========== ДИНАМИЧЕСКАЯ ГРУППИРОВКА ЛИГ ПО РЕЗУЛЬТАТИВНОСТИ ==========
-        # print("\n" + "=" * 80)
-        # print("ДИНАМИЧЕСКАЯ ГРУППИРОВКА ЛИГ")
-        # print("=" * 80)
-
-        # Отсортированный список лиг по результативности (из ваших данных)
         LEAGUES_WITH_SCORING = [
             ('Бундеслига Германия', 3.18),
             ('Эредивизи Нидерланды', 3.12),
@@ -1136,92 +1131,160 @@ class CleanedTemplateView(TemplateView):
             ('Сегунда Испания', 2.31),
         ]
 
-        # Создаем словарь для быстрого доступа к позиции лиги
         league_positions = {}
         for idx, (league_name, _) in enumerate(LEAGUES_WITH_SCORING):
             league_positions[league_name] = idx
 
-        # print(f"Всего лиг в рейтинге: {len(LEAGUES_WITH_SCORING)}")
-        # print("\nРейтинг лиг по результативности:")
-        # for i, (league, avg) in enumerate(LEAGUES_WITH_SCORING):
-        #     print(f"  {i + 1}. {league}: {avg:.2f}")
-
-        # Функция для получения группы лиг для заданной лиги
         def get_league_group(league_name, neighbors=2):
-            """Возвращает список лиг для группы: сама лига + neighbors выше и ниже"""
             if league_name not in league_positions:
-                return [league_name]  # Если лига не найдена, возвращаем только её
+                return [league_name]
 
             pos = league_positions[league_name]
             total = len(LEAGUES_WITH_SCORING)
 
-            # Вычисляем диапазон с учетом границ
             start = max(0, pos - neighbors)
-            end = min(total, pos + neighbors + 1)  # +1 потому что range не включает последний
+            end = min(total, pos + neighbors + 1)
 
-            # Если не хватает сверху, добавляем снизу
             if pos - neighbors < 0:
                 shortage = abs(pos - neighbors)
                 end = min(total, end + shortage)
 
-            # Если не хватает снизу, добавляем сверху
             if pos + neighbors + 1 > total:
                 shortage = (pos + neighbors + 1) - total
                 start = max(0, start - shortage)
 
-            # Получаем названия лиг
-            group = [LEAGUES_WITH_SCORING[i][0] for i in range(start, end)]
+            return [LEAGUES_WITH_SCORING[i][0] for i in range(start, end)]
 
-            return group
+        def get_weighted_league_data(league_name, group_leagues, odds_h, odds_over, over_prob, target_type='over'):
+            if league_name not in league_positions:
+                return None
 
-        # Демонстрация работы группировки
-        # print("\n" + "=" * 80)
-        # print("ДЕМОНСТРАЦИЯ ГРУППИРОВКИ (примеры)")
-        # print("=" * 80)
+            target_pos = league_positions[league_name]
+            total_weight = 0.0
+            weighted_hits = 0.0
+            used_leagues = []
 
-        example_leagues = ['Бундеслига Германия', 'Ла Лига Испания', 'Сегунда Испания']
-        for league in example_leagues:
-            group = get_league_group(league, neighbors=2)
-            pos = league_positions.get(league, -1) + 1
-            # print(f"\nЛига: {league} (позиция {pos})")
-            # print(f"  Группа ({len(group)} лиг):")
-            # for g in group:
-            #     print(f"    - {g}")
-        # ========== КОНЕЦ ДИНАМИЧЕСКОЙ ГРУППИРОВКИ ==========
+            for gl in group_leagues:
+                if gl not in league_positions:
+                    continue
 
-        # Анализируем матчи
-        analysis_results = []
+                gl_pos = league_positions[gl]
+                distance = abs(gl_pos - target_pos)
+                weight = 1.0 / ((distance + 1) ** 2)
+
+                if target_type == 'over':
+                    data_tmp, _ = self.find_calibration(calib_data, gl, odds_h, odds_over, over_prob)
+                else:
+                    _, data_tmp = self.find_calibration(calib_data, gl, odds_h, odds_over, over_prob)
+
+                if data_tmp and data_tmp['total'] > 0:
+                    total_weight += data_tmp['total'] * weight
+                    weighted_hits += data_tmp['hits'] * weight
+                    used_leagues.append(gl)
+
+            if total_weight > 0:
+                prob = (weighted_hits / total_weight) * 100
+                return {
+                    'total': total_weight,
+                    'hits': weighted_hits,
+                    'prob': prob,
+                    'used_leagues': used_leagues
+                }
+            return None
+
+        # ========== ФУНКЦИЯ ДЛЯ ДОВЕРИТЕЛЬНОГО ИНТЕРВАЛА ==========
+        def calculate_confidence_interval(hits, total, confidence=0.90):
+            from math import sqrt
+            from scipy import stats
+
+            if total < 3:
+                return 0, 100
+
+            p = hits / total
+            z = stats.norm.ppf(1 - (1 - confidence) / 2)
+
+            denominator = 1 + z ** 2 / total
+            center = (p + z ** 2 / (2 * total)) / denominator
+            half_width = z * sqrt((p * (1 - p) + z ** 2 / (4 * total)) / total) / denominator
+
+            lower = max(0, center - half_width)
+            upper = min(1, center + half_width)
+
+            return lower * 100, upper * 100
+
+        # ========== ФУНКЦИЯ ДЛЯ ТРЕНДОВОЙ КОРРЕКЦИИ ==========
+        def get_trend_adjustment(league_name, current_date, window=15, strength=0.15):
+            """Возвращает корректировку вероятности на основе тренда"""
+            try:
+                from django.utils import timezone
+                from datetime import datetime
+
+                league = League.objects.filter(name=league_name).first()
+                if not league:
+                    return 0
+
+                if current_date is None or isinstance(current_date, str):
+                    return 0
+
+                if hasattr(current_date, 'tzinfo') and timezone.is_naive(current_date):
+                    current_date = timezone.make_aware(current_date)
+
+                recent_matches = Match.objects.filter(
+                    league=league,
+                    date__lt=current_date,
+                    home_score_reg__isnull=False,
+                    away_score_reg__isnull=False
+                ).order_by('-date')[:window]
+
+                if recent_matches.count() < 8:
+                    return 0
+
+                recent_total = 0
+                for match in recent_matches:
+                    recent_total += match.home_score_reg + match.away_score_reg
+                recent_avg = recent_total / recent_matches.count()
+
+                historical_avg = None
+                for league_item in LEAGUES_WITH_SCORING:
+                    if league_item[0] == league_name:
+                        historical_avg = league_item[1]
+                        break
+
+                if not historical_avg:
+                    return 0
+
+                deviation = (recent_avg - historical_avg) / historical_avg * 100
+                correction = -deviation * strength
+                return max(min(correction, 10), -10)
+
+            except Exception:
+                return 0
+
+        # ============================================================
+
+        # Параметры - СМЯГЧЕННЫЕ
+        CONFIDENCE_LEVEL = 0.85
+        MAX_INTERVAL_WIDTH = 35
         MIN_EV = 7
-        MIN_TOTAL = 5
+        MIN_TOTAL = 4
         ALPHA = 1
         BETA = 1
         BAYES_THRESHOLD = 100
+        TREND_WINDOW = 12
+        TREND_STRENGTH = 0.15
 
-        # Статистика для отладки
-        debug_stats = {
-            'total_matches': 0,
-            'skipped_no_odds': 0,
-            'skipped_no_teams': 0,
-            'skipped_no_league': 0,
-            'skipped_no_poisson': 0,
-            'grouping_stats': {}
-        }
-
-        # print("\n" + "=" * 80)
-        # print("НАЧАЛО АНАЛИЗА МАТЧЕЙ")
-        # print("=" * 80)
+        analysis_results = []
 
         for idx, row in excel_df.iterrows():
-            debug_stats['total_matches'] += 1
-            print(f"\n--- МАТЧ #{idx + 1} ---")
-
             try:
                 # Парсим время
                 match_time = row['Время']
                 if hasattr(match_time, 'strftime'):
                     time_str = match_time.strftime('%H:%M')
+                    match_datetime = match_time
                 else:
                     time_str = str(match_time)
+                    match_datetime = None
 
                 home_name = str(row['Хозяева']).strip()
                 away_name = str(row['Гости']).strip()
@@ -1229,235 +1292,156 @@ class CleanedTemplateView(TemplateView):
                 odds_over = float(row['ТБ2,5']) if not pd.isna(row['ТБ2,5']) else None
                 odds_under = float(row['ТМ2,5']) if not pd.isna(row['ТМ2,5']) else None
 
-                # print(
-                #     f"  Данные: {time_str} | {home_name} - {away_name} | П1={odds_h}, ТБ={odds_over}, ТМ={odds_under}")
-
                 if not odds_h or not odds_over or not odds_under:
-                    debug_stats['skipped_no_odds'] += 1
-                    print("  ❌ Пропущен: отсутствуют коэффициенты")
                     continue
 
-                # Находим команды
                 home_team = self.find_team(home_name)
                 away_team = self.find_team(away_name)
 
-                if not home_team:
-                    debug_stats['skipped_no_teams'] += 1
-                    print(f"  ❌ Пропущен: не найдена команда {home_name}")
-                    continue
-                if not away_team:
-                    debug_stats['skipped_no_teams'] += 1
-                    print(f"  ❌ Пропущен: не найдена команда {away_name}")
+                if not home_team or not away_team:
                     continue
 
-                # Определяем лигу
                 league = self.get_league_for_team(home_team) or self.get_league_for_team(away_team)
                 if not league:
-                    debug_stats['skipped_no_league'] += 1
-                    print("  ❌ Пропущен: не определена лига")
                     continue
 
-                # print(f"  ✅ Лига: {league.name}")
+                trend_adjustment = 0
+                if match_datetime:
+                    trend_adjustment = get_trend_adjustment(league.name, match_datetime, TREND_WINDOW, TREND_STRENGTH)
 
-                # Рассчитываем Пуассон
                 poisson_result = self.calculate_poisson_for_match(home_team, away_team, league)
                 if not poisson_result:
-                    debug_stats['skipped_no_poisson'] += 1
-                    print("  ❌ Пропущен: ошибка расчета Пуассона")
                     continue
 
                 over_prob = poisson_result['over_prob']
                 under_prob = poisson_result['under_prob']
-                # print(f"  📊 Пуассон: ТБ={over_prob:.1f}%, ТМ={under_prob:.1f}%")
 
-                # Находим калибровку для КОНКРЕТНОЙ лиги
                 over_data_single, under_data_single = self.find_calibration(
                     calib_data, league.name, odds_h, odds_over, over_prob
                 )
 
-                # ===== ДИНАМИЧЕСКАЯ ГРУППИРОВКА =====
+                # ===== ВЗВЕШЕННАЯ ГРУППИРОВКА =====
+                over_data = None
+                under_data = None
+                used_leagues = []
+
                 if league.name in league_positions:
                     group_leagues = get_league_group(league.name, neighbors=2)
-                    league_group = f"group_{league_positions[league.name]}"  # для статистики
 
-                    # Собираем данные из всех лиг группы
-                    over_total = 0
-                    over_hits = 0
-                    under_total = 0
-                    under_hits = 0
-                    used_leagues = []
+                    weighted_over = get_weighted_league_data(
+                        league.name, group_leagues, odds_h, odds_over, over_prob, 'over'
+                    )
 
-                    # print(f"  🔍 Группировка: найдено {len(group_leagues)} лиг")
+                    weighted_under = get_weighted_league_data(
+                        league.name, group_leagues, odds_h, odds_over, over_prob, 'under'
+                    )
 
-                    for league_name in group_leagues:
-                        over_tmp, under_tmp = self.find_calibration(
-                            calib_data, league_name, odds_h, odds_over, over_prob
-                        )
+                    if weighted_over and weighted_over['total'] > 0:
+                        over_data = weighted_over
+                        used_leagues = weighted_over['used_leagues']
 
-                        if over_tmp:
-                            over_total += over_tmp['total']
-                            over_hits += over_tmp['hits']
-                            used_leagues.append(league_name)
-                            # print(f"    + {league_name}: ТБ total={over_tmp['total']}, hits={over_tmp['hits']}")
-
-                        if under_tmp:
-                            under_total += under_tmp['total']
-                            under_hits += under_tmp['hits']
-
-                    # Формируем объединенные данные
-                    over_data = None
-                    under_data = None
-
-                    if over_total > 0:
-                        over_data = {
-                            'total': over_total,
-                            'hits': over_hits,
-                            'prob': (over_hits / over_total) * 100 if over_total > 0 else 0,
-                            'interval': over_data_single['interval'] if over_data_single else 'unknown'
-                        }
-                        # print(f"  📊 ИТОГО ТБ: total={over_total}, hits={over_hits}, prob={over_data['prob']:.1f}%")
-
-                    if under_total > 0:
-                        under_data = {
-                            'total': under_total,
-                            'hits': under_hits,
-                            'prob': (under_hits / under_total) * 100 if under_total > 0 else 0,
-                            'interval': under_data_single['interval'] if under_data_single else 'unknown'
-                        }
-                        # print(f"  📊 ИТОГО ТМ: total={under_total}, hits={under_hits}, prob={under_data['prob']:.1f}%")
-
-                    # Статистика группировки
-                    group_key = f"{len(group_leagues)}_лиг"
-                    debug_stats['grouping_stats'][group_key] = debug_stats['grouping_stats'].get(group_key, 0) + 1
+                    if weighted_under and weighted_under['total'] > 0:
+                        under_data = weighted_under
+                        if not used_leagues:
+                            used_leagues = weighted_under['used_leagues']
                 else:
-                    # Если лига не в рейтинге, используем только свои данные
                     over_data = over_data_single
                     under_data = under_data_single
                     used_leagues = [league.name] if over_data_single or under_data_single else []
-                    # print(f"  ⚠️ Лига не в рейтинге, используются только свои данные")
                 # ===== КОНЕЦ ГРУППИРОВКИ =====
 
-                # Проверяем ТБ (остальная логика без изменений)
+                # Проверяем ТБ
                 if over_data and over_data['total'] >= MIN_TOTAL:
-                    if over_data['total'] < BAYES_THRESHOLD:
-                        smoothed_prob_over = (over_data['hits'] + ALPHA) / (over_data['total'] + ALPHA + BETA) * 100
-                        actual_prob_used = round(smoothed_prob_over, 1)
-                        smoothing_applied = True
-                    else:
-                        actual_prob_used = round(over_data['prob'], 1)
-                        smoothing_applied = False
+                    lower, upper = calculate_confidence_interval(
+                        over_data['hits'], over_data['total'], CONFIDENCE_LEVEL
+                    )
 
-                    ev_over = (actual_prob_used / 100.0) * odds_over - 1
-                    ev_over_percent = ev_over * 100
+                    if upper - lower <= MAX_INTERVAL_WIDTH:
+                        if over_data['total'] < BAYES_THRESHOLD:
+                            smoothed_prob = (over_data['hits'] + ALPHA) / (over_data['total'] + ALPHA + BETA) * 100
+                        else:
+                            smoothed_prob = over_data['prob']
 
-                    if ev_over_percent > MIN_EV:
-                        result_item = {
-                            'time': time_str,
-                            'time_sort': time_str,
-                            'home': home_name,
-                            'away': away_name,
-                            'match': f"{home_name} - {away_name}",
-                            'league': league.name,
-                            'league_group': f"group_{league_positions.get(league.name, 'unknown')}",
-                            'used_leagues': used_leagues,
-                            'league_sort': league.name,
-                            'odds_h': odds_h,
-                            'odds_over': odds_over,
-                            'odds_under': odds_under,
-                            'target': 'ТБ 2.5',
-                            'ev': round(ev_over_percent, 1),
-                            'ev_sort': ev_over_percent,
-                            'poisson_prob': round(over_prob, 1),
-                            'actual_prob': actual_prob_used,
-                            'raw_prob': round(over_data['prob'], 1),
-                            'interval': over_data['interval'],
-                            'recommended_odds': odds_over,
-                            'home_team_id': home_team.id,
-                            'away_team_id': away_team.id,
-                            'league_id': league.id,
-                            'target_code': 'over',
-                            'total': over_data['total'],
-                            'hits': over_data['hits'],
-                            'home_lambda': poisson_result['home_lambda'],
-                            'away_lambda': poisson_result['away_lambda'],
-                            'smoothing_applied': smoothing_applied,
-                        }
-                        analysis_results.append(result_item)
-                        # print(f"  ✅ ТБ ДОБАВЛЕН! EV={ev_over_percent:.1f}%")
+                        final_prob = smoothed_prob + trend_adjustment
+                        final_prob = max(min(final_prob, 95), 5)
 
-                # Проверяем ТМ (аналогично)
+                        ev = (final_prob / 100.0) * odds_over - 1
+                        ev_percent = ev * 100
+
+                        if ev_percent > MIN_EV:
+                            analysis_results.append({
+                                'time': time_str,
+                                'time_sort': time_str,
+                                'home': home_name,
+                                'away': away_name,
+                                'match': f"{home_name} - {away_name}",
+                                'league': league.name,
+                                'used_leagues': used_leagues,
+                                'league_sort': league.name,
+                                'odds_over': odds_over,
+                                'odds_under': odds_under,
+                                'target': 'ТБ 2.5',
+                                'ev': round(ev_percent, 1),
+                                'ev_sort': ev_percent,
+                                'poisson_prob': round(over_prob, 1),
+                                'actual_prob': round(final_prob, 1),
+                                'interval': self.get_probability_bin(over_prob),  # ИСПРАВЛЕНО
+                                'total': int(round(over_data['total'], 0)),
+                                'hits': int(round(over_data['hits'], 0)),
+                                'home_team_id': home_team.id,
+                                'away_team_id': away_team.id,
+                                'league_id': league.id
+                            })
+
+                # Проверяем ТМ
                 if under_data and under_data['total'] >= MIN_TOTAL:
-                    if under_data['total'] < BAYES_THRESHOLD:
-                        smoothed_prob_under = (under_data['hits'] + ALPHA) / (under_data['total'] + ALPHA + BETA) * 100
-                        actual_prob_used = round(smoothed_prob_under, 1)
-                        smoothing_applied = True
-                    else:
-                        actual_prob_used = round(under_data['prob'], 1)
-                        smoothing_applied = False
+                    lower, upper = calculate_confidence_interval(
+                        under_data['hits'], under_data['total'], CONFIDENCE_LEVEL
+                    )
 
-                    ev_under = (actual_prob_used / 100.0) * odds_under - 1
-                    ev_under_percent = ev_under * 100
+                    if upper - lower <= MAX_INTERVAL_WIDTH:
+                        if under_data['total'] < BAYES_THRESHOLD:
+                            smoothed_prob = (under_data['hits'] + ALPHA) / (under_data['total'] + ALPHA + BETA) * 100
+                        else:
+                            smoothed_prob = under_data['prob']
 
-                    if ev_under_percent > MIN_EV:
-                        result_item = {
-                            'time': time_str,
-                            'time_sort': time_str,
-                            'home': home_name,
-                            'away': away_name,
-                            'match': f"{home_name} - {away_name}",
-                            'league': league.name,
-                            'league_group': f"group_{league_positions.get(league.name, 'unknown')}",
-                            'used_leagues': used_leagues,
-                            'league_sort': league.name,
-                            'odds_h': odds_h,
-                            'odds_over': odds_over,
-                            'odds_under': odds_under,
-                            'target': 'ТМ 2.5',
-                            'ev': round(ev_under_percent, 1),
-                            'ev_sort': ev_under_percent,
-                            'poisson_prob': round(under_prob, 1),
-                            'actual_prob': actual_prob_used,
-                            'raw_prob': round(under_data['prob'], 1),
-                            'interval': under_data['interval'],
-                            'recommended_odds': odds_under,
-                            'home_team_id': home_team.id,
-                            'away_team_id': away_team.id,
-                            'league_id': league.id,
-                            'target_code': 'under',
-                            'total': under_data['total'],
-                            'hits': under_data['hits'],
-                            'home_lambda': poisson_result['home_lambda'],
-                            'away_lambda': poisson_result['away_lambda'],
-                            'smoothing_applied': smoothing_applied,
-                        }
-                        analysis_results.append(result_item)
-                        # print(f"  ✅ ТМ ДОБАВЛЕН! EV={ev_under_percent:.1f}%")
+                        final_prob = smoothed_prob - trend_adjustment
+                        final_prob = max(min(final_prob, 95), 5)
+
+                        ev = (final_prob / 100.0) * odds_under - 1
+                        ev_percent = ev * 100
+
+                        if ev_percent > MIN_EV:
+                            analysis_results.append({
+                                'time': time_str,
+                                'time_sort': time_str,
+                                'home': home_name,
+                                'away': away_name,
+                                'match': f"{home_name} - {away_name}",
+                                'league': league.name,
+                                'used_leagues': used_leagues,
+                                'league_sort': league.name,
+                                'odds_over': odds_over,
+                                'odds_under': odds_under,
+                                'target': 'ТМ 2.5',
+                                'ev': round(ev_percent, 1),
+                                'ev_sort': ev_percent,
+                                'poisson_prob': round(under_prob, 1),
+                                'actual_prob': round(final_prob, 1),
+                                'interval': self.get_probability_bin(under_prob),  # ИСПРАВЛЕНО
+                                'total': int(round(under_data['total'], 0)),
+                                'hits': int(round(under_data['hits'], 0)),
+                                'home_team_id': home_team.id,
+                                'away_team_id': away_team.id,
+                                'league_id': league.id
+                            })
 
             except Exception as e:
                 import traceback
-                print(f"❌ Ошибка при обработке матча #{idx + 1}: {e}")
                 traceback.print_exc()
                 continue
 
-        # ИТОГОВАЯ СТАТИСТИКА
-        # print("\n" + "=" * 80)
-        # print("ИТОГОВАЯ СТАТИСТИКА")
-        # print("=" * 80)
-        #
-        # print(f"\n📊 Всего обработано матчей: {debug_stats['total_matches']}")
-        # print(f"📊 Найдено сигналов: {len(analysis_results)}")
-        #
-        # print("\n🔍 Пропущено матчей:")
-        # print(f"  ❌ Нет коэффициентов: {debug_stats['skipped_no_odds']}")
-        # print(f"  ❌ Нет команд: {debug_stats['skipped_no_teams']}")
-        # print(f"  ❌ Нет лиги: {debug_stats['skipped_no_league']}")
-        # print(f"  ❌ Нет Пуассона: {debug_stats['skipped_no_poisson']}")
-        #
-        # print("\n📊 Статистика группировки:")
-        # for group_key, count in debug_stats['grouping_stats'].items():
-        #     print(f"  {group_key}: {count} матчей")
-
-        # Применяем сортировку
+        # Сортировка
         if sort_param == 'time_asc':
             analysis_results.sort(key=lambda x: x['time_sort'])
         elif sort_param == 'time_desc':
@@ -1471,7 +1455,6 @@ class CleanedTemplateView(TemplateView):
         elif sort_param == 'ev_desc':
             analysis_results.sort(key=lambda x: x['ev_sort'], reverse=True)
 
-        # Сохраняем в сессию
         self.request.session['cleaned_analysis_results'] = analysis_results
 
         context['analysis_results'] = analysis_results
