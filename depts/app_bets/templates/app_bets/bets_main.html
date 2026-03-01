@@ -332,7 +332,16 @@
         </div>
         {% endfor %}
 
-        <!-- ПАГИНАЦИЯ -->
+        {% else %}
+        <div class="no-results">
+            <i class="fa-solid fa-futbol no-results-icon"></i>
+            <p class="no-results-text">{{ empty_state.TEXT }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ПАГИНАЦИЯ -->
         {% if is_paginated %}
         <div class="pagination-wrapper">
             <ul class="pagination">
@@ -368,13 +377,4 @@
             </ul>
         </div>
         {% endif %}
-
-        {% else %}
-        <div class="no-results">
-            <i class="fa-solid fa-futbol no-results-icon"></i>
-            <p class="no-results-text">{{ empty_state.TEXT }}</p>
-        </div>
-        {% endif %}
-    </div>
-</div>
 {% endblock %}
