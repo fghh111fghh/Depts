@@ -46,6 +46,7 @@ from dal import autocomplete
 from app_bets.constants import Outcome, ParsingConstants, AnalysisConstants, Messages
 from app_bets.forms import BetForm
 from app_bets.models import Team, TeamAlias, Season, Match, League, Bet,Bank
+from . import constants
 
 
 class AnalyzeView(ListView):
@@ -795,51 +796,21 @@ class AnalyzeView(ListView):
 class CleanedTemplateView(TemplateView):
     """
     Представление для анализа матчей из Excel файла с использованием калибровочных данных.
-
-    Что делает:
-    1. Загружает матчи из for_analyze_matches.xlsx (Время, Хозяева, Гости, П1, ТБ2,5, ТМ2,5)
-    2. Для каждого матча:
-       - Находит команды в БД (сначала по каноническому имени, потом по алиасам)
-       - Определяет лигу по последнему матчу команды
-       - Рассчитывает Пуассон (лямбды и вероятность ТБ2.5) через методы модели
-       - Определяет блоки: для П1, для ТБ, для вероятности
-       - Ищет в калибровочных данных точное совпадение всех трех блоков
-       - Получает статистику (total, hits_over) и рассчитывает hits_under = total - hits_over
-       - Рассчитывает EV для ТБ и ТМ
-       - Если EV > 7%, добавляет матч в результаты
-    3. Сортирует результаты по времени
-    4. Передает в шаблон для отображения
     """
     template_name = 'app_bets/cleaned.html'
 
-    # ========== НОВЫЕ БЛОКИ (как в скрипте калибровки) ==========
-    PROBABILITY_BINS = [
-        (0, 10), (10, 20), (20, 30), (30, 40), (40, 50),
-        (50, 60), (60, 70), (70, 80), (80, 90), (90, 100)
-    ]
-
-    # Блоки для П1 (полная сетка)
-    P1_ODDS_BINS = [
-        (1.00, 1.30), (1.31, 1.6), (1.61, 1.9), (1.91, 2.3), (2.31, 2.7),
-        (2.71, 3.2), (3.21, 3.8), (3.81, 4.5), (4.51, 5.5), (5.51, 6.7),
-        (6.71, 7.8), (7.81, 9.1), (9.11, float('inf'))
-    ]
-
-    # Блоки для ТБ (только 4 блока)
-    TB_ODDS_BINS = [
-        (1.00, 1.30),    # меньше 1.30
-        (1.30, 1.61),    # 1.30 - 1.60
-        (1.61, 1.96),    # 1.61 - 1.95
-        (1.96, float('inf'))  # больше 1.95
-    ]
-    # =============================================================
+    # ========== КОНСТАНТЫ ИЗ ЕДИНОГО ФАЙЛА ==========
+    PROBABILITY_BINS = constants.PROBABILITY_BINS
+    P1_ODDS_BINS = constants.P1_ODDS_BINS
+    TB_ODDS_BINS = constants.TB_ODDS_BINS
+    LEAGUES_WITH_SCORING = constants.LEAGUES_WITH_SCORING
+    # =================================================
 
     def get_probability_bin(self, prob):
         """Определяет блок вероятности"""
         for low, high in self.PROBABILITY_BINS:
             if low <= prob < high:
-                result = f"{low}-{high}%"
-                return result
+                return f"{low}-{high}%"
         return " - "
 
     def get_p1_bin(self, odds):
@@ -1037,26 +1008,8 @@ class CleanedTemplateView(TemplateView):
         context['current_sort'] = sort_param
 
         # ========== ГРУППИРОВКА ЛИГ ПО РЕЗУЛЬТАТИВНОСТИ ==========
-        LEAGUES_WITH_SCORING = [
-            ('Бундеслига Германия', 3.18),
-            ('Эредивизи Нидерланды', 3.12),
-            ('Бундеслига 2 Германия', 3.0),
-            ('АПЛ Англия', 2.97),
-            ('Суперлига Турция', 2.87),
-            ('Премьер Лига Шотландия', 2.85),
-            ('Лига 1 Франция', 2.83),
-            ('Высшая лига Бельгия', 2.82),
-            ('Высшая лига Португалия', 2.67),
-            ('Ла Лига Испания', 2.6),
-            ('Серия А Италия', 2.55),
-            ('Чемпионшип Англия', 2.53),
-            ('Лига 2 Франция', 2.48),
-            ('Серия Б Италия', 2.45),
-            ('Сегунда Испания', 2.31),
-        ]
-
         league_positions = {}
-        for idx, (league_name, _) in enumerate(LEAGUES_WITH_SCORING):
+        for idx, (league_name, _) in enumerate(self.LEAGUES_WITH_SCORING):
             league_positions[league_name] = idx
 
         def get_league_group(league_name, neighbors=2):
@@ -1065,7 +1018,7 @@ class CleanedTemplateView(TemplateView):
                 return [league_name]
 
             pos = league_positions[league_name]
-            total = len(LEAGUES_WITH_SCORING)
+            total = len(self.LEAGUES_WITH_SCORING)
 
             start = max(0, pos - neighbors)
             end = min(total, pos + neighbors + 1)
@@ -1078,16 +1031,16 @@ class CleanedTemplateView(TemplateView):
                 shortage = (pos + neighbors + 1) - total
                 start = max(0, start - shortage)
 
-            return [LEAGUES_WITH_SCORING[i][0] for i in range(start, end)]
+            return [self.LEAGUES_WITH_SCORING[i][0] for i in range(start, end)]
 
         # ==========================================================
 
-        # Параметры анализа
-        MIN_EV = 7
-        MIN_TOTAL = 3
-        ALPHA = 1
-        BETA = 1
-        BAYES_THRESHOLD = 100
+        # Параметры анализа из констант
+        MIN_EV = constants.MIN_EV
+        MIN_TOTAL = constants.MIN_TOTAL
+        ALPHA = constants.ALPHA
+        BETA = constants.BETA
+        BAYES_THRESHOLD = constants.BAYES_THRESHOLD
 
         analysis_results = []
 
@@ -2248,26 +2201,11 @@ class BetRecordsView(LoginRequiredMixin, ListView):
 class StatsView(TemplateView):
     template_name = 'app_bets/stats.html'
 
-    # Константы из скрипта анализа (НОВЫЕ БЛОКИ)
-    PROBABILITY_BINS = [
-        (0, 10), (10, 20), (20, 30), (30, 40), (40, 50),
-        (50, 60), (60, 70), (70, 80), (80, 90), (90, 100)
-    ]
-
-    # Блоки для П1 (полная сетка)
-    P1_ODDS_BINS = [
-        (1.00, 1.30), (1.31, 1.6), (1.61, 1.9), (1.91, 2.3), (2.31, 2.7),
-        (2.71, 3.2), (3.21, 3.8), (3.81, 4.5), (4.51, 5.5), (5.51, 6.7),
-        (6.71, 7.8), (7.81, 9.1), (9.11, float('inf'))
-    ]
-
-    # Блоки для ТБ (только 4 блока)
-    TB_ODDS_BINS = [
-        (1.00, 1.30),    # меньше 1.30
-        (1.30, 1.61),    # 1.30 - 1.60
-        (1.61, 1.96),    # 1.61 - 1.95
-        (1.96, float('inf'))  # больше 1.95
-    ]
+    # ========== КОНСТАНТЫ ИЗ ЕДИНОГО ФАЙЛА ==========
+    PROBABILITY_BINS = constants.PROBABILITY_BINS
+    P1_ODDS_BINS = constants.P1_ODDS_BINS
+    TB_ODDS_BINS = constants.TB_ODDS_BINS
+    # =================================================
 
     def get_probability_bins_list(self):
         """Возвращает список строк для блоков вероятности"""
