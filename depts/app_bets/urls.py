@@ -18,4 +18,5 @@ urlpatterns = [
     path('records/bulk-action/', views.bulk_bet_action, name='bulk_bet_action'),
     path('records/export-excel/', views.export_bets_excel, name='export_bets_excel'),
     path('bet/add/', views.BetCreateView.as_view(), name='bet_create'),
+    path('bet/develop/', views.DevelopView.as_view(), name='develop'),
 ]

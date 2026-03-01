@@ -44,7 +44,7 @@ from django.views.generic import TemplateView, CreateView, ListView
 from openpyxl.styles import Font, PatternFill, Alignment
 from dal import autocomplete
 from app_bets.constants import Outcome, ParsingConstants, AnalysisConstants, Messages
-from app_bets.forms import BetForm
+from app_bets.forms import BetForm, KellyCalculatorForm
 from app_bets.models import Team, TeamAlias, Season, Match, League, Bet,Bank
 from . import constants
 
@@ -2383,6 +2383,17 @@ class StatsView(TemplateView):
             context['error'] = 'Файл с данными не найден'
 
         return context
+
+
+class DevelopView(TemplateView):
+    template_name = 'app_bets/develop.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = KellyCalculatorForm()
+        return context
+
+
 
 
 @require_POST

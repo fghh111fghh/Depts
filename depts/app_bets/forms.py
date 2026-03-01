@@ -191,3 +191,54 @@ class BankAdjustmentForm(forms.Form):
             raise forms.ValidationError('Выберите сумму')
 
         return cleaned_data
+
+
+class KellyCalculatorForm(forms.Form):
+    odds = forms.DecimalField(
+        label='Коэффициент',
+        max_digits=5,
+        decimal_places=2,
+        min_value=1.01,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'id': 'odds',
+            'step': '0.01',
+            'placeholder': '2.00'
+        })
+    )
+
+    probability = forms.DecimalField(
+        label='Вероятность, %',
+        max_digits=4,
+        decimal_places=1,
+        min_value=0.1,
+        max_value=99.9,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'id': 'probability',
+            'step': '0.1',
+            'placeholder': '52.5'
+        })
+    )
+
+    bank = forms.IntegerField(
+        label='Банк',
+        min_value=100,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'id': 'bank',
+            'placeholder': '100000'
+        })
+    )
+
+    KELLY_CHOICES = [(i / 10, f'{i / 10}') for i in range(1, 11)]
+
+    kelly_fraction = forms.ChoiceField(
+        label='Доля Келли',
+        choices=KELLY_CHOICES,
+        initial=0.2,
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'id': 'kelly_fraction'
+        })
+    )
