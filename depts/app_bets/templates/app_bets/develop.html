@@ -1,0 +1,352 @@
+{% extends 'app_bets/base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'app_bets/css/pages/develop.css' %}">
+
+<div class="develop-container">
+    <div class="develop-header">
+        <h1><i class="fa-solid fa-calculator"></i> Калькулятор ставок по Келли</h1>
+        <p class="develop-description">Расчет оптимального размера ставки на основе критерия Келли</p>
+    </div>
+
+    <div class="calculator-card">
+        <form id="kellyForm" class="calculator-form">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="odds">
+                    <i class="fa-solid fa-chart-line"></i> Коэффициент
+                </label>
+                <input type="number" id="odds" name="odds" class="form-control"
+                       step="0.01" min="1.01" placeholder="2.00" required
+                       oninput="updateDefaultProbability()">
+                <small class="form-text">Коэффициент на выбранный исход (≥ 1.01)</small>
+            </div>
+
+            <div class="form-group">
+                <label for="probability">
+                    <i class="fa-solid fa-percent"></i> Вероятность, %
+                </label>
+                <input type="number" id="probability" name="probability" class="form-control"
+                       step="0.1" min="0.1" max="99.9" placeholder="52.5" required>
+                <small class="form-text">
+                    Ваша оценка вероятности.
+                    <span id="defaultProbHint" class="probability-hint"></span>
+                </small>
+                <div class="probability-actions">
+                    <button type="button" id="useDefaultProb" class="btn-small">
+                        <i class="fa-solid fa-rotate-left"></i> Сбросить к расчетному
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="bank">
+                    <i class="fa-solid fa-coins"></i> Банк, ₽
+                </label>
+                <input type="number" id="bank" name="bank" class="form-control"
+                       min="100" step="1" placeholder="100000" required>
+                <small class="form-text">Текущий размер банка в рублях</small>
+            </div>
+
+            <div class="form-group">
+                <label for="kelly_fraction">
+                    <i class="fa-solid fa-scale-balanced"></i> Доля Келли
+                </label>
+                <select id="kelly_fraction" name="kelly_fraction" class="form-control">
+                    <option value="0.1">0.1 (консервативно)</option>
+                    <option value="0.2" selected>0.2 (рекомендуется)</option>
+                    <option value="0.3">0.3</option>
+                    <option value="0.4">0.4</option>
+                    <option value="0.5">0.5 (умеренно)</option>
+                    <option value="0.6">0.6</option>
+                    <option value="0.7">0.7</option>
+                    <option value="0.8">0.8</option>
+                    <option value="0.9">0.9</option>
+                    <option value="1.0">1.0 (полный Келли)</option>
+                </select>
+                <small class="form-text">Доля от полного Келли (рекомендуется 0.2-0.5)</small>
+            </div>
+
+            <button type="button" id="calculateBtn" class="calculate-btn">
+                <i class="fa-solid fa-calculator"></i> Рассчитать ставку
+            </button>
+        </form>
+
+        <!-- Блок результатов -->
+        <div id="resultBlock" class="result-section" style="display: none;">
+            <h3 class="result-title">Результаты расчета</h3>
+
+            <div class="result-grid">
+                <div class="result-item">
+                    <span class="result-label">Вероятность:</span>
+                    <span class="result-value" id="resultProb">0%</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Коэффициент:</span>
+                    <span class="result-value" id="resultOdds">0</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Банк:</span>
+                    <span class="result-value" id="resultBank">0 ₽</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Доля Келли:</span>
+                    <span class="result-value" id="resultKelly">0</span>
+                </div>
+            </div>
+
+            <div class="result-cards">
+                <div class="result-card success">
+                    <div class="card-label">РЕКОМЕНДУЕМАЯ СТАВКА</div>
+                    <div class="card-value" id="recommendedStake">0 ₽</div>
+                </div>
+
+                <div class="result-card info">
+                    <div class="card-label">% ОТ БАНКА</div>
+                    <div class="card-value" id="stakePercent">0.00%</div>
+                </div>
+            </div>
+
+            <div class="progress-section">
+                <div class="progress-header">
+                    <span>Доля банка</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <div class="formula-info">
+                <i class="fa-solid fa-square-root-variable"></i>
+                <span>Критерий Келли: f = (p × k - 1) / (k - 1), где p — вероятность в долях</span>
+            </div>
+        </div>
+
+        <!-- Сообщение об ошибке -->
+        <div id="errorBlock" class="error-section" style="display: none;">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span id="errorMessage"></span>
+        </div>
+    </div>
+
+    <div class="examples-section">
+        <h3>Примеры для расчета</h3>
+        <div class="examples-grid">
+            <div class="example-card" data-odds="2.0" data-prob="55" data-bank="100000" data-kelly="0.2">
+                <div class="example-icon"><i class="fa-solid fa-futbol"></i></div>
+                <div class="example-content">
+                    <div class="example-title">Футбол: ТБ 2.5</div>
+                    <div class="example-desc">Кэф 2.0, вероятность 55%</div>
+                </div>
+                <button class="example-btn">Применить</button>
+            </div>
+            <div class="example-card" data-odds="1.85" data-prob="60" data-bank="100000" data-kelly="0.2">
+                <div class="example-icon"><i class="fa-solid fa-table-tennis"></i></div>
+                <div class="example-content">
+                    <div class="example-title">Теннис: победа фаворита</div>
+                    <div class="example-desc">Кэф 1.85, вероятность 60%</div>
+                </div>
+                <button class="example-btn">Применить</button>
+            </div>
+            <div class="example-card" data-odds="2.2" data-prob="48" data-bank="100000" data-kelly="0.15">
+                <div class="example-icon"><i class="fa-solid fa-basketball"></i></div>
+                <div class="example-content">
+                    <div class="example-title">Баскетбол: тотал</div>
+                    <div class="example-desc">Кэф 2.2, вероятность 48%</div>
+                </div>
+                <button class="example-btn">Применить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const oddsInput = document.getElementById('odds');
+    const probInput = document.getElementById('probability');
+    const bankInput = document.getElementById('bank');
+    const kellySelect = document.getElementById('kelly_fraction');
+    const calculateBtn = document.getElementById('calculateBtn');
+    const defaultProbHint = document.getElementById('defaultProbHint');
+    const useDefaultProbBtn = document.getElementById('useDefaultProb');
+
+    const resultBlock = document.getElementById('resultBlock');
+    const errorBlock = document.getElementById('errorBlock');
+    const errorMessage = document.getElementById('errorMessage');
+
+    // Желаемый ROI по умолчанию (5%)
+    const DEFAULT_ROI = 5;
+
+    function calculateDefaultProbability() {
+        const odds = parseFloat(oddsInput.value);
+        if (!odds || odds < 1.01) return null;
+
+        // ROI = (p * odds - 1) * 100%
+        // p * odds - 1 = ROI / 100
+        // p * odds = 1 + ROI/100
+        // p = (1 + ROI/100) / odds
+
+        const p = (1 + DEFAULT_ROI / 100) / odds;
+        const probPercent = p * 100;
+
+        return Math.min(probPercent, 99.9); // Ограничиваем 99.9%
+    }
+
+    function updateDefaultProbability() {
+        const defaultProb = calculateDefaultProbability();
+        if (defaultProb) {
+            defaultProbHint.textContent = `(для ROI ${DEFAULT_ROI}% нужно ${defaultProb.toFixed(1)}%)`;
+
+            // Устанавливаем значение по умолчанию, только если поле пустое
+            if (!probInput.value) {
+                probInput.value = defaultProb.toFixed(1);
+            }
+        } else {
+            defaultProbHint.textContent = '';
+        }
+    }
+
+    function setDefaultProbability() {
+        const defaultProb = calculateDefaultProbability();
+        if (defaultProb) {
+            probInput.value = defaultProb.toFixed(1);
+        }
+    }
+
+    function formatNumber(value) {
+        return new Intl.NumberFormat('ru-RU').format(Math.round(value));
+    }
+
+    function calculate() {
+        const odds = parseFloat(oddsInput.value);
+        let prob = parseFloat(probInput.value);
+        const bank = parseFloat(bankInput.value);
+        const fraction = parseFloat(kellySelect.value);
+
+        if (!odds || odds < 1.01) {
+            showError('Коэффициент должен быть больше 1.01');
+            return false;
+        }
+
+        // Если вероятность не введена, используем расчетную
+        if (!prob || prob <= 0) {
+            const defaultProb = calculateDefaultProbability();
+            if (defaultProb) {
+                prob = defaultProb;
+                probInput.value = defaultProb.toFixed(1);
+            } else {
+                showError('Невозможно рассчитать вероятность');
+                return false;
+            }
+        }
+
+        if (prob <= 0 || prob >= 100) {
+            showError('Вероятность должна быть от 0.1% до 99.9%');
+            return false;
+        }
+
+        if (!bank || bank < 100) {
+            showError('Банк должен быть не менее 100');
+            return false;
+        }
+
+        hideError();
+
+        const p = prob / 100;
+        const fullKelly = (p * odds - 1) / (odds - 1);
+        const limitedKelly = Math.max(0, Math.min(fullKelly, 1));
+        const stakeKelly = limitedKelly * fraction;
+        const stake = bank * stakeKelly;
+        const roundedStake = Math.round(stake / 100) * 100;
+        const stakePercent = (stakeKelly * 100).toFixed(2);
+
+        // Расчет текущего ROI
+        const currentRoi = (p * odds - 1) * 100;
+
+        document.getElementById('resultProb').textContent = prob.toFixed(1) + '%';
+        document.getElementById('resultOdds').textContent = odds.toFixed(2);
+        document.getElementById('resultBank').textContent = formatNumber(bank) + ' ₽';
+        document.getElementById('resultKelly').textContent = fraction;
+
+        // Добавляем индикатор ROI
+        const roiIndicator = document.getElementById('roiIndicator') || document.createElement('div');
+        roiIndicator.id = 'roiIndicator';
+        roiIndicator.className = `roi-indicator ${currentRoi > 0 ? 'positive' : 'negative'}`;
+        roiIndicator.innerHTML = `Текущий ROI: ${currentRoi > 0 ? '+' : ''}${currentRoi.toFixed(1)}%`;
+
+        const resultGrid = document.querySelector('.result-grid');
+        if (!document.getElementById('roiIndicator')) {
+            resultGrid.appendChild(roiIndicator);
+        } else {
+            roiIndicator.innerHTML = `Текущий ROI: ${currentRoi > 0 ? '+' : ''}${currentRoi.toFixed(1)}%`;
+            roiIndicator.className = `roi-indicator ${currentRoi > 0 ? 'positive' : 'negative'}`;
+        }
+
+        document.getElementById('recommendedStake').textContent = formatNumber(roundedStake) + ' ₽';
+        document.getElementById('stakePercent').textContent = stakePercent + '%';
+
+        const progressPercent = document.getElementById('progressPercent');
+        const progressFill = document.getElementById('progressFill');
+        const progressWidth = Math.min(stakeKelly * 100, 100);
+        progressPercent.textContent = progressWidth.toFixed(1) + '%';
+        progressFill.style.width = progressWidth + '%';
+
+        resultBlock.style.display = 'block';
+
+        return true;
+    }
+
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorBlock.style.display = 'flex';
+        resultBlock.style.display = 'none';
+    }
+
+    function hideError() {
+        errorBlock.style.display = 'none';
+    }
+
+    // Обновляем подсказку при изменении коэффициента
+    oddsInput.addEventListener('input', updateDefaultProbability);
+
+    // Кнопка сброса к расчетной вероятности
+    useDefaultProbBtn.addEventListener('click', setDefaultProbability);
+
+    calculateBtn.addEventListener('click', calculate);
+
+    [oddsInput, probInput, bankInput, kellySelect].forEach(input => {
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                calculate();
+            }
+        });
+    });
+
+    document.querySelectorAll('.example-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const card = this.closest('.example-card');
+            oddsInput.value = card.dataset.odds;
+            probInput.value = card.dataset.prob;
+            bankInput.value = card.dataset.bank;
+
+            for (let option of kellySelect.options) {
+                if (parseFloat(option.value) === parseFloat(card.dataset.kelly)) {
+                    option.selected = true;
+                    break;
+                }
+            }
+
+            updateDefaultProbability();
+            calculate();
+        });
+    });
+
+    // Первоначальный расчет подсказки
+    updateDefaultProbability();
+});
+</script>
+{% endblock %}
