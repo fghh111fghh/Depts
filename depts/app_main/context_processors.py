@@ -13,7 +13,7 @@ def site_modules(request):
             'status_text': 'Доступно'
         },
         {
-            'title': 'Учет ставок',
+            'title': 'Беттинг',
             'app_namespace': 'app_bets',
             'desc': 'Анализ спортивных событий и статистика по алгоритму.',
             'icon': 'book-open',
