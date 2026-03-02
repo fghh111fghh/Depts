@@ -117,7 +117,15 @@
                 </a>
             </div>
 
-            <div>
+            <!-- Блок с итоговой суммой по активному фильтру -->
+            {% if filter_total_sum %}
+            <div class="filter-total-section" id="filterTotalSection">
+                <span class="filter-total-label">По фильтру:</span>
+                <span class="filter-total-amount">{{ filter_total_sum|floatformat:0|intcomma }} ₽</span>
+            </div>
+            {% endif %}
+
+            <div class="filter-type-group" style="margin-left: auto;">
                 <a href="?{% if show_paid %}show_paid=0{% else %}show_paid=1{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}"
                    class="paid-toggle {% if show_paid %}active{% endif %}">
                     {% if show_paid %}
@@ -132,7 +140,8 @@
 
     <div class="records-grid">
         {% for record in records %}
-        <div class="app-module-card {% if record.is_near_deadline %}deadline-warning{% endif %}">
+        <div class="app-module-card {% if record.is_near_deadline %}deadline-warning{% endif %}"
+             data-creditor-type="{{ record.creditor.creditor_type }}">
             {% if record.is_near_deadline and not record.is_paid %}
             <div class="deadline-urgent-badge">
                 <i class="fa-solid fa-clock-rotate-left"></i> {{ debt_card_texts.DEADLINE_BADGE }}
@@ -267,40 +276,40 @@
     </div>
 
     {% if is_paginated %}
-<div class="pagination-container">
+    <div class="pagination-container">
 
-    {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}{% if is_urgent %}&urgent=1{% endif %}"
-       class="pagination-arrow">
-        ←
-    </a>
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}{% if is_urgent %}&urgent=1{% endif %}"
+           class="pagination-arrow">
+            ←
+        </a>
 
-    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}{% if is_urgent %}&urgent=1{% endif %}"
-       class="pagination-link">
-        {{ page_obj.previous_page_number }}
-    </a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}{% if is_urgent %}&urgent=1{% endif %}"
+           class="pagination-link">
+            {{ page_obj.previous_page_number }}
+        </a>
+        {% endif %}
+
+        <span class="pagination-current">{{ page_obj.number }}</span>
+
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}{% if is_urgent %}&urgent=1{% endif %}"
+           class="pagination-link">
+            {{ page_obj.next_page_number }}
+        </a>
+
+        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}{% if is_urgent %}&urgent=1{% endif %}"
+           class="pagination-arrow">
+            →
+        </a>
+        {% endif %}
+
+    </div>
+
+    <div class="pagination-info">
+        Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+    </div>
     {% endif %}
-
-    <span class="pagination-current">{{ page_obj.number }}</span>
-
-    {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}{% if is_urgent %}&urgent=1{% endif %}"
-       class="pagination-link">
-        {{ page_obj.next_page_number }}
-    </a>
-
-    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if current_type %}&creditor_type={{ current_type }}{% endif %}{% if show_paid %}&show_paid=1{% endif %}{% if is_urgent %}&urgent=1{% endif %}"
-       class="pagination-arrow">
-        →
-    </a>
-    {% endif %}
-
-</div>
-
-<div class="pagination-info">
-    Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
-</div>
-{% endif %}
 
 </div>
 

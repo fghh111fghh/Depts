@@ -1,22 +1,18 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // --- ПОИСК ТОЛЬКО ПО ENTER ---
+    // Поиск по Enter
     const searchInput = document.getElementById('search-input');
     const searchForm = document.querySelector('.search-form');
 
     if (searchInput) {
-        console.log('Поиск найден!');
-
-        // Поиск только по Enter
         searchInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                console.log('Enter: ' + searchInput.value);
                 searchForm.submit();
             }
         });
     }
 
-    // --- Скрытие сообщений ---
+    // Скрытие сообщений
     const messages = document.querySelectorAll('.alert');
     if (messages.length > 0) {
         setTimeout(function() {

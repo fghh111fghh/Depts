@@ -173,6 +173,16 @@ class RecordsListView(ListView):
             'show_paid': self.request.GET.get('show_paid') == '1',
             'today': today,
         })
+        # Общая сумма по текущему фильтру
+        if self.request.GET.get('creditor_type'):
+            # Берём queryset без пагинации
+            full_qs = self.get_queryset()
+            total_sum = full_qs.aggregate(
+                total=Coalesce(Sum('current_debt_balance'), 0.0)
+            )['total']
+            context['filter_total_sum'] = round(total_sum, 2)
+        else:
+            context['filter_total_sum'] = None
         return context
 
 

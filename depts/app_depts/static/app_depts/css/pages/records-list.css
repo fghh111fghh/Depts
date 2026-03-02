@@ -1075,3 +1075,46 @@ body {
 .app-module-card {
     animation: fadeIn 0.4s ease forwards;
 }
+
+/* ====== БЛОК СУММЫ ПО ФИЛЬТРУ ====== */
+.filter-total-section {
+    display: flex;
+    align-items: center;
+    background: var(--dark-bg-elevated);
+    border: 1px solid var(--border-dark);
+    border-radius: 30px;
+    padding: 6px 18px;
+    height: 38px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+}
+
+.filter-total-section:hover {
+    border-color: var(--accent-blue);
+    box-shadow: var(--shadow-glow-blue);
+}
+
+.filter-total-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 8px;
+}
+
+.filter-total-amount {
+    font-size: 0.9rem;
+    font-weight: 900;
+    color: var(--accent-green);
+    background: rgba(16, 185, 129, 0.1);
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--accent-green-dark);
+    box-shadow: var(--shadow-glow-green);
+}
+
+/* Стиль для блока в строке фильтров */
+.filter-type-row .filter-total-section {
+    margin-left: 15px;
+}
