@@ -4,7 +4,7 @@ from .constants import site_texts
 def site_modules(request):
     modules = [
         {
-            'title': 'Финансовые обязательства',
+            'title': 'Финансы',
             'app_namespace': 'app_depts',
             'desc': 'Учет задолженностей, графики выплат и аналитика долгов.',
             'icon': 'dollar',
