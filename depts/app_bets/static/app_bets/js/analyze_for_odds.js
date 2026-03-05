@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (from > to) {
                 oddsTo.setCustomValidity('Коэф. "до" должно быть больше или равно "от"');
+                oddsTo.reportValidity();
             } else {
                 oddsTo.setCustomValidity('');
             }
@@ -17,6 +18,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         oddsFrom.addEventListener('input', validateRange);
         oddsTo.addEventListener('input', validateRange);
-        validateRange(); // Проверка при загрузке
+
+        // Первоначальная проверка
+        validateRange();
     }
 });

@@ -45,7 +45,8 @@ from openpyxl.styles import Font, PatternFill, Alignment
 from dal import autocomplete
 from app_bets.constants import Outcome, ParsingConstants, AnalysisConstants, Messages
 from app_bets.forms import BetForm, KellyCalculatorForm
-from app_bets.models import Team, TeamAlias, Season, Match, League, Bet, Bank, PositionChoice
+from app_bets.models import (Team, TeamAlias, Season, Match, League, Bet,
+                             Bank, PositionChoice)
 from . import constants
 
 
@@ -2393,6 +2394,10 @@ class DevelopView(TemplateView):
         context['form'] = KellyCalculatorForm()
         return context
 
+from django.db.models import F, IntegerField
+from django.db.models.functions import Cast
+from app_bets.models import PositionChoice
+
 
 class AnalyzeForOddsView(TemplateView):
     template_name = 'app_bets/analyze_for_odds.html'
@@ -2400,89 +2405,196 @@ class AnalyzeForOddsView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Все лиги для выпадающего списка
+        # Все лиги
         context['leagues'] = League.objects.all().order_by('name')
-
-        # Передаем choices для позиции
         context['position_choices'] = PositionChoice.choices
 
-        # Результаты анализа (если есть POST-запрос)
-        if self.request.method == 'POST':
-            league_id = self.request.POST.get('league')
-            position = self.request.POST.get('position')
-            odds_from = float(self.request.POST.get('odds_from', 1.0))
-            odds_to = float(self.request.POST.get('odds_to', 4.0))
+        # Типы анализа
+        context['analysis_choices'] = [
+            ('outcome', '🏆 Исходы'),
+            ('tb', '📈 ТБ 2.5'),
+            ('tm', '📉 ТМ 2.5'),
+        ]
 
-            results = self.analyze_odds(league_id, position, odds_from, odds_to)
-            context.update(results)
+        # Получаем данные из GET
+        context['selected_league_id'] = self.request.GET.get('league', '')
+        context['selected_position'] = self.request.GET.get('position', 'home')
+        context['analysis_type'] = self.request.GET.get('analysis_type', 'outcome')
+
+        # Кэфы
+        try:
+            context['odds_from'] = float(self.request.GET.get('odds_from', 1.9))
+        except (ValueError, TypeError):
+            context['odds_from'] = 1.9
+
+        try:
+            context['odds_to'] = float(self.request.GET.get('odds_to', 1.9))
+        except (ValueError, TypeError):
+            context['odds_to'] = 1.9
+
+        # Если есть результаты
+        if self.request.GET.get('total_matches'):
+            context['total_matches'] = int(self.request.GET.get('total_matches'))
+
+            # Для исходов
+            context['home_wins'] = int(self.request.GET.get('home_wins', 0))
+            context['draws'] = int(self.request.GET.get('draws', 0))
+            context['away_wins'] = int(self.request.GET.get('away_wins', 0))
+            context['home_percent'] = float(self.request.GET.get('home_percent', 0))
+            context['draw_percent'] = float(self.request.GET.get('draw_percent', 0))
+            context['away_percent'] = float(self.request.GET.get('away_percent', 0))
+
+            # Для ТБ/ТМ
+            context['yes'] = int(self.request.GET.get('yes', 0))  # сколько сыграло
+            context['no'] = int(self.request.GET.get('no', 0))  # сколько не сыграло
+            context['yes_percent'] = float(self.request.GET.get('yes_percent', 0))
+            context['no_percent'] = float(self.request.GET.get('no_percent', 0))
+
+            context['selected_position_display'] = self.request.GET.get('selected_position_display', '')
+
+            # Название лиги
+            if context['selected_league_id']:
+                try:
+                    context['selected_league'] = League.objects.get(id=context['selected_league_id'])
+                except League.DoesNotExist:
+                    pass
 
         return context
 
     def post(self, request, *args, **kwargs):
-        return self.get(request, *args, **kwargs)
+        # Получаем данные из формы
+        league_id = request.POST.get('league', '')
+        position = request.POST.get('position', 'home')
+        analysis_type = request.POST.get('analysis_type', 'outcome')
 
-    def analyze_odds(self, league_id, position, odds_from, odds_to):
-        """
-        Анализирует матчи по коэффициентам
-        """
-        if not league_id:
-            return {}
+        try:
+            odds_from = float(request.POST.get('odds_from', 1.9))
+        except (ValueError, TypeError):
+            odds_from = 1.9
 
-        # Базовый QuerySet
-        matches = Match.objects.filter(
-            league_id=league_id,
-            odds_home__isnull=False,
-            odds_away__isnull=False,
-            home_score_reg__isnull=False,
-            away_score_reg__isnull=False
-        )
+        try:
+            odds_to = float(request.POST.get('odds_to', 1.9))
+        except (ValueError, TypeError):
+            odds_to = 1.9
 
-        # Применяем фильтр по позиции (только HOME или AWAY)
-        if position == PositionChoice.HOME:
-            matches = matches.filter(odds_home__gte=odds_from, odds_home__lte=odds_to)
-        elif position == PositionChoice.AWAY:
-            matches = matches.filter(odds_away__gte=odds_from, odds_away__lte=odds_to)
-        else:
-            # Если по какой-то причине пришло другое значение, возвращаем пустой результат
-            return {}
+        # Базовые параметры
+        params = {
+            'league': league_id,
+            'position': position,
+            'analysis_type': analysis_type,
+            'odds_from': odds_from,
+            'odds_to': odds_to,
+        }
 
-        total = matches.count()
+        # Если выбрана лига, проводим анализ
+        if league_id:
+            results = self.analyze_odds(league_id, position, odds_from, odds_to, analysis_type)
+            params.update(results)
 
-        if total == 0:
+        # Редирект с GET параметрами
+        from django.shortcuts import redirect
+        from django.urls import reverse
+
+        url = reverse('app_bets:analyze_for_odds')
+        query_params = [f'{k}={v}' for k, v in params.items() if v is not None and v != '']
+        query_string = '&'.join(query_params)
+        return redirect(f'{url}?{query_string}')
+
+    def analyze_odds(self, league_id, position, odds_from, odds_to, analysis_type):
+        """Анализирует матчи по коэффициентам"""
+        try:
+            # Базовый QuerySet
+            matches = Match.objects.filter(
+                league_id=league_id,
+                odds_home__isnull=False,
+                odds_away__isnull=False,
+                home_score_reg__isnull=False,
+                away_score_reg__isnull=False
+            )
+
+            # Фильтр по позиции (для исходов)
+            if analysis_type == 'outcome':
+                if position == PositionChoice.HOME:
+                    matches = matches.filter(odds_home__gte=odds_from, odds_home__lte=odds_to)
+                elif position == PositionChoice.AWAY:
+                    matches = matches.filter(odds_away__gte=odds_from, odds_away__lte=odds_to)
+                else:
+                    return {}
+            else:
+                # Для ТБ/ТМ анализируем оба коэффициента (обычно они коррелируют)
+                matches = matches.filter(
+                    Q(odds_home__gte=odds_from, odds_home__lte=odds_to) |
+                    Q(odds_away__gte=odds_from, odds_away__lte=odds_to)
+                )
+
+            total = matches.count()
+
+            if total == 0:
+                return {
+                    'total_matches': 0,
+                    'selected_position_display': dict(PositionChoice.choices).get(position, ''),
+                }
+
+            # Анализ в зависимости от типа
+            if analysis_type == 'outcome':
+                # Исходы
+                home_wins = matches.filter(home_score_reg__gt=F('away_score_reg')).count()
+                draws = matches.filter(home_score_reg=F('away_score_reg')).count()
+                away_wins = matches.filter(home_score_reg__lt=F('away_score_reg')).count()
+
+                return {
+                    'total_matches': total,
+                    'home_wins': home_wins,
+                    'draws': draws,
+                    'away_wins': away_wins,
+                    'home_percent': round(home_wins / total * 100, 1),
+                    'draw_percent': round(draws / total * 100, 1),
+                    'away_percent': round(away_wins / total * 100, 1),
+                    'selected_position_display': dict(PositionChoice.choices).get(position, ''),
+                }
+
+            elif analysis_type == 'tb':
+                # Тотал Больше 2.5
+                matches = matches.annotate(
+                    total_goals=Cast(F('home_score_reg'), IntegerField()) + Cast(F('away_score_reg'), IntegerField())
+                )
+
+                yes = matches.filter(total_goals__gt=2.5).count()  # сыграло ТБ
+                no = matches.filter(total_goals__lte=2.5).count()  # не сыграло ТБ
+
+                return {
+                    'total_matches': total,
+                    'yes': yes,
+                    'no': no,
+                    'yes_percent': round(yes / total * 100, 1),
+                    'no_percent': round(no / total * 100, 1),
+                    'selected_position_display': 'Тотал Больше 2.5',
+                }
+
+            else:  # tm
+                # Тотал Меньше 2.5
+                matches = matches.annotate(
+                    total_goals=Cast(F('home_score_reg'), IntegerField()) + Cast(F('away_score_reg'), IntegerField())
+                )
+
+                yes = matches.filter(total_goals__lt=2.5).count()  # сыграло ТМ
+                no = matches.filter(total_goals__gte=2.5).count()  # не сыграло ТМ
+
+                return {
+                    'total_matches': total,
+                    'yes': yes,
+                    'no': no,
+                    'yes_percent': round(yes / total * 100, 1),
+                    'no_percent': round(no / total * 100, 1),
+                    'selected_position_display': 'Тотал Меньше 2.5',
+                }
+
+        except Exception as e:
+            print(f"Error: {e}")
             return {
                 'total_matches': 0,
-                'home_wins': 0,
-                'draws': 0,
-                'away_wins': 0,
-                'home_percent': 0,
-                'draw_percent': 0,
-                'away_percent': 0,
-                'selected_league': League.objects.get(id=league_id) if league_id else None,
-                'selected_position': position,
                 'selected_position_display': dict(PositionChoice.choices).get(position, ''),
-                'odds_from': odds_from,
-                'odds_to': odds_to
             }
-
-        # Считаем результаты
-        home_wins = matches.filter(home_score_reg__gt=F('away_score_reg')).count()
-        draws = matches.filter(home_score_reg=F('away_score_reg')).count()
-        away_wins = matches.filter(home_score_reg__lt=F('away_score_reg')).count()
-
-        return {
-            'total_matches': total,
-            'home_wins': home_wins,
-            'draws': draws,
-            'away_wins': away_wins,
-            'home_percent': round(home_wins / total * 100, 1),
-            'draw_percent': round(draws / total * 100, 1),
-            'away_percent': round(away_wins / total * 100, 1),
-            'selected_league': League.objects.get(id=league_id) if league_id else None,
-            'selected_position': position,
-            'selected_position_display': dict(PositionChoice.choices).get(position, ''),
-            'odds_from': odds_from,
-            'odds_to': odds_to
-        }
 
 
 
