@@ -17,73 +17,86 @@
     </div>
     {% endif %}
 
-    {% if matches_data %}
-    <div class="matches-grid">
-        {% for match in matches_data %}
-        <div class="match-card">
-            <!-- Шапка с названием и лигой -->
-            <div class="match-header">
-                <h3 class="match-title">{{ match.match }}</h3>
-                <span class="match-league">{{ match.league }}</span>
-            </div>
-
-            <!-- Коэффициенты и количество матчей -->
-            <div class="match-info">
-                <div class="odds-row">
-                    <div class="odds-item odds-p1">
-                        <span class="odds-label">П1</span>
-                        <span class="odds-value">{{ match.odds.p1 }}</span>
-                        <span class="odds-count">{{ match.stats.p1_count }} матчей</span>
-                    </div>
-                    <div class="odds-item odds-p2">
-                        <span class="odds-label">П2</span>
-                        <span class="odds-value">{{ match.odds.p2 }}</span>
-                        <span class="odds-count">{{ match.stats.p2_count }} матчей</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- РЕЗУЛЬТИРУЮЩАЯ СТАТИСТИКА (проценты) -->
-            <div class="result-stats">
-                <h4 class="result-title">Итоговое распределение ({{ match.result.total }} матчей)</h4>
-
-                <div class="stat-bars">
-                    <!-- П1 -->
-                    <div class="stat-bar">
-                        <div class="bar-label">
-                            <span>🏠 П1</span>
-                            <span>{{ match.result.p1 }}%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill p1-fill" style="width: {{ match.result.p1 }}%"></div>
-                        </div>
-                    </div>
-
-                    <!-- X -->
-                    <div class="stat-bar">
-                        <div class="bar-label">
-                            <span>⚖️ X</span>
-                            <span>{{ match.result.x }}%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill x-fill" style="width: {{ match.result.x }}%"></div>
-                        </div>
-                    </div>
-
-                    <!-- П2 -->
-                    <div class="stat-bar">
-                        <div class="bar-label">
-                            <span>✈️ П2</span>
-                            <span>{{ match.result.p2 }}%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill p2-fill" style="width: {{ match.result.p2 }}%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <!-- Общая информация: сколько матчей в файле -->
+    <div class="total-info">
+        <div class="info-card">
+            <span class="info-label">Всего матчей в файле</span>
+            <span class="info-value">{{ total_matches_in_file }}</span>
         </div>
-        {% endfor %}
+    </div>
+
+    <!-- Карточки матчей -->
+    {% if matches_data %}
+    <div class="matches-section">
+        <div class="matches-grid">
+            {% for match in matches_data %}
+            <div class="match-card">
+                <!-- Шапка с названием и лигой -->
+                <div class="match-header">
+                    <h3 class="match-title">{{ match.match }}</h3>
+                    <span class="match-league">{{ match.league }}</span>
+                </div>
+
+                <!-- Коэффициенты и количество матчей -->
+                <div class="match-odds">
+                    <div class="odds-row">
+                        <div class="odds-item odds-p1">
+                            <span class="odds-label">П1</span>
+                            <span class="odds-value">{{ match.odds.p1 }}</span>
+                            <span class="odds-count">{{ match.stats.p1_count }} матчей</span>
+                        </div>
+                        <div class="odds-item odds-p2">
+                            <span class="odds-label">П2</span>
+                            <span class="odds-value">{{ match.odds.p2 }}</span>
+                            <span class="odds-count">{{ match.stats.p2_count }} матчей</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- РЕЗУЛЬТИРУЮЩАЯ СТАТИСТИКА -->
+                <div class="result-stats">
+                    <div class="result-title">
+                        Всего <span>{{ match.result.total }} матчей</span>
+                    </div>
+
+                    <div class="stat-bars">
+                        <!-- П1 -->
+                        <div class="stat-bar">
+                            <div class="bar-label">
+                                <span>🏠 П1</span>
+                                <span>{{ match.result.p1 }}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill p1-fill" style="width: {{ match.result.p1 }}%"></div>
+                            </div>
+                        </div>
+
+                        <!-- X -->
+                        <div class="stat-bar">
+                            <div class="bar-label">
+                                <span>⚖️ X</span>
+                                <span>{{ match.result.x }}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill x-fill" style="width: {{ match.result.x }}%"></div>
+                            </div>
+                        </div>
+
+                        <!-- П2 -->
+                        <div class="stat-bar">
+                            <div class="bar-label">
+                                <span>✈️ П2</span>
+                                <span>{{ match.result.p2 }}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill p2-fill" style="width: {{ match.result.p2 }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
     {% endif %}
 </div>
