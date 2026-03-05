@@ -31,10 +31,12 @@
                     <label for="position">Выбор</label>
                     <select name="position" id="position" class="form-control" required>
                         {% for value, label in position_choices %}
-                        <option value="{{ value }}" {% if selected_position == value %}selected{% endif %}>
-                            {% if value == 'home' %}🏠 {% elif value == 'away' %}✈️ {% else %}⚖️ {% endif %}
-                            {{ label }}
-                        </option>
+                            {% if value != 'both' %}  <!-- Исключаем "Обе команды" -->
+                            <option value="{{ value }}" {% if selected_position == value %}selected{% endif %}>
+                                {% if value == 'home' %}🏠 {% elif value == 'away' %}✈️ {% endif %}
+                                {{ label }}
+                            </option>
+                            {% endif %}
                         {% endfor %}
                     </select>
                 </div>
@@ -47,10 +49,11 @@
                            name="odds_from"
                            id="odds_from"
                            class="form-control"
-                           step="0.1"
+                           step="0.05"
                            min="1.0"
                            max="4.0"
-                           value="{{ odds_from|default:1.0 }}"
+                           value="{{ odds_from|default:1.9 }}"
+                           list="odds-values"
                            required>
                 </div>
 
@@ -60,13 +63,87 @@
                            name="odds_to"
                            id="odds_to"
                            class="form-control"
-                           step="0.1"
+                           step="0.05"
                            min="1.0"
                            max="4.0"
-                           value="{{ odds_to|default:4.0 }}"
+                           value="{{ odds_to|default:1.9 }}"
+                           list="odds-values"
                            required>
                 </div>
             </div>
+
+            <!-- Общий datalist для обоих полей -->
+            <datalist id="odds-values">
+                {% for i in "0123456789"|make_list %}
+                    {% for j in "0123456789"|make_list %}
+                        {% with val=forloop.parentloop.counter0|add:forloop.counter0|floatformat:2 %}
+                            <!-- Этот цикл просто для генерации, но проще сделать вручную -->
+                        {% endwith %}
+                    {% endfor %}
+                {% endfor %}
+                <!-- Генерируем значения от 1.0 до 4.0 с шагом 0.05 -->
+                <option value="1.0">1.0</option>
+                <option value="1.05">1.05</option>
+                <option value="1.1">1.1</option>
+                <option value="1.15">1.15</option>
+                <option value="1.2">1.2</option>
+                <option value="1.25">1.25</option>
+                <option value="1.3">1.3</option>
+                <option value="1.35">1.35</option>
+                <option value="1.4">1.4</option>
+                <option value="1.45">1.45</option>
+                <option value="1.5">1.5</option>
+                <option value="1.55">1.55</option>
+                <option value="1.6">1.6</option>
+                <option value="1.65">1.65</option>
+                <option value="1.7">1.7</option>
+                <option value="1.75">1.75</option>
+                <option value="1.8">1.8</option>
+                <option value="1.85">1.85</option>
+                <option value="1.9">1.9</option>
+                <option value="1.95">1.95</option>
+                <option value="2.0">2.0</option>
+                <option value="2.05">2.05</option>
+                <option value="2.1">2.1</option>
+                <option value="2.15">2.15</option>
+                <option value="2.2">2.2</option>
+                <option value="2.25">2.25</option>
+                <option value="2.3">2.3</option>
+                <option value="2.35">2.35</option>
+                <option value="2.4">2.4</option>
+                <option value="2.45">2.45</option>
+                <option value="2.5">2.5</option>
+                <option value="2.55">2.55</option>
+                <option value="2.6">2.6</option>
+                <option value="2.65">2.65</option>
+                <option value="2.7">2.7</option>
+                <option value="2.75">2.75</option>
+                <option value="2.8">2.8</option>
+                <option value="2.85">2.85</option>
+                <option value="2.9">2.9</option>
+                <option value="2.95">2.95</option>
+                <option value="3.0">3.0</option>
+                <option value="3.05">3.05</option>
+                <option value="3.1">3.1</option>
+                <option value="3.15">3.15</option>
+                <option value="3.2">3.2</option>
+                <option value="3.25">3.25</option>
+                <option value="3.3">3.3</option>
+                <option value="3.35">3.35</option>
+                <option value="3.4">3.4</option>
+                <option value="3.45">3.45</option>
+                <option value="3.5">3.5</option>
+                <option value="3.55">3.55</option>
+                <option value="3.6">3.6</option>
+                <option value="3.65">3.65</option>
+                <option value="3.7">3.7</option>
+                <option value="3.75">3.75</option>
+                <option value="3.8">3.8</option>
+                <option value="3.85">3.85</option>
+                <option value="3.9">3.9</option>
+                <option value="3.95">3.95</option>
+                <option value="4.0">4.0</option>
+            </datalist>
 
             <div class="form-actions">
                 <button type="submit" class="btn-analyze">
@@ -92,7 +169,7 @@
                 </span>
                 {% endif %}
                 <span class="filter-badge">
-                    🎲 {{ odds_from|floatformat:1 }} - {{ odds_to|floatformat:1 }}
+                    🎲 {{ odds_from|floatformat:2 }} - {{ odds_to|floatformat:2 }}
                 </span>
             </div>
         </div>

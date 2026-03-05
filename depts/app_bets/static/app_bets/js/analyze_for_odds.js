@@ -17,5 +17,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         oddsFrom.addEventListener('input', validateRange);
         oddsTo.addEventListener('input', validateRange);
+        validateRange(); // Проверка при загрузке
     }
 });

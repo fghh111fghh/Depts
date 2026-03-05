@@ -2437,16 +2437,14 @@ class AnalyzeForOddsView(TemplateView):
             away_score_reg__isnull=False
         )
 
-        # Применяем фильтр по позиции используя PositionChoice
+        # Применяем фильтр по позиции (только HOME или AWAY)
         if position == PositionChoice.HOME:
             matches = matches.filter(odds_home__gte=odds_from, odds_home__lte=odds_to)
         elif position == PositionChoice.AWAY:
             matches = matches.filter(odds_away__gte=odds_from, odds_away__lte=odds_to)
-        elif position == PositionChoice.BOTH:
-            matches = matches.filter(
-                odds_home__gte=odds_from, odds_home__lte=odds_to,
-                odds_away__gte=odds_from, odds_away__lte=odds_to
-            )
+        else:
+            # Если по какой-то причине пришло другое значение, возвращаем пустой результат
+            return {}
 
         total = matches.count()
 
