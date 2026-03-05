@@ -2597,107 +2597,110 @@ class AnalyzeForOddsView(TemplateView):
             }
 
 
+
 class SignalsForOddsView(TemplateView):
     template_name = 'app_bets/signals_for_odds.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Путь к Excel файлу
         excel_path = os.path.join(settings.BASE_DIR, 'analyze_for_odds.xlsx')
-
         matches_data = []
 
         try:
-            # Загружаем Excel
             wb = openpyxl.load_workbook(excel_path)
             sheet = wb.active
 
-            # Пропускаем заголовок
             for row in sheet.iter_rows(min_row=2, values_only=True):
                 home_team, away_team, league_name, odds_p1, odds_x, odds_p2 = row
 
-                if not all([home_team, away_team, league_name, odds_p1, odds_x, odds_p2]):
+                if not all([home_team, away_team, league_name, odds_p1, odds_p2]):
                     continue
 
-                # Находим лигу в БД
                 try:
                     league = League.objects.get(name__icontains=league_name)
                 except League.DoesNotExist:
                     continue
 
-                # Данные для этого матча
+                p1_odds = Decimal(str(odds_p1))
+                p2_odds = Decimal(str(odds_p2))
+                delta = Decimal('0.02')
+
+                # Статистика для этого матча
                 match_stats = {
+                    'p1': {'p1': 0, 'x': 0, 'p2': 0},
+                    'p2': {'p1': 0, 'x': 0, 'p2': 0},
+                }
+
+                # Матчи с кэфом П1 ±0.02
+                p1_matches = Match.objects.filter(
+                    league=league,
+                    odds_home__gte=p1_odds - delta,
+                    odds_home__lte=p1_odds + delta,
+                    home_score_reg__isnull=False,
+                    away_score_reg__isnull=False
+                )
+
+                for match in p1_matches:
+                    if match.home_score_reg > match.away_score_reg:
+                        match_stats['p1']['p1'] += 1
+                    elif match.home_score_reg == match.away_score_reg:
+                        match_stats['p1']['x'] += 1
+                    else:
+                        match_stats['p1']['p2'] += 1
+
+                # Матчи с кэфом П2 ±0.02
+                p2_matches = Match.objects.filter(
+                    league=league,
+                    odds_away__gte=p2_odds - delta,
+                    odds_away__lte=p2_odds + delta,
+                    home_score_reg__isnull=False,
+                    away_score_reg__isnull=False
+                )
+
+                for match in p2_matches:
+                    if match.home_score_reg > match.away_score_reg:
+                        match_stats['p2']['p1'] += 1
+                    elif match.home_score_reg == match.away_score_reg:
+                        match_stats['p2']['x'] += 1
+                    else:
+                        match_stats['p2']['p2'] += 1
+
+                # Суммируем результаты
+                total_p1 = match_stats['p1']['p1'] + match_stats['p2']['p1']
+                total_x = match_stats['p1']['x'] + match_stats['p2']['x']
+                total_p2 = match_stats['p1']['p2'] + match_stats['p2']['p2']
+                total_matches = total_p1 + total_x + total_p2
+
+                # Считаем проценты
+                if total_matches > 0:
+                    p1_percent = round(total_p1 / total_matches * 100, 1)
+                    x_percent = round(total_x / total_matches * 100, 1)
+                    p2_percent = round(total_p2 / total_matches * 100, 1)
+                else:
+                    p1_percent = x_percent = p2_percent = 0
+
+                matches_data.append({
                     'match': f"{home_team} - {away_team}",
                     'league': league.name,
                     'odds': {
-                        'p1': float(odds_p1),
-                        'x': float(odds_x),
-                        'p2': float(odds_p2),
+                        'p1': float(p1_odds),
+                        'p2': float(p2_odds),
                     },
                     'stats': {
-                        'p1': {'total': 0, 'p1': 0, 'x': 0, 'p2': 0},
-                        'x': {'total': 0, 'p1': 0, 'x': 0, 'p2': 0},
-                        'p2': {'total': 0, 'p1': 0, 'x': 0, 'p2': 0},
+                        'p1_count': match_stats['p1']['p1'] + match_stats['p1']['x'] + match_stats['p1']['p2'],
+                        'p2_count': match_stats['p2']['p1'] + match_stats['p2']['x'] + match_stats['p2']['p2'],
+                    },
+                    'result': {
+                        'p1': p1_percent,
+                        'x': x_percent,
+                        'p2': p2_percent,
+                        'total': total_matches
                     }
-                }
-
-                # Анализ для П1
-                p1_matches = Match.objects.filter(
-                    league=league,
-                    odds_home=float(odds_p1),
-                    home_score_reg__isnull=False,
-                    away_score_reg__isnull=False
-                )
-
-                match_stats['stats']['p1']['total'] = p1_matches.count()
-                match_stats['stats']['p1']['p1'] = p1_matches.filter(home_score_reg__gt=F('away_score_reg')).count()
-                match_stats['stats']['p1']['x'] = p1_matches.filter(home_score_reg=F('away_score_reg')).count()
-                match_stats['stats']['p1']['p2'] = p1_matches.filter(home_score_reg__lt=F('away_score_reg')).count()
-
-                # Анализ для X
-                x_matches = Match.objects.filter(
-                    league=league,
-                    odds_draw=float(odds_x),
-                    home_score_reg__isnull=False,
-                    away_score_reg__isnull=False
-                )
-
-                match_stats['stats']['x']['total'] = x_matches.count()
-                match_stats['stats']['x']['p1'] = x_matches.filter(home_score_reg__gt=F('away_score_reg')).count()
-                match_stats['stats']['x']['x'] = x_matches.filter(home_score_reg=F('away_score_reg')).count()
-                match_stats['stats']['x']['p2'] = x_matches.filter(home_score_reg__lt=F('away_score_reg')).count()
-
-                # Анализ для П2
-                p2_matches = Match.objects.filter(
-                    league=league,
-                    odds_away=float(odds_p2),
-                    home_score_reg__isnull=False,
-                    away_score_reg__isnull=False
-                )
-
-                match_stats['stats']['p2']['total'] = p2_matches.count()
-                match_stats['stats']['p2']['p1'] = p2_matches.filter(home_score_reg__gt=F('away_score_reg')).count()
-                match_stats['stats']['p2']['x'] = p2_matches.filter(home_score_reg=F('away_score_reg')).count()
-                match_stats['stats']['p2']['p2'] = p2_matches.filter(home_score_reg__lt=F('away_score_reg')).count()
-
-                # Вычисляем проценты
-                for key in ['p1', 'x', 'p2']:
-                    total = match_stats['stats'][key]['total']
-                    if total > 0:
-                        match_stats['stats'][key]['p1_percent'] = round(match_stats['stats'][key]['p1'] / total * 100,
-                                                                        1)
-                        match_stats['stats'][key]['x_percent'] = round(match_stats['stats'][key]['x'] / total * 100, 1)
-                        match_stats['stats'][key]['p2_percent'] = round(match_stats['stats'][key]['p2'] / total * 100,
-                                                                        1)
-                    else:
-                        match_stats['stats'][key]['p1_percent'] = 0
-                        match_stats['stats'][key]['x_percent'] = 0
-                        match_stats['stats'][key]['p2_percent'] = 0
-
-                matches_data.append(match_stats)
+                })
 
             context['matches_data'] = matches_data
+            context['total_matches_in_file'] = len(matches_data)
 
         except Exception as e:
             context['error'] = str(e)

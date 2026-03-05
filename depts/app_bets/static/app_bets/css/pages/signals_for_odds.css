@@ -1,4 +1,3 @@
-/* ====== СИГНАЛЫ ПО КОЭФФИЦИЕНТАМ ====== */
 :root {
     --dark-bg-primary: #0a0c10;
     --dark-bg-secondary: #14181f;
@@ -6,18 +5,36 @@
     --dark-bg-elevated: #232936;
     --dark-bg-light: #2d3442;
     --accent-blue: #3b82f6;
+    --accent-blue-dark: #2563eb;
+    --accent-blue-light: #60a5fa;
     --accent-green: #10b981;
+    --accent-green-dark: #059669;
+    --accent-green-light: #34d399;
     --accent-red: #ef4444;
+    --accent-red-dark: #dc2626;
+    --accent-red-light: #f87171;
     --accent-yellow: #f59e0b;
+    --accent-yellow-dark: #d97706;
+    --accent-yellow-light: #fbbf24;
+    --accent-purple: #8b5cf6;
     --text-primary: #ffffff;
     --text-secondary: #e2e8f0;
     --text-muted: #94a3b8;
     --border-dark: #2d3748;
+    --border-light: #4a5568;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-glow-blue: 0 4px 15px rgba(59, 130, 246, 0.3);
+    --shadow-glow-green: 0 4px 15px rgba(16, 185, 129, 0.3);
+    --shadow-glow-red: 0 4px 15px rgba(239, 68, 68, 0.3);
+    --shadow-glow-purple: 0 4px 15px rgba(139, 92, 246, 0.3);
 }
 
 body {
     background: var(--dark-bg-primary);
     color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
 }
 
 .dashboard-wrapper {
@@ -26,6 +43,7 @@ body {
     margin: 0 auto;
 }
 
+/* Хедер */
 .page-header {
     margin-bottom: 30px;
 }
@@ -34,6 +52,10 @@ body {
     font-size: 2rem;
     font-weight: 900;
     margin-bottom: 10px;
+    background: linear-gradient(135deg, var(--text-primary), var(--accent-blue-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .page-description {
@@ -41,6 +63,7 @@ body {
     font-size: 1.1rem;
 }
 
+/* Ошибка */
 .error-card {
     background: rgba(239, 68, 68, 0.1);
     border: 1px solid var(--accent-red);
@@ -50,306 +73,107 @@ body {
     display: flex;
     align-items: center;
     gap: 15px;
-    color: var(--accent-red);
+    color: var(--accent-red-light);
+    backdrop-filter: blur(5px);
 }
 
-.stats-summary {
-    margin-bottom: 30px;
-}
-
-.summary-card {
-    background: var(--dark-bg-card);
+/* ОБЩИЙ ИТОГ */
+.total-results {
+    background: linear-gradient(145deg, var(--dark-bg-card), var(--dark-bg-elevated));
     border: 1px solid var(--border-dark);
-    border-radius: 10px;
-    padding: 20px;
-    display: inline-block;
-    min-width: 200px;
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 40px;
+    box-shadow: var(--shadow-lg);
 }
 
-.summary-label {
-    display: block;
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    margin-bottom: 5px;
-}
-
-.summary-value {
-    font-size: 2rem;
+.total-title {
+    font-size: 1.8rem;
     font-weight: 900;
-    color: var(--accent-blue);
+    margin-bottom: 5px;
+    color: var(--text-primary);
 }
 
-.signals-grid {
+.total-subtitle {
+    color: var(--text-muted);
+    margin-bottom: 25px;
+    font-size: 1rem;
+}
+
+.total-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 25px;
-    margin-bottom: 30px;
 }
 
-.signal-card {
-    background: var(--dark-bg-card);
+.total-block {
+    background: var(--dark-bg-elevated);
+    border-radius: 16px;
+    padding: 25px;
     border: 1px solid var(--border-dark);
-    border-radius: 12px;
-    padding: 20px;
     transition: transform 0.2s ease;
 }
 
-.signal-card:hover {
+.total-block:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-glow-purple);
 }
 
-.outcome-home {
-    border-top: 4px solid var(--accent-blue);
+.total-p1 {
+    border-left: 6px solid var(--accent-blue);
+    background: linear-gradient(145deg, var(--dark-bg-elevated), #1e3a5f);
 }
 
-.outcome-draw {
-    border-top: 4px solid var(--accent-yellow);
+.total-p2 {
+    border-left: 6px solid var(--accent-red);
+    background: linear-gradient(145deg, var(--dark-bg-elevated), #5f1e1e);
 }
 
-.outcome-away {
-    border-top: 4px solid var(--accent-red);
-}
-
-.signal-header {
+.total-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.signal-icon {
-    font-size: 1.5rem;
-}
-
-.signal-title {
-    font-size: 1.3rem;
-    font-weight: 800;
-    flex: 1;
-}
-
-.signal-count {
-    background: var(--dark-bg-elevated);
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--text-secondary);
-}
-
-.signal-percent {
-    font-size: 2rem;
-    font-weight: 900;
-    margin-bottom: 10px;
-}
-
-.progress-bar {
-    height: 8px;
-    background: var(--dark-bg-light);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: 20px;
-}
-
-.progress-fill {
-    height: 100%;
-    background: var(--accent-blue);
-    border-radius: 4px;
-    transition: width 0.3s ease;
-}
-
-.outcome-home .progress-fill {
-    background: var(--accent-blue);
-}
-
-.outcome-draw .progress-fill {
-    background: var(--accent-yellow);
-}
-
-.outcome-away .progress-fill {
-    background: var(--accent-red);
-}
-
-.matches-list h4 {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    margin-bottom: 10px;
-}
-
-.match-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px;
-    background: var(--dark-bg-elevated);
-    border-radius: 6px;
-    margin-bottom: 5px;
-    font-size: 0.85rem;
-}
-
-.match-date {
-    color: var(--text-muted);
-    min-width: 70px;
-}
-
-.match-teams {
-    flex: 1;
-    color: var(--text-primary);
-    font-weight: 500;
-}
-
-.match-score {
-    color: var(--accent-green);
-    font-weight: 700;
-    min-width: 45px;
-}
-
-.match-odds {
-    color: var(--text-muted);
-    min-width: 50px;
-}
-
-.info-note {
-    background: var(--dark-bg-elevated);
-    border: 1px solid var(--border-dark);
-    border-radius: 8px;
-    padding: 15px 20px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--text-muted);
-}
-
-@media (max-width: 768px) {
-    .signals-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .match-item {
-        flex-wrap: wrap;
-    }
-}
-
-.matches-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 25px;
-}
-
-.match-analysis-card {
-    background: var(--dark-bg-card);
-    border: 1px solid var(--border-dark);
-    border-radius: 12px;
-    padding: 20px;
-}
-
-.match-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
+    gap: 12px;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
     border-bottom: 1px solid var(--border-dark);
 }
 
-.match-title {
-    font-size: 1.2rem;
+.total-icon {
+    font-size: 2rem;
+}
+
+.total-label {
+    font-size: 1.3rem;
     font-weight: 800;
+    flex: 1;
     color: var(--text-primary);
 }
 
-.match-league {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    padding: 4px 10px;
-    background: var(--dark-bg-elevated);
-    border-radius: 20px;
-}
-
-.odds-row {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 20px;
-    padding: 10px;
-    background: var(--dark-bg-elevated);
-    border-radius: 8px;
-}
-
-.odds-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.odds-label {
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    font-weight: 700;
-}
-
-.odds-value {
-    color: var(--accent-green);
-    font-weight: 900;
-    font-size: 1.1rem;
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-}
-
-.stat-card {
-    padding: 15px;
-    background: var(--dark-bg-elevated);
-    border-radius: 8px;
-    border-left: 4px solid transparent;
-}
-
-.stat-p1 {
-    border-left-color: var(--accent-blue);
-}
-
-.stat-x {
-    border-left-color: var(--accent-yellow);
-}
-
-.stat-p2 {
-    border-left-color: var(--accent-red);
-}
-
-.stat-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.stat-title {
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-.stat-total {
-    color: var(--text-muted);
-    font-size: 0.85rem;
+.total-count {
     background: var(--dark-bg-light);
-    padding: 2px 8px;
-    border-radius: 12px;
+    padding: 6px 15px;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 600;
 }
 
-.stat-bars {
+.total-bars {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 20px;
+    margin-bottom: 25px;
 }
 
-.stat-bar {
-    display: grid;
-    grid-template-columns: 30px 1fr 60px;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.85rem;
+.total-bar {
+    width: 100%;
+}
+
+.bar-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
 }
 
 .bar-label {
@@ -359,6 +183,587 @@ body {
 
 .bar-value {
     color: var(--text-primary);
+    font-weight: 800;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 12px;
+    background: var(--dark-bg-light);
+    border-radius: 30px;
+    overflow: hidden;
+    border: 1px solid var(--border-dark);
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+    border-radius: 30px;
+    transition: width 0.3s ease;
+}
+
+.total-p1 .progress-fill {
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+}
+
+.total-p2 .progress-fill {
+    background: linear-gradient(90deg, var(--accent-red), var(--accent-yellow));
+}
+
+.total-verdict {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--dark-bg-card);
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid var(--border-dark);
+}
+
+.verdict {
+    font-size: 1.1rem;
+    font-weight: 800;
+    padding: 8px 16px;
+    border-radius: 30px;
+}
+
+.verdict.positive {
+    color: var(--accent-green-light);
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid var(--accent-green);
+}
+
+.verdict.negative {
+    color: var(--accent-red-light);
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--accent-red);
+}
+
+.verdict.neutral {
+    color: var(--accent-yellow-light);
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid var(--accent-yellow);
+}
+
+/* КАРТОЧКИ МАТЧЕЙ */
+.matches-section {
+    margin-top: 40px;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 25px;
+    color: var(--text-primary);
+}
+
+.matches-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.match-card {
+    background: var(--dark-bg-card);
+    border: 1px solid var(--border-dark);
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.2s ease;
+    border-top: 4px solid var(--accent-purple);
+}
+
+.match-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-glow-purple);
+    border-color: var(--accent-purple);
+}
+
+.match-header {
+    margin-bottom: 15px;
+}
+
+.match-teams {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 5px;
+}
+
+.match-league {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: var(--dark-bg-elevated);
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.match-odds {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.odds-badge {
+    padding: 6px 15px;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.odds-p1 {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--accent-blue-light);
+    border: 1px solid var(--accent-blue);
+}
+
+.odds-p2 {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--accent-red-light);
+    border: 1px solid var(--accent-red);
+}
+
+.match-stats {
+    display: flex;
+    gap: 10px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-dark);
+}
+
+.stat-badge {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+}
+
+.stat-p1 {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid var(--accent-blue);
+}
+
+.stat-p2 {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--accent-red);
+}
+
+.stat-label {
+    display: block;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.stat-count {
+    font-weight: 800;
+    font-size: 1rem;
+}
+
+.stat-p1 .stat-count {
+    color: var(--accent-blue-light);
+}
+
+.stat-p2 .stat-count {
+    color: var(--accent-red-light);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .total-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .matches-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-wrapper {
+        padding: 15px;
+    }
+}
+
+/* Общая информация */
+.total-info {
+    margin-bottom: 30px;
+}
+
+.info-card {
+    background: linear-gradient(135deg, var(--dark-bg-card), var(--dark-bg-elevated));
+    border: 1px solid var(--border-dark);
+    border-radius: 16px;
+    padding: 25px;
+    display: inline-block;
+    min-width: 250px;
+    box-shadow: var(--shadow-md);
+}
+
+.info-label {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-value {
+    font-size: 3rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Карточки матчей */
+.match-card {
+    background: var(--dark-bg-card);
+    border: 1px solid var(--border-dark);
+    border-radius: 20px;
+    padding: 25px;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-md);
+}
+
+.match-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-glow-purple);
+    border-color: var(--accent-purple);
+}
+
+.match-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--border-dark);
+}
+
+.match-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.match-league {
+    background: var(--dark-bg-elevated);
+    padding: 6px 15px;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
     font-weight: 600;
-    text-align: right;
+}
+
+.match-odds {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.odds-badge {
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.odds-p1 {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+    color: var(--accent-blue-light);
+    border: 1px solid var(--accent-blue);
+    box-shadow: var(--shadow-glow-blue);
+}
+
+.odds-p2 {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1));
+    color: var(--accent-red-light);
+    border: 1px solid var(--accent-red);
+    box-shadow: var(--shadow-glow-red);
+}
+
+/* Блоки статистики */
+.stats-block {
+    background: var(--dark-bg-elevated);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-dark);
+}
+
+.stats-p1 {
+    border-left: 6px solid var(--accent-blue);
+}
+
+.stats-p2 {
+    border-left: 6px solid var(--accent-red);
+}
+
+.stats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-dark);
+}
+
+.stats-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.stats-total {
+    background: var(--dark-bg-light);
+    padding: 4px 12px;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.stats-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.stat-bar {
+    width: 100%;
+}
+
+.bar-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.progress-container {
+    width: 100%;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--dark-bg-light);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.p1-fill {
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+}
+
+.x-fill {
+    background: linear-gradient(90deg, var(--accent-yellow), var(--accent-yellow-dark));
+}
+
+.p2-fill {
+    background: linear-gradient(90deg, var(--accent-red), var(--accent-red-dark));
+}
+
+/* Вердикт */
+.match-verdict {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--dark-bg-elevated);
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid var(--border-dark);
+}
+
+.verdict {
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding: 6px 15px;
+    border-radius: 30px;
+    display: inline-block;
+}
+
+.verdict.positive {
+    color: var(--accent-green-light);
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid var(--accent-green);
+}
+
+.verdict.neutral {
+    color: var(--accent-yellow-light);
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid var(--accent-yellow);
+}
+
+/* Итоговый результат */
+.final-result {
+    background: linear-gradient(145deg, var(--dark-bg-card), var(--dark-bg-elevated));
+    border: 1px solid var(--border-dark);
+    border-radius: 24px;
+    padding: 30px;
+    margin-bottom: 40px;
+    box-shadow: var(--shadow-lg);
+}
+
+.final-title {
+    font-size: 1.8rem;
+    font-weight: 900;
+    margin-bottom: 5px;
+    color: var(--text-primary);
+}
+
+.final-subtitle {
+    color: var(--text-muted);
+    margin-bottom: 25px;
+    font-size: 1rem;
+}
+
+.final-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.final-card {
+    background: var(--dark-bg-elevated);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid var(--border-dark);
+}
+
+.final-p1 {
+    border-top: 6px solid var(--accent-blue);
+}
+
+.final-x {
+    border-top: 6px solid var(--accent-yellow);
+}
+
+.final-p2 {
+    border-top: 6px solid var(--accent-red);
+}
+
+.final-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.final-icon {
+    font-size: 1.5rem;
+}
+
+.final-label {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.final-value {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 5px;
+}
+
+.final-percent {
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    margin-bottom: 15px;
+}
+
+.final-verdict {
+    text-align: center;
+    padding: 20px;
+    background: var(--dark-bg-elevated);
+    border-radius: 16px;
+    border: 1px solid var(--border-dark);
+}
+
+.verdict {
+    font-size: 1.2rem;
+    font-weight: 800;
+    padding: 10px 25px;
+    border-radius: 40px;
+    display: inline-block;
+}
+
+.verdict.positive {
+    color: var(--accent-green-light);
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid var(--accent-green);
+}
+
+.verdict.neutral {
+    color: var(--accent-yellow-light);
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid var(--accent-yellow);
+}
+
+.result-stats {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--dark-bg-elevated);
+    border-radius: 12px;
+}
+
+.result-title {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.stat-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.stat-bar {
+    width: 100%;
+}
+
+.bar-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--dark-bg-light);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.p1-fill {
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+}
+
+.x-fill {
+    background: linear-gradient(90deg, var(--accent-yellow), var(--accent-yellow-dark));
+}
+
+.p2-fill {
+    background: linear-gradient(90deg, var(--accent-red), var(--accent-red-dark));
 }
