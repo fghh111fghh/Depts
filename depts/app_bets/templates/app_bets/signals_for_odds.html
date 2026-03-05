@@ -1,0 +1,145 @@
+{% extends 'app_bets/base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'app_bets/css/pages/signals_for_odds.css' %}">
+
+<div class="dashboard-wrapper">
+    <div class="page-header">
+        <h1 class="page-title">📊 Сигналы по коэффициентам</h1>
+        <p class="page-description">Статистика по каждому коэффициенту из Excel файла</p>
+    </div>
+
+    {% if error %}
+    <div class="error-card">
+        <i class="fa-solid fa-exclamation-triangle"></i>
+        <p>Ошибка: {{ error }}</p>
+    </div>
+    {% endif %}
+
+    {% if matches_data %}
+    <div class="matches-grid">
+        {% for match in matches_data %}
+        <div class="match-analysis-card">
+            <div class="match-header">
+                <h3 class="match-title">{{ match.match }}</h3>
+                <span class="match-league">{{ match.league }}</span>
+            </div>
+
+            <div class="odds-row">
+                <div class="odds-item">
+                    <span class="odds-label">П1</span>
+                    <span class="odds-value">{{ match.odds.p1 }}</span>
+                </div>
+                <div class="odds-item">
+                    <span class="odds-label">X</span>
+                    <span class="odds-value">{{ match.odds.x }}</span>
+                </div>
+                <div class="odds-item">
+                    <span class="odds-label">П2</span>
+                    <span class="odds-value">{{ match.odds.p2 }}</span>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <!-- Статистика для П1 -->
+                <div class="stat-card stat-p1">
+                    <div class="stat-header">
+                        <span class="stat-title">П1 = {{ match.odds.p1 }}</span>
+                        <span class="stat-total">Всего: {{ match.stats.p1.total }}</span>
+                    </div>
+                    <div class="stat-bars">
+                        <div class="stat-bar">
+                            <span class="bar-label">П1</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ match.stats.p1.p1_percent }}%"></div>
+                            </div>
+                            <span class="bar-value">{{ match.stats.p1.p1 }} ({{ match.stats.p1.p1_percent }}%)</span>
+                        </div>
+                        <div class="stat-bar">
+                            <span class="bar-label">X</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ match.stats.p1.x_percent }}%"></div>
+                            </div>
+                            <span class="bar-value">{{ match.stats.p1.x }} ({{ match.stats.p1.x_percent }}%)</span>
+                        </div>
+                        <div class="stat-bar">
+                            <span class="bar-label">П2</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ match.stats.p1.p2_percent }}%"></div>
+                            </div>
+                            <span class="bar-value">{{ match.stats.p1.p2 }} ({{ match.stats.p1.p2_percent }}%)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Статистика для X -->
+                <div class="stat-card stat-x">
+                    <div class="stat-header">
+                        <span class="stat-title">X = {{ match.odds.x }}</span>
+                        <span class="stat-total">Всего: {{ match.stats.x.total }}</span>
+                    </div>
+                    <div class="stat-bars">
+                        <div class="stat-bar">
+                            <span class="bar-label">П1</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ match.stats.x.p1_percent }}%"></div>
+                            </div>
+                            <span class="bar-value">{{ match.stats.x.p1 }} ({{ match.stats.x.p1_percent }}%)</span>
+                        </div>
+                        <div class="stat-bar">
+                            <span class="bar-label">X</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ match.stats.x.x_percent }}%"></div>
+                            </div>
+                            <span class="bar-value">{{ match.stats.x.x }} ({{ match.stats.x.x_percent }}%)</span>
+                        </div>
+                        <div class="stat-bar">
+                            <span class="bar-label">П2</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ match.stats.x.p2_percent }}%"></div>
+                            </div>
+                            <span class="bar-value">{{ match.stats.x.p2 }} ({{ match.stats.x.p2_percent }}%)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Статистика для П2 -->
+                <div class="stat-card stat-p2">
+                    <div class="stat-header">
+                        <span class="stat-title">П2 = {{ match.odds.p2 }}</span>
+                        <span class="stat-total">Всего: {{ match.stats.p2.total }}</span>
+                    </div>
+                    <div class="stat-bars">
+                        <div class="stat-bar">
+                            <span class="bar-label">П1</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ match.stats.p2.p1_percent }}%"></div>
+                            </div>
+                            <span class="bar-value">{{ match.stats.p2.p1 }} ({{ match.stats.p2.p1_percent }}%)</span>
+                        </div>
+                        <div class="stat-bar">
+                            <span class="bar-label">X</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ match.stats.p2.x_percent }}%"></div>
+                            </div>
+                            <span class="bar-value">{{ match.stats.p2.x }} ({{ match.stats.p2.x_percent }}%)</span>
+                        </div>
+                        <div class="stat-bar">
+                            <span class="bar-label">П2</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ match.stats.p2.p2_percent }}%"></div>
+                            </div>
+                            <span class="bar-value">{{ match.stats.p2.p2 }} ({{ match.stats.p2.p2_percent }}%)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<script src="{% static 'app_bets/js/signals_for_odds.js' %}"></script>
+{% endblock %}

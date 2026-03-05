@@ -34,6 +34,10 @@ BETS_MENU_ITEMS = [
         'title': 'Анализ',
         'url_name': 'app_bets:analyze_for_odds',
     },
+{
+        'title': 'Сигналы по КФ',
+        'url_name': 'app_bets:signals_for_odds',
+    },
 ]
 
 def bets_menu(request):

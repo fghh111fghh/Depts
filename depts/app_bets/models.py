@@ -8,67 +8,6 @@ from django.utils.timezone import is_naive, make_aware, get_current_timezone
 from app_bets.constants import AnalysisConstants
 
 
-class League(models.Model):
-    """Лиги и чемпионаты (бывшие Tournament)."""
-    name = models.CharField(max_length=150, unique=True, verbose_name="Название лиги")
-    external_id = models.CharField(
-        max_length=10,
-        blank=True,
-        null=True,
-        unique=True,
-        verbose_name="Внешний код (например, E0)"
-    )
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["name"]),
-        ]
-        verbose_name = "Лига"
-        verbose_name_plural = "Лиги"
-        ordering = ['name']
-
-    def get_season_averages(self, date, season=None, ):
-        """
-        Вычисляет средний тотал лиги за сезон.
-        Нужно для Пуассона (L_HGS и L_AGS).
-        """
-        if not season:
-            season = Season.objects.filter(is_current=True).first()
-
-        matches = self.matches.filter(season=season, date__lt=date,
-                                      home_score_reg__isnull=False)
-        stats = matches.aggregate(
-            avg_home_goals=Avg('home_score_reg'),
-            avg_away_goals=Avg('away_score_reg'),
-            total_matches=Count('id')
-        )
-        return stats
-
-    def get_draw_frequency(self, season=None):
-        """
-        Считает процент ничьих в лиге за весь сезон.
-        Помогает понять, является ли лига 'ничейной' по своей природе.
-        """
-        if not season:
-            season = Season.objects.filter(is_current=True).first()
-
-        total_matches = self.matches.filter(season=season, home_score_reg__isnull=False).count()
-        if total_matches == 0:
-            return 0
-
-        draws = self.matches.filter(
-            season=season,
-            home_score_reg__isnull=False,
-            away_score_reg__isnull=False,
-            home_score_reg=F('away_score_reg')
-        ).count()
-
-        return round((draws / total_matches) * 100, 2)
-
-    def __str__(self):
-        return f"{self.name}"
-
-
 class Team(models.Model):
     """Каноническая запись команды"""
     name = models.CharField(max_length=100, unique=True, verbose_name="Каноническое название")
@@ -136,6 +75,67 @@ class Season(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class League(models.Model):
+    """Лиги и чемпионаты (бывшие Tournament)."""
+    name = models.CharField(max_length=150, unique=True, verbose_name="Название лиги")
+    external_id = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        unique=True,
+        verbose_name="Внешний код (например, E0)"
+    )
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["name"]),
+        ]
+        verbose_name = "Лига"
+        verbose_name_plural = "Лиги"
+        ordering = ['name']
+
+    def get_season_averages(self, date, season=None, ):
+        """
+        Вычисляет средний тотал лиги за сезон.
+        Нужно для Пуассона (L_HGS и L_AGS).
+        """
+        if not season:
+            season = Season.objects.filter(is_current=True).first()
+
+        matches = self.matches.filter(season=season, date__lt=date,
+                                      home_score_reg__isnull=False)
+        stats = matches.aggregate(
+            avg_home_goals=Avg('home_score_reg'),
+            avg_away_goals=Avg('away_score_reg'),
+            total_matches=Count('id')
+        )
+        return stats
+
+    def get_draw_frequency(self, season=None):
+        """
+        Считает процент ничьих в лиге за весь сезон.
+        Помогает понять, является ли лига 'ничейной' по своей природе.
+        """
+        if not season:
+            season = Season.objects.filter(is_current=True).first()
+
+        total_matches = self.matches.filter(season=season, home_score_reg__isnull=False).count()
+        if total_matches == 0:
+            return 0
+
+        draws = self.matches.filter(
+            season=season,
+            home_score_reg__isnull=False,
+            away_score_reg__isnull=False,
+            home_score_reg=F('away_score_reg')
+        ).count()
+
+        return round((draws / total_matches) * 100, 2)
+
+    def __str__(self):
+        return f"{self.name}"
 
 
 class Match(models.Model):
