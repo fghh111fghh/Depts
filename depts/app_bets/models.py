@@ -1148,3 +1148,9 @@ class Bet(models.Model):
 
         super().delete(*args, **kwargs)
         print(f"Bet {self.id} deleted")
+
+
+class PositionChoice(models.TextChoices):
+    HOME = 'home', 'Хозяева'
+    AWAY = 'away', 'Гости'
+    BOTH = 'both', 'Обе команды'

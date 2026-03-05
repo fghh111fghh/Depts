@@ -1,0 +1,165 @@
+{% extends 'app_bets/base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'app_bets/css/pages/analyze_for_odds.css' %}">
+
+<div class="dashboard-wrapper">
+    <div class="page-header">
+        <h1 class="page-title">📊 Анализ по коэффициентам</h1>
+        <p class="page-description">Статистика исходов матчей в зависимости от коэффициентов</p>
+    </div>
+
+    <div class="analyze-card">
+        <form method="POST" class="analyze-form">
+            {% csrf_token %}
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="league">Лига</label>
+                    <select name="league" id="league" class="form-control" required>
+                        <option value="">-- Выберите лигу --</option>
+                        {% for league in leagues %}
+                        <option value="{{ league.id }}" {% if selected_league and selected_league.id == league.id %}selected{% endif %}>
+                            {{ league.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="position">Выбор</label>
+                    <select name="position" id="position" class="form-control" required>
+                        {% for value, label in position_choices %}
+                        <option value="{{ value }}" {% if selected_position == value %}selected{% endif %}>
+                            {% if value == 'home' %}🏠 {% elif value == 'away' %}✈️ {% else %}⚖️ {% endif %}
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="odds_from">Коэф. от</label>
+                    <input type="number"
+                           name="odds_from"
+                           id="odds_from"
+                           class="form-control"
+                           step="0.1"
+                           min="1.0"
+                           max="4.0"
+                           value="{{ odds_from|default:1.0 }}"
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label for="odds_to">Коэф. до</label>
+                    <input type="number"
+                           name="odds_to"
+                           id="odds_to"
+                           class="form-control"
+                           step="0.1"
+                           min="1.0"
+                           max="4.0"
+                           value="{{ odds_to|default:4.0 }}"
+                           required>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-analyze">
+                    <i class="fa-solid fa-chart-simple"></i> Анализировать
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {% if total_matches is not None %}
+    <div class="results-card">
+        <div class="results-header">
+            <h2>Результаты анализа</h2>
+            <div class="filter-summary">
+                {% if selected_league %}
+                <span class="filter-badge">
+                    🏆 {{ selected_league.name }}
+                </span>
+                {% endif %}
+                {% if selected_position_display %}
+                <span class="filter-badge">
+                    📊 {{ selected_position_display }}
+                </span>
+                {% endif %}
+                <span class="filter-badge">
+                    🎲 {{ odds_from|floatformat:1 }} - {{ odds_to|floatformat:1 }}
+                </span>
+            </div>
+        </div>
+
+        {% if total_matches == 0 %}
+        <div class="no-data">
+            <i class="fa-solid fa-database"></i>
+            <p>Нет матчей, соответствующих выбранным фильтрам</p>
+        </div>
+        {% else %}
+        <div class="stats-container">
+            <div class="stat-total">
+                <span class="stat-label">Всего матчей</span>
+                <span class="stat-value">{{ total_matches }}</span>
+            </div>
+
+            <div class="outcome-stats">
+                <!-- П1 -->
+                <div class="outcome-card outcome-home">
+                    <div class="outcome-header">
+                        <span class="outcome-icon">🏠</span>
+                        <span class="outcome-label">П1</span>
+                    </div>
+                    <div class="outcome-numbers">
+                        <span class="outcome-count">{{ home_wins }}</span>
+                        <span class="outcome-percent">{{ home_percent }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ home_percent }}%"></div>
+                    </div>
+                </div>
+
+                <!-- X -->
+                <div class="outcome-card outcome-draw">
+                    <div class="outcome-header">
+                        <span class="outcome-icon">⚖️</span>
+                        <span class="outcome-label">X</span>
+                    </div>
+                    <div class="outcome-numbers">
+                        <span class="outcome-count">{{ draws }}</span>
+                        <span class="outcome-percent">{{ draw_percent }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ draw_percent }}%"></div>
+                    </div>
+                </div>
+
+                <!-- П2 -->
+                <div class="outcome-card outcome-away">
+                    <div class="outcome-header">
+                        <span class="outcome-icon">✈️</span>
+                        <span class="outcome-label">П2</span>
+                    </div>
+                    <div class="outcome-numbers">
+                        <span class="outcome-count">{{ away_wins }}</span>
+                        <span class="outcome-percent">{{ away_percent }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ away_percent }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script src="{% static 'app_bets/js/analyze_for_odds.js' %}"></script>
+{% endblock %}

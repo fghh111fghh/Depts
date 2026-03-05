@@ -30,6 +30,10 @@ BETS_MENU_ITEMS = [
         'title': 'Калькулятор Келли',
         'url_name': 'app_bets:develop',
     },
+{
+        'title': 'Анализ',
+        'url_name': 'app_bets:analyze_for_odds',
+    },
 ]
 
 def bets_menu(request):

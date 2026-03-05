@@ -45,7 +45,7 @@ from openpyxl.styles import Font, PatternFill, Alignment
 from dal import autocomplete
 from app_bets.constants import Outcome, ParsingConstants, AnalysisConstants, Messages
 from app_bets.forms import BetForm, KellyCalculatorForm
-from app_bets.models import Team, TeamAlias, Season, Match, League, Bet,Bank
+from app_bets.models import Team, TeamAlias, Season, Match, League, Bet, Bank, PositionChoice
 from . import constants
 
 
@@ -2392,6 +2392,99 @@ class DevelopView(TemplateView):
         context = super().get_context_data(**kwargs)
         context['form'] = KellyCalculatorForm()
         return context
+
+
+class AnalyzeForOddsView(TemplateView):
+    template_name = 'app_bets/analyze_for_odds.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Все лиги для выпадающего списка
+        context['leagues'] = League.objects.all().order_by('name')
+
+        # Передаем choices для позиции
+        context['position_choices'] = PositionChoice.choices
+
+        # Результаты анализа (если есть POST-запрос)
+        if self.request.method == 'POST':
+            league_id = self.request.POST.get('league')
+            position = self.request.POST.get('position')
+            odds_from = float(self.request.POST.get('odds_from', 1.0))
+            odds_to = float(self.request.POST.get('odds_to', 4.0))
+
+            results = self.analyze_odds(league_id, position, odds_from, odds_to)
+            context.update(results)
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
+
+    def analyze_odds(self, league_id, position, odds_from, odds_to):
+        """
+        Анализирует матчи по коэффициентам
+        """
+        if not league_id:
+            return {}
+
+        # Базовый QuerySet
+        matches = Match.objects.filter(
+            league_id=league_id,
+            odds_home__isnull=False,
+            odds_away__isnull=False,
+            home_score_reg__isnull=False,
+            away_score_reg__isnull=False
+        )
+
+        # Применяем фильтр по позиции используя PositionChoice
+        if position == PositionChoice.HOME:
+            matches = matches.filter(odds_home__gte=odds_from, odds_home__lte=odds_to)
+        elif position == PositionChoice.AWAY:
+            matches = matches.filter(odds_away__gte=odds_from, odds_away__lte=odds_to)
+        elif position == PositionChoice.BOTH:
+            matches = matches.filter(
+                odds_home__gte=odds_from, odds_home__lte=odds_to,
+                odds_away__gte=odds_from, odds_away__lte=odds_to
+            )
+
+        total = matches.count()
+
+        if total == 0:
+            return {
+                'total_matches': 0,
+                'home_wins': 0,
+                'draws': 0,
+                'away_wins': 0,
+                'home_percent': 0,
+                'draw_percent': 0,
+                'away_percent': 0,
+                'selected_league': League.objects.get(id=league_id) if league_id else None,
+                'selected_position': position,
+                'selected_position_display': dict(PositionChoice.choices).get(position, ''),
+                'odds_from': odds_from,
+                'odds_to': odds_to
+            }
+
+        # Считаем результаты
+        home_wins = matches.filter(home_score_reg__gt=F('away_score_reg')).count()
+        draws = matches.filter(home_score_reg=F('away_score_reg')).count()
+        away_wins = matches.filter(home_score_reg__lt=F('away_score_reg')).count()
+
+        return {
+            'total_matches': total,
+            'home_wins': home_wins,
+            'draws': draws,
+            'away_wins': away_wins,
+            'home_percent': round(home_wins / total * 100, 1),
+            'draw_percent': round(draws / total * 100, 1),
+            'away_percent': round(away_wins / total * 100, 1),
+            'selected_league': League.objects.get(id=league_id) if league_id else None,
+            'selected_position': position,
+            'selected_position_display': dict(PositionChoice.choices).get(position, ''),
+            'odds_from': odds_from,
+            'odds_to': odds_to
+        }
 
 
 
