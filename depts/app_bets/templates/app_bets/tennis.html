@@ -10,29 +10,35 @@
         <p class="page-description">Сравнение игроков, личные встречи, статистика по покрытиям</p>
     </div>
 
-    <!-- Форма поиска -->
+    <!-- Форма поиска игроков -->
     <div class="search-card">
-        <form method="GET" action="." class="search-form">
+        <form method="GET" class="search-form">
             <div class="form-row">
-                <div class="form-group">
+                <div class="form-group autocomplete-container">
                     <label for="player1">Игрок 1</label>
                     <input type="text"
                            name="player1"
                            id="player1"
-                           class="form-control"
+                           class="form-control autocomplete-input"
                            value="{{ player1_name|default:'' }}"
                            placeholder="Например: Nadal"
+                           autocomplete="off"
+                           data-target="player1-suggestions"
                            list="players-list">
+                    <div id="player1-suggestions" class="autocomplete-suggestions"></div>
                 </div>
-                <div class="form-group">
+                <div class="form-group autocomplete-container">
                     <label for="player2">Игрок 2</label>
                     <input type="text"
                            name="player2"
                            id="player2"
-                           class="form-control"
+                           class="form-control autocomplete-input"
                            value="{{ player2_name|default:'' }}"
                            placeholder="Например: Federer"
+                           autocomplete="off"
+                           data-target="player2-suggestions"
                            list="players-list">
+                    <div id="player2-suggestions" class="autocomplete-suggestions"></div>
                 </div>
             </div>
             <datalist id="players-list">
@@ -44,6 +50,37 @@
                 <button type="submit" class="btn-analyze">
                     <i class="fa-solid fa-chart-simple"></i> Сравнить
                 </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Фильтры по дате и покрытию -->
+    <div class="filters-card">
+        <form method="GET" class="filters-form">
+            <!-- Сохраняем уже выбранных игроков -->
+            <input type="hidden" name="player1" value="{{ player1_name }}">
+            <input type="hidden" name="player2" value="{{ player2_name }}">
+
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label>Период:</label>
+                    <select name="period" class="filter-select" onchange="this.form.submit()">
+                        <option value="all" {% if selected_period == 'all' %}selected{% endif %}>За всё время</option>
+                        <option value="month" {% if selected_period == 'month' %}selected{% endif %}>За месяц</option>
+                        <option value="halfyear" {% if selected_period == 'halfyear' %}selected{% endif %}>За полгода</option>
+                        <option value="year" {% if selected_period == 'year' %}selected{% endif %}>За год</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Покрытие:</label>
+                    <select name="surface" class="filter-select" onchange="this.form.submit()">
+                        <option value="all" {% if selected_surface == 'all' %}selected{% endif %}>Все покрытия</option>
+                        {% for surface in surfaces %}
+                        <option value="{{ surface }}" {% if selected_surface == surface %}selected{% endif %}>{{ surface }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
         </form>
     </div>

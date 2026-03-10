@@ -19,7 +19,7 @@ import csv
 import os
 import pickle
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import List, Dict, Optional, Tuple
 import openpyxl
@@ -35,6 +35,7 @@ from django.db.models import F, Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.utils.timezone import make_aware, get_current_timezone, now
 from django.views import View
 import re
@@ -2908,20 +2909,52 @@ def player_autocomplete(request):
 
     return JsonResponse(list(players), safe=False)
 
+
 class TennisView(TemplateView):
     template_name = 'app_bets/tennis.html'
+
+    def get_date_range(self, period):
+        """Возвращает начальную дату для фильтра"""
+        today = timezone.now().date()
+
+        if period == 'month':
+            return today - timedelta(days=30)
+        elif period == 'halfyear':
+            return today - timedelta(days=180)
+        elif period == 'year':
+            return today - timedelta(days=365)
+        else:  # 'all' или None
+            return None
+
+    def apply_filters(self, queryset, start_date, surface):
+        """Применяет фильтры по дате и покрытию к queryset"""
+        if start_date:
+            queryset = queryset.filter(date__gte=start_date)
+        if surface and surface != 'all':
+            queryset = queryset.filter(surface=surface)
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
         context['all_players'] = Player.objects.all().order_by('name')
 
+        # Список покрытий для фильтра
+        context['surfaces'] = ['Hard', 'Clay', 'Grass', 'Carpet']
+
         # Получаем параметры из GET
         player1_name = self.request.GET.get('player1', '').strip()
         player2_name = self.request.GET.get('player2', '').strip()
+        period = self.request.GET.get('period', 'all')
+        surface = self.request.GET.get('surface', 'all')
 
         context['player1_name'] = player1_name
         context['player2_name'] = player2_name
+        context['selected_period'] = period
+        context['selected_surface'] = surface
+
+        # Получаем начальную дату для фильтра
+        start_date = self.get_date_range(period)
 
         if player1_name and player2_name:
             # Ищем игроков
@@ -2933,9 +2966,9 @@ class TennisView(TemplateView):
                 tour = self.detect_tour(player1, player2)
 
                 if tour == 'ATP':
-                    context.update(self.analyze_atp_match(player1, player2))
+                    context.update(self.analyze_atp_match(player1, player2, start_date, surface))
                 else:
-                    context.update(self.analyze_wta_match(player1, player2))
+                    context.update(self.analyze_wta_match(player1, player2, start_date, surface))
 
                 context['player1'] = player1
                 context['player2'] = player2
@@ -2949,30 +2982,34 @@ class TennisView(TemplateView):
             return 'ATP'
         return 'WTA'
 
-    def analyze_atp_match(self, player1, player2):
-        """Анализ ATP матча"""
-        # Личные встречи
-        h2h_matches = TennisMatchATP.objects.filter(
-            (Q(winner=player1, loser=player2) | Q(winner=player2, loser=player1))
-        ).order_by('-date').select_related('tournament')
+    def analyze_atp_match(self, player1, player2, start_date=None, surface='all'):
+        """Анализ ATP матча с учетом фильтров"""
+
+        # База для всех запросов
+        base_q = Q(winner=player1, loser=player2) | Q(winner=player2, loser=player1)
+
+        # Личные встречи с фильтрами
+        h2h_matches = TennisMatchATP.objects.filter(base_q)
+        h2h_matches = self.apply_filters(h2h_matches, start_date, surface)
+        h2h_matches = h2h_matches.order_by('-date').select_related('tournament')
 
         # Статистика по покрытиям для каждого игрока
-        player1_stats = self.get_player_stats_atp(player1)
-        player2_stats = self.get_player_stats_atp(player2)
+        player1_stats = self.get_player_stats_atp(player1, start_date, surface)
+        player2_stats = self.get_player_stats_atp(player2, start_date, surface)
 
         # Текущая форма (последние 5 матчей)
-        player1_form = self.get_player_form_atp(player1)
-        player2_form = self.get_player_form_atp(player2)
+        player1_form = self.get_player_form_atp(player1, start_date, surface, limit=5)
+        player2_form = self.get_player_form_atp(player2, start_date, surface, limit=5)
 
         # Распределение по покрытиям в личных встречах
         h2h_by_surface = defaultdict(lambda: {'p1_wins': 0, 'p2_wins': 0, 'total': 0})
         for match in h2h_matches:
-            surface = match.surface or 'Unknown'
+            surface_name = match.surface or 'Unknown'
             if match.winner == player1:
-                h2h_by_surface[surface]['p1_wins'] += 1
+                h2h_by_surface[surface_name]['p1_wins'] += 1
             else:
-                h2h_by_surface[surface]['p2_wins'] += 1
-            h2h_by_surface[surface]['total'] += 1
+                h2h_by_surface[surface_name]['p2_wins'] += 1
+            h2h_by_surface[surface_name]['total'] += 1
 
         return {
             'h2h_matches': h2h_matches[:10],
@@ -2986,26 +3023,29 @@ class TennisView(TemplateView):
             'player2_form': player2_form,
         }
 
-    def analyze_wta_match(self, player1, player2):
-        """Анализ WTA матча"""
-        h2h_matches = TennisMatchWTA.objects.filter(
-            (Q(winner=player1, loser=player2) | Q(winner=player2, loser=player1))
-        ).order_by('-date').select_related('tournament')
+    def analyze_wta_match(self, player1, player2, start_date=None, surface='all'):
+        """Анализ WTA матча с учетом фильтров"""
 
-        player1_stats = self.get_player_stats_wta(player1)
-        player2_stats = self.get_player_stats_wta(player2)
+        base_q = Q(winner=player1, loser=player2) | Q(winner=player2, loser=player1)
 
-        player1_form = self.get_player_form_wta(player1)
-        player2_form = self.get_player_form_wta(player2)
+        h2h_matches = TennisMatchWTA.objects.filter(base_q)
+        h2h_matches = self.apply_filters(h2h_matches, start_date, surface)
+        h2h_matches = h2h_matches.order_by('-date').select_related('tournament')
+
+        player1_stats = self.get_player_stats_wta(player1, start_date, surface)
+        player2_stats = self.get_player_stats_wta(player2, start_date, surface)
+
+        player1_form = self.get_player_form_wta(player1, start_date, surface, limit=5)
+        player2_form = self.get_player_form_wta(player2, start_date, surface, limit=5)
 
         h2h_by_surface = defaultdict(lambda: {'p1_wins': 0, 'p2_wins': 0, 'total': 0})
         for match in h2h_matches:
-            surface = match.surface or 'Unknown'
+            surface_name = match.surface or 'Unknown'
             if match.winner == player1:
-                h2h_by_surface[surface]['p1_wins'] += 1
+                h2h_by_surface[surface_name]['p1_wins'] += 1
             else:
-                h2h_by_surface[surface]['p2_wins'] += 1
-            h2h_by_surface[surface]['total'] += 1
+                h2h_by_surface[surface_name]['p2_wins'] += 1
+            h2h_by_surface[surface_name]['total'] += 1
 
         return {
             'h2h_matches': h2h_matches[:10],
@@ -3019,59 +3059,61 @@ class TennisView(TemplateView):
             'player2_form': player2_form,
         }
 
-    def get_player_stats_atp(self, player):
-        """Статистика ATP игрока по покрытиям"""
+    def get_player_stats_atp(self, player, start_date=None, surface='all'):
+        """Статистика ATP игрока по покрытиям с фильтрами"""
         stats = {}
         surfaces = ['Hard', 'Clay', 'Grass']
 
-        for surface in surfaces:
+        for surf in surfaces:
             matches = TennisMatchATP.objects.filter(
-                (Q(winner=player) | Q(loser=player)),
-                surface=surface
+                (Q(winner=player) | Q(loser=player))
             )
+            matches = self.apply_filters(matches, start_date, surf if surface == 'all' else surface)
 
             total = matches.count()
             if total > 0:
                 wins = matches.filter(winner=player).count()
-                stats[surface] = {
+                stats[surf] = {
                     'wins': wins,
                     'losses': total - wins,
                     'win_rate': round(wins / total * 100, 1)
                 }
             else:
-                stats[surface] = {'wins': 0, 'losses': 0, 'win_rate': 0}
+                stats[surf] = {'wins': 0, 'losses': 0, 'win_rate': 0}
 
         return stats
 
-    def get_player_stats_wta(self, player):
-        """Статистика WTA игрока по покрытиям"""
+    def get_player_stats_wta(self, player, start_date=None, surface='all'):
+        """Статистика WTA игрока по покрытиям с фильтрами"""
         stats = {}
         surfaces = ['Hard', 'Clay', 'Grass']
 
-        for surface in surfaces:
+        for surf in surfaces:
             matches = TennisMatchWTA.objects.filter(
-                (Q(winner=player) | Q(loser=player)),
-                surface=surface
+                (Q(winner=player) | Q(loser=player))
             )
+            matches = self.apply_filters(matches, start_date, surf if surface == 'all' else surface)
 
             total = matches.count()
             if total > 0:
                 wins = matches.filter(winner=player).count()
-                stats[surface] = {
+                stats[surf] = {
                     'wins': wins,
                     'losses': total - wins,
                     'win_rate': round(wins / total * 100, 1)
                 }
             else:
-                stats[surface] = {'wins': 0, 'losses': 0, 'win_rate': 0}
+                stats[surf] = {'wins': 0, 'losses': 0, 'win_rate': 0}
 
         return stats
 
-    def get_player_form_atp(self, player, limit=5):
-        """Последние 5 матчей ATP игрока"""
+    def get_player_form_atp(self, player, start_date=None, surface='all', limit=5):
+        """Последние 5 матчей ATP игрока с фильтрами"""
         matches = TennisMatchATP.objects.filter(
             Q(winner=player) | Q(loser=player)
-        ).order_by('-date')[:limit]
+        )
+        matches = self.apply_filters(matches, start_date, surface)
+        matches = matches.order_by('-date')[:limit]
 
         form = []
         for match in matches:
@@ -3091,11 +3133,13 @@ class TennisView(TemplateView):
 
         return form
 
-    def get_player_form_wta(self, player, limit=5):
-        """Последние 5 матчей WTA игрока"""
+    def get_player_form_wta(self, player, start_date=None, surface='all', limit=5):
+        """Последние 5 матчей WTA игрока с фильтрами"""
         matches = TennisMatchWTA.objects.filter(
             Q(winner=player) | Q(loser=player)
-        ).order_by('-date')[:limit]
+        )
+        matches = self.apply_filters(matches, start_date, surface)
+        matches = matches.order_by('-date')[:limit]
 
         form = []
         for match in matches:

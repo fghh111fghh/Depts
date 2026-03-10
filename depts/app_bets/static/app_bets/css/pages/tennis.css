@@ -552,3 +552,69 @@ body {
 .autocomplete-item:not(:last-child) {
     border-bottom: 1px solid var(--border-dark);
 }
+
+/* Фильтры */
+.filters-card {
+    background: var(--dark-bg-elevated);
+    border: 1px solid var(--border-dark);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.filters-form {
+    width: 100%;
+}
+
+.filters-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    min-width: 250px;
+}
+
+.filter-group label {
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    min-width: 80px;
+}
+
+.filter-select {
+    background: var(--dark-bg-card);
+    border: 2px solid var(--border-dark);
+    border-radius: 8px;
+    padding: 10px 15px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    cursor: pointer;
+    flex: 1;
+    transition: all 0.2s;
+}
+
+.filter-select:hover {
+    border-color: var(--accent-blue);
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+@media (max-width: 768px) {
+    .filters-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+}
