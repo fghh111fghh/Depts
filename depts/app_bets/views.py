@@ -2893,12 +2893,28 @@ def export_bets_excel(request):
     return response
 
 
+from django.http import JsonResponse
+
+
+def player_autocomplete(request):
+    """API для автодополнения имен игроков"""
+    query = request.GET.get('q', '')
+    if len(query) < 1:
+        return JsonResponse([], safe=False)
+
+    players = Player.objects.filter(
+        Q(name__icontains=query)
+    ).order_by('name').values_list('name', flat=True)[:10]
+
+    return JsonResponse(list(players), safe=False)
 
 class TennisView(TemplateView):
     template_name = 'app_bets/tennis.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        context['all_players'] = Player.objects.all().order_by('name')
 
         # Получаем параметры из GET
         player1_name = self.request.GET.get('player1', '').strip()

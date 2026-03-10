@@ -22,4 +22,5 @@ urlpatterns = [
     path('bet/analyze_for_odds/', views.AnalyzeForOddsView.as_view(), name='analyze_for_odds'),
     path('bet/signals_for_odds/', views.SignalsForOddsView.as_view(), name='signals_for_odds'),
     path('bet/tennis/', views.TennisView.as_view(), name='tennis'),
+    path('bet/tennis/autocomplete/', views.player_autocomplete, name='tennis_autocomplete'),
 ]
