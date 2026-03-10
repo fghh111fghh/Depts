@@ -1,0 +1,273 @@
+{% extends 'app_bets/base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'app_bets/css/pages/tennis.css' %}">
+
+<div class="dashboard-wrapper">
+    <div class="page-header">
+        <h1 class="page-title">🎾 Анализ теннисных матчей</h1>
+        <p class="page-description">Сравнение игроков, личные встречи, статистика по покрытиям</p>
+    </div>
+
+    <!-- Форма поиска -->
+    <div class="search-card">
+        <form method="GET" action="." class="search-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="player1">Игрок 1</label>
+                    <input type="text"
+                           name="player1"
+                           id="player1"
+                           class="form-control"
+                           value="{{ player1_name|default:'' }}"
+                           placeholder="Например: Nadal"
+                           list="players-list">
+                </div>
+                <div class="form-group">
+                    <label for="player2">Игрок 2</label>
+                    <input type="text"
+                           name="player2"
+                           id="player2"
+                           class="form-control"
+                           value="{{ player2_name|default:'' }}"
+                           placeholder="Например: Federer"
+                           list="players-list">
+                </div>
+            </div>
+            <datalist id="players-list">
+                {% for player in all_players %}
+                <option value="{{ player.name }}">
+                {% endfor %}
+            </datalist>
+            <div class="form-actions">
+                <button type="submit" class="btn-analyze">
+                    <i class="fa-solid fa-chart-simple"></i> Сравнить
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {% if player1 and player2 %}
+    <!-- Результаты сравнения -->
+    <div class="results-section">
+        <!-- Заголовок с игроками -->
+        <div class="players-header">
+            <div class="player-card player1-card">
+                <h2>{{ player1.name }}</h2>
+                <span class="player-tour">{{ tour }}</span>
+            </div>
+            <div class="vs-badge">VS</div>
+            <div class="player-card player2-card">
+                <h2>{{ player2.name }}</h2>
+                <span class="player-tour">{{ tour }}</span>
+            </div>
+        </div>
+
+        <!-- Личные встречи -->
+        <div class="stats-card">
+            <h3 class="card-title">
+                <i class="fa-solid fa-handshake"></i>
+                Личные встречи
+            </h3>
+            <div class="h2h-summary">
+                <div class="h2h-item">
+                    <span class="h2h-label">{{ player1.name }}</span>
+                    <span class="h2h-value">{{ h2h_p1_wins }}</span>
+                </div>
+                <div class="h2h-item">
+                    <span class="h2h-label">Ничьи</span>
+                    <span class="h2h-value">0</span>
+                </div>
+                <div class="h2h-item">
+                    <span class="h2h-label">{{ player2.name }}</span>
+                    <span class="h2h-value">{{ h2h_p2_wins }}</span>
+                </div>
+            </div>
+            <div class="progress-bar">
+                {% if h2h_total > 0 %}
+                <div class="progress-fill p1-fill" style="width: {% widthratio h2h_p1_wins h2h_total 100 %}%"></div>
+                <div class="progress-fill p2-fill" style="width: {% widthratio h2h_p2_wins h2h_total 100 %}%"></div>
+                {% endif %}
+            </div>
+            <p class="h2h-total">Всего встреч: {{ h2h_total }}</p>
+        </div>
+
+        <!-- Распределение по покрытиям в личных встречах -->
+        {% if h2h_by_surface %}
+        <div class="stats-card">
+            <h3 class="card-title">
+                <i class="fa-solid fa-chart-pie"></i>
+                Личные встречи по покрытиям
+            </h3>
+            <div class="surfaces-grid">
+                {% for surface, data in h2h_by_surface.items %}
+                <div class="surface-item">
+                    <h4>{{ surface }}</h4>
+                    <div class="surface-stats">
+                        <div class="surface-row">
+                            <span>{{ player1.name }}</span>
+                            <span>{{ data.p1_wins }}</span>
+                        </div>
+                        <div class="surface-row">
+                            <span>{{ player2.name }}</span>
+                            <span>{{ data.p2_wins }}</span>
+                        </div>
+                        <div class="surface-progress">
+                            {% if data.total > 0 %}
+                            <div class="progress-fill p1-fill" style="width: {% widthratio data.p1_wins data.total 100 %}%"></div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Статистика по покрытиям -->
+        <div class="stats-row">
+            <div class="stats-card player-stats">
+                <h3 class="card-title">
+                    <i class="fa-solid fa-chart-line"></i>
+                    {{ player1.name }} по покрытиям
+                </h3>
+                <div class="surfaces-stats">
+                    {% for surface, data in player1_stats.items %}
+                    <div class="surface-stat">
+                        <div class="surface-header">
+                            <span class="surface-name">{{ surface }}</span>
+                            <span class="surface-rate">{{ data.win_rate }}%</span>
+                        </div>
+                        <div class="surface-detail">
+                            <span>Побед: {{ data.wins }}</span>
+                            <span>Поражений: {{ data.losses }}</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ data.win_rate }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="stats-card player-stats">
+                <h3 class="card-title">
+                    <i class="fa-solid fa-chart-line"></i>
+                    {{ player2.name }} по покрытиям
+                </h3>
+                <div class="surfaces-stats">
+                    {% for surface, data in player2_stats.items %}
+                    <div class="surface-stat">
+                        <div class="surface-header">
+                            <span class="surface-name">{{ surface }}</span>
+                            <span class="surface-rate">{{ data.win_rate }}%</span>
+                        </div>
+                        <div class="surface-detail">
+                            <span>Побед: {{ data.wins }}</span>
+                            <span>Поражений: {{ data.losses }}</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ data.win_rate }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Форма игроков -->
+        <div class="stats-row">
+            <div class="stats-card player-form">
+                <h3 class="card-title">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    Последние 5 матчей: {{ player1.name }}
+                </h3>
+                <div class="form-matches">
+                    {% for match in player1_form %}
+                    <div class="form-match {% if match.result == 'W' %}match-win{% else %}match-loss{% endif %}">
+                        <div class="match-info">
+                            <span class="match-date">{{ match.date|date:"d.m.Y" }}</span>
+                            <span class="match-tournament">{{ match.tournament|truncatechars:15 }}</span>
+                        </div>
+                        <div class="match-opponent">
+                            <span>vs {{ match.opponent }}</span>
+                            <span class="match-surface">{{ match.surface }}</span>
+                        </div>
+                        <div class="match-result">
+                            <span class="result-badge">{{ match.result }}</span>
+                            <span class="match-score">{{ match.score }}</span>
+                            {% if match.odds %}
+                            <span class="match-odds">{{ match.odds }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="no-data">Нет данных</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="stats-card player-form">
+                <h3 class="card-title">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    Последние 5 матчей: {{ player2.name }}
+                </h3>
+                <div class="form-matches">
+                    {% for match in player2_form %}
+                    <div class="form-match {% if match.result == 'W' %}match-win{% else %}match-loss{% endif %}">
+                        <div class="match-info">
+                            <span class="match-date">{{ match.date|date:"d.m.Y" }}</span>
+                            <span class="match-tournament">{{ match.tournament|truncatechars:15 }}</span>
+                        </div>
+                        <div class="match-opponent">
+                            <span>vs {{ match.opponent }}</span>
+                            <span class="match-surface">{{ match.surface }}</span>
+                        </div>
+                        <div class="match-result">
+                            <span class="result-badge">{{ match.result }}</span>
+                            <span class="match-score">{{ match.score }}</span>
+                            {% if match.odds %}
+                            <span class="match-odds">{{ match.odds }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="no-data">Нет данных</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Последние личные встречи -->
+        {% if h2h_matches %}
+        <div class="stats-card">
+            <h3 class="card-title">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                История личных встреч
+            </h3>
+            <div class="h2h-history">
+                {% for match in h2h_matches %}
+                <div class="history-match {% if match.winner == player1 %}p1-win{% else %}p2-win{% endif %}">
+                    <div class="history-date">{{ match.date|date:"d.m.Y" }}</div>
+                    <div class="history-tournament">{{ match.tournament.name }}</div>
+                    <div class="history-surface">{{ match.surface }}</div>
+                    <div class="history-score">{{ match.wsets }}:{{ match.lsets }}</div>
+                    <div class="history-winner">
+                        {% if match.winner == player1 %}
+                        <span class="winner-name">{{ player1.name }}</span>
+                        {% else %}
+                        <span class="winner-name">{{ player2.name }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script src="{% static 'app_bets/js/tennis.js' %}"></script>
+{% endblock %}
