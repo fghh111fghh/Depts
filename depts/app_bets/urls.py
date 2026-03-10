@@ -21,4 +21,5 @@ urlpatterns = [
     path('bet/develop/', views.DevelopView.as_view(), name='develop'),
     path('bet/analyze_for_odds/', views.AnalyzeForOddsView.as_view(), name='analyze_for_odds'),
     path('bet/signals_for_odds/', views.SignalsForOddsView.as_view(), name='signals_for_odds'),
+    path('bet/tennis/', views.TennisView.as_view(), name='tennis'),
 ]

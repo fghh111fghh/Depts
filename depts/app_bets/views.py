@@ -18,6 +18,7 @@
 import csv
 import os
 import pickle
+from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Dict, Optional, Tuple
@@ -46,7 +47,7 @@ from dal import autocomplete
 from app_bets.constants import Outcome, ParsingConstants, AnalysisConstants, Messages
 from app_bets.forms import BetForm, KellyCalculatorForm
 from app_bets.models import (Team, TeamAlias, Season, Match, League, Bet,
-                             Bank, PositionChoice)
+                             Bank, PositionChoice, Player, TennisMatchATP, TennisMatchWTA)
 from . import constants
 
 
@@ -2891,3 +2892,209 @@ def export_bets_excel(request):
     wb.save(response)
     return response
 
+
+
+class TennisView(TemplateView):
+    template_name = 'app_bets/tennis.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Получаем параметры из GET
+        player1_name = self.request.GET.get('player1', '').strip()
+        player2_name = self.request.GET.get('player2', '').strip()
+
+        context['player1_name'] = player1_name
+        context['player2_name'] = player2_name
+
+        if player1_name and player2_name:
+            # Ищем игроков
+            player1 = Player.objects.filter(name__icontains=player1_name).first()
+            player2 = Player.objects.filter(name__icontains=player2_name).first()
+
+            if player1 and player2:
+                # Определяем тур (ATP или WTA)
+                tour = self.detect_tour(player1, player2)
+
+                if tour == 'ATP':
+                    context.update(self.analyze_atp_match(player1, player2))
+                else:
+                    context.update(self.analyze_wta_match(player1, player2))
+
+                context['player1'] = player1
+                context['player2'] = player2
+                context['tour'] = tour
+
+        return context
+
+    def detect_tour(self, player1, player2):
+        """Определяем, ATP или WTA"""
+        if hasattr(player1, 'atp_matches_won') or hasattr(player2, 'atp_matches_won'):
+            return 'ATP'
+        return 'WTA'
+
+    def analyze_atp_match(self, player1, player2):
+        """Анализ ATP матча"""
+        # Личные встречи
+        h2h_matches = TennisMatchATP.objects.filter(
+            (Q(winner=player1, loser=player2) | Q(winner=player2, loser=player1))
+        ).order_by('-date').select_related('tournament')
+
+        # Статистика по покрытиям для каждого игрока
+        player1_stats = self.get_player_stats_atp(player1)
+        player2_stats = self.get_player_stats_atp(player2)
+
+        # Текущая форма (последние 5 матчей)
+        player1_form = self.get_player_form_atp(player1)
+        player2_form = self.get_player_form_atp(player2)
+
+        # Распределение по покрытиям в личных встречах
+        h2h_by_surface = defaultdict(lambda: {'p1_wins': 0, 'p2_wins': 0, 'total': 0})
+        for match in h2h_matches:
+            surface = match.surface or 'Unknown'
+            if match.winner == player1:
+                h2h_by_surface[surface]['p1_wins'] += 1
+            else:
+                h2h_by_surface[surface]['p2_wins'] += 1
+            h2h_by_surface[surface]['total'] += 1
+
+        return {
+            'h2h_matches': h2h_matches[:10],
+            'h2h_total': h2h_matches.count(),
+            'h2h_p1_wins': h2h_matches.filter(winner=player1).count(),
+            'h2h_p2_wins': h2h_matches.filter(winner=player2).count(),
+            'h2h_by_surface': dict(h2h_by_surface),
+            'player1_stats': player1_stats,
+            'player2_stats': player2_stats,
+            'player1_form': player1_form,
+            'player2_form': player2_form,
+        }
+
+    def analyze_wta_match(self, player1, player2):
+        """Анализ WTA матча"""
+        h2h_matches = TennisMatchWTA.objects.filter(
+            (Q(winner=player1, loser=player2) | Q(winner=player2, loser=player1))
+        ).order_by('-date').select_related('tournament')
+
+        player1_stats = self.get_player_stats_wta(player1)
+        player2_stats = self.get_player_stats_wta(player2)
+
+        player1_form = self.get_player_form_wta(player1)
+        player2_form = self.get_player_form_wta(player2)
+
+        h2h_by_surface = defaultdict(lambda: {'p1_wins': 0, 'p2_wins': 0, 'total': 0})
+        for match in h2h_matches:
+            surface = match.surface or 'Unknown'
+            if match.winner == player1:
+                h2h_by_surface[surface]['p1_wins'] += 1
+            else:
+                h2h_by_surface[surface]['p2_wins'] += 1
+            h2h_by_surface[surface]['total'] += 1
+
+        return {
+            'h2h_matches': h2h_matches[:10],
+            'h2h_total': h2h_matches.count(),
+            'h2h_p1_wins': h2h_matches.filter(winner=player1).count(),
+            'h2h_p2_wins': h2h_matches.filter(winner=player2).count(),
+            'h2h_by_surface': dict(h2h_by_surface),
+            'player1_stats': player1_stats,
+            'player2_stats': player2_stats,
+            'player1_form': player1_form,
+            'player2_form': player2_form,
+        }
+
+    def get_player_stats_atp(self, player):
+        """Статистика ATP игрока по покрытиям"""
+        stats = {}
+        surfaces = ['Hard', 'Clay', 'Grass']
+
+        for surface in surfaces:
+            matches = TennisMatchATP.objects.filter(
+                (Q(winner=player) | Q(loser=player)),
+                surface=surface
+            )
+
+            total = matches.count()
+            if total > 0:
+                wins = matches.filter(winner=player).count()
+                stats[surface] = {
+                    'wins': wins,
+                    'losses': total - wins,
+                    'win_rate': round(wins / total * 100, 1)
+                }
+            else:
+                stats[surface] = {'wins': 0, 'losses': 0, 'win_rate': 0}
+
+        return stats
+
+    def get_player_stats_wta(self, player):
+        """Статистика WTA игрока по покрытиям"""
+        stats = {}
+        surfaces = ['Hard', 'Clay', 'Grass']
+
+        for surface in surfaces:
+            matches = TennisMatchWTA.objects.filter(
+                (Q(winner=player) | Q(loser=player)),
+                surface=surface
+            )
+
+            total = matches.count()
+            if total > 0:
+                wins = matches.filter(winner=player).count()
+                stats[surface] = {
+                    'wins': wins,
+                    'losses': total - wins,
+                    'win_rate': round(wins / total * 100, 1)
+                }
+            else:
+                stats[surface] = {'wins': 0, 'losses': 0, 'win_rate': 0}
+
+        return stats
+
+    def get_player_form_atp(self, player, limit=5):
+        """Последние 5 матчей ATP игрока"""
+        matches = TennisMatchATP.objects.filter(
+            Q(winner=player) | Q(loser=player)
+        ).order_by('-date')[:limit]
+
+        form = []
+        for match in matches:
+            is_winner = match.winner == player
+            opponent = match.loser if is_winner else match.winner
+            score = f"{match.wsets}:{match.lsets}" if is_winner else f"{match.lsets}:{match.wsets}"
+
+            form.append({
+                'date': match.date,
+                'tournament': match.tournament.name,
+                'surface': match.surface,
+                'opponent': opponent.name,
+                'result': 'W' if is_winner else 'L',
+                'score': score,
+                'odds': match.b365w if is_winner else match.b365l
+            })
+
+        return form
+
+    def get_player_form_wta(self, player, limit=5):
+        """Последние 5 матчей WTA игрока"""
+        matches = TennisMatchWTA.objects.filter(
+            Q(winner=player) | Q(loser=player)
+        ).order_by('-date')[:limit]
+
+        form = []
+        for match in matches:
+            is_winner = match.winner == player
+            opponent = match.loser if is_winner else match.winner
+            score = f"{match.wsets}:{match.lsets}" if is_winner else f"{match.lsets}:{match.wsets}"
+
+            form.append({
+                'date': match.date,
+                'tournament': match.tournament.name,
+                'surface': match.surface,
+                'opponent': opponent.name,
+                'result': 'W' if is_winner else 'L',
+                'score': score,
+                'odds': match.b365w if is_winner else match.b365l
+            })
+
+        return form

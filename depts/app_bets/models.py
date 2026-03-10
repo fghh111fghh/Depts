@@ -1154,3 +1154,94 @@ class PositionChoice(models.TextChoices):
     HOME = 'home', 'Хозяева'
     AWAY = 'away', 'Гости'
     BOTH = 'both', 'Обе команды'
+
+
+
+class Tournament(models.Model):
+    """Турнир"""
+    name = models.CharField(max_length=200, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Player(models.Model):
+    """Игрок"""
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class TennisMatchATP(models.Model):
+    """Теннисный матч ATP"""
+
+    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE)
+    date = models.DateField()
+    series = models.CharField(max_length=50, blank=True)
+    surface = models.CharField(max_length=20, blank=True)
+    round = models.CharField(max_length=50, blank=True)
+    best_of = models.PositiveSmallIntegerField()
+
+    winner = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='atp_matches_won')
+    loser = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='atp_matches_lost')
+
+    winner_rank = models.PositiveIntegerField(null=True, blank=True)
+    loser_rank = models.PositiveIntegerField(null=True, blank=True)
+
+    w1 = models.PositiveSmallIntegerField(null=True, blank=True)
+    l1 = models.PositiveSmallIntegerField(null=True, blank=True)
+    w2 = models.PositiveSmallIntegerField(null=True, blank=True)
+    l2 = models.PositiveSmallIntegerField(null=True, blank=True)
+    w3 = models.PositiveSmallIntegerField(null=True, blank=True)
+    l3 = models.PositiveSmallIntegerField(null=True, blank=True)
+    w4 = models.PositiveSmallIntegerField(null=True, blank=True)
+    l4 = models.PositiveSmallIntegerField(null=True, blank=True)
+    w5 = models.PositiveSmallIntegerField(null=True, blank=True)
+    l5 = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    wsets = models.PositiveSmallIntegerField()
+    lsets = models.PositiveSmallIntegerField()
+
+    comment = models.CharField(max_length=50, blank=True)
+
+    b365w = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    b365l = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        unique_together = ['tournament', 'winner', 'loser', 'date']
+
+
+class TennisMatchWTA(models.Model):
+    """Теннисный матч WTA"""
+
+    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE)
+    date = models.DateField()
+    tier = models.CharField(max_length=50, blank=True)
+    surface = models.CharField(max_length=20, blank=True)
+    round = models.CharField(max_length=50, blank=True)
+    best_of = models.PositiveSmallIntegerField()
+
+    winner = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='wta_matches_won')
+    loser = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='wta_matches_lost')
+
+    winner_rank = models.PositiveIntegerField(null=True, blank=True)
+    loser_rank = models.PositiveIntegerField(null=True, blank=True)
+
+    w1 = models.PositiveSmallIntegerField(null=True, blank=True)
+    l1 = models.PositiveSmallIntegerField(null=True, blank=True)
+    w2 = models.PositiveSmallIntegerField(null=True, blank=True)
+    l2 = models.PositiveSmallIntegerField(null=True, blank=True)
+    w3 = models.PositiveSmallIntegerField(null=True, blank=True)
+    l3 = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    wsets = models.PositiveSmallIntegerField()
+    lsets = models.PositiveSmallIntegerField()
+
+    comment = models.CharField(max_length=50, blank=True)
+
+    b365w = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    b365l = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        unique_together = ['tournament', 'winner', 'loser', 'date']

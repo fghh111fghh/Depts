@@ -38,6 +38,10 @@ BETS_MENU_ITEMS = [
         'title': 'Сигналы по КФ',
         'url_name': 'app_bets:signals_for_odds',
     },
+{
+        'title': 'Теннис',
+        'url_name': 'app_bets:tennis',
+    },
 ]
 
 def bets_menu(request):
